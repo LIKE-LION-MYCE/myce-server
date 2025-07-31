@@ -1,19 +1,17 @@
 package com.myce.payment.entity;
 
-import com.myce.payment.entity.code.RefundStatus;
+import com.myce.payment.entity.type.RefundStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "refund")
-@Getter
-@Setter
+@Entity @Getter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "refund")
+@EntityListeners(AuditingEntityListener.class)
 public class Refund {
 
     @Id
@@ -26,22 +24,33 @@ public class Refund {
     private Payment payment;
 
     @Column(name = "refund_amount", nullable = false)
-    private Integer refundAmount;
+    private Integer amount;
 
-    @Column(name = "refund_reason", length = 255)
-    private String refundReason;
+    @Column(name = "refund_reason", columnDefinition = "TEXT")
+    private String reason;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 50, nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(50)")
     private RefundStatus status;
 
-    @Column(name = "is_partial")
+    @Column(name = "is_partial", nullable = false, columnDefinition = "TINYINT")
     private Boolean isPartial;
 
-    @Column(name = "refunded_at")
+    @Column(name = "refunded_at", columnDefinition = "TIMESTAMP")
     private LocalDateTime refundedAt;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
+
+    @Builder
+    public Refund(Payment payment, Integer amount, String reason,
+                  RefundStatus status, Boolean isPartial, LocalDateTime refundedAt) {
+        this.payment = payment;
+        this.amount = amount;
+        this.reason = reason;
+        this.status = status;
+        this.isPartial = isPartial;
+        this.refundedAt = refundedAt;
+    }
 }

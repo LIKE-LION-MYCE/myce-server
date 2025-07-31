@@ -3,14 +3,16 @@ package com.myce.expo.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
-@Entity
-@Table(name = "admin_code")
-@Getter
-@Setter
+@Entity @Getter
 @NoArgsConstructor
+@Table(name = "admin_code")
+@EntityListeners(AuditingEntityListener.class)
 public class AdminCode {
 
     @Id
@@ -18,9 +20,8 @@ public class AdminCode {
     @Column(name = "admin_code_id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "expo_id", nullable = false)
-    private Expo expo;
+    @Column(name = "expo_id", nullable = false)
+    private Long expoId;
 
     @Column(name = "code", length = 20, nullable = false)
     private String code;
@@ -32,14 +33,23 @@ public class AdminCode {
     private LocalDateTime expiredAt;
 
     @CreationTimestamp
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "adminCode")
+    private List<Permission> permissions;
+
     @Builder
-    public AdminCode(Expo expo, String code, String issuedBy, LocalDateTime expiredAt) {
-        this.expo = expo;
+    public AdminCode(Long expoId, String code, String issuedBy, LocalDateTime expiredAt) {
+        this.expoId = expoId;
         this.code = code;
         this.issuedBy = issuedBy;
         this.expiredAt = expiredAt;
+        this.permissions = new ArrayList<>();
+    }
+
+    public void addPermission(Permission permission) {
+        permission.setAdminCode(this);
+        this.permissions.add(permission);
     }
 }

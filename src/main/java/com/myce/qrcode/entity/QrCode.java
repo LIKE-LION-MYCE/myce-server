@@ -5,16 +5,14 @@ import com.myce.reservation.entity.Reserver;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "qr_code")
-@Getter
-@Setter
+@Entity @Getter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "qr_code")
+@EntityListeners(AuditingEntityListener.class)
 public class QrCode {
 
     @Id
@@ -22,24 +20,34 @@ public class QrCode {
     @Column(name = "qr_code_id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reserver_id")
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reserver_id", nullable = false)
     private Reserver reserver;
 
-    @Column(name = "qr_token", length = 255)
+    @Column(name = "qr_token", length = 500, nullable = false)
     private String qrToken;
 
-    @Column(name = "qr_image_url", length = 255)
+    @Column(name = "qr_image_url", length = 500, nullable = false)
     private String qrImageUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 20)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(20)")
     private QrCodeStatus status;
 
+    @Column(name = "used_at", columnDefinition = "TIMESTAMP")
+    private LocalDateTime usedAt;
+
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
-    @Column(name = "used_at")
-    private LocalDateTime usedAt;
+    @Builder
+    public QrCode(Reserver reserver, String qrToken,
+                  String qrImageUrl, QrCodeStatus status, LocalDateTime usedAt) {
+        this.reserver = reserver;
+        this.qrToken = qrToken;
+        this.qrImageUrl = qrImageUrl;
+        this.status = status;
+        this.usedAt = usedAt;
+    }
 }

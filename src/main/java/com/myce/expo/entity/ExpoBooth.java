@@ -4,14 +4,14 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "expo_booth")
-@Getter
-@Setter
+@Getter @Entity
 @NoArgsConstructor
+@Table(name = "expo_booth")
+@EntityListeners(AuditingEntityListener.class)
 public class ExpoBooth {
 
     @Id
@@ -23,39 +23,39 @@ public class ExpoBooth {
     @JoinColumn(name = "expo_id", nullable = false)
     private Expo expo;
 
-    @Column(name = "booth_number", length = 255)
+    @Column(name = "booth_number", length = 30, nullable = false)
     private String boothNumber;
 
-    @Column(name = "name", length = 255, nullable = false)
+    @Column(name = "name", length = 100, nullable = false)
     private String name;
 
-    @Column(name = "description", columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "TEXT", nullable = false)
     private String description;
 
-    @Column(name = "main_image_url", length = 500)
+    @Column(name = "main_image_url", length = 500, nullable = false)
     private String mainImageUrl;
 
-    @Column(name = "contact_name", length = 30)
+    @Column(name = "contact_name", length = 30, nullable = false)
     private String contactName;
 
-    @Column(name = "contact_phone", length = 11)
+    @Column(name = "contact_phone", length = 13, nullable = false)
     private String contactPhone;
 
-    @Column(name = "contact_email", length = 100)
+    @Column(name = "contact_email", length = 100, nullable = false)
     private String contactEmail;
 
-    @Column(name = "is_premium")
+    @Column(name = "is_premium", columnDefinition = "TINYINT(1)", nullable = false)
     private Boolean isPremium;
 
-    @Column(name = "display_rank")
+    @Column(name = "display_rank", nullable = false)
     private Integer displayRank;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP", nullable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP", nullable = false)
     private LocalDateTime updatedAt;
 
     @Builder

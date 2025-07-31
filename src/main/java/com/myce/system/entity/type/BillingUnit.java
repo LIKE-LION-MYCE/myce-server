@@ -1,4 +1,4 @@
-package com.myce.system.entity.code;
+package com.myce.system.entity.type;
 
 public enum BillingUnit {
     FIXED,    // 고정 금액 (예: 원화)

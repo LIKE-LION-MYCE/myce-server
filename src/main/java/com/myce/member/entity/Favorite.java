@@ -4,14 +4,14 @@ import com.myce.expo.entity.Expo;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "favorite")
-@Getter
-@Setter
+@Entity @Getter
 @NoArgsConstructor
+@Table(name = "favorite")
+@EntityListeners(AuditingEntityListener.class)
 public class Favorite {
 
     @Id
@@ -28,7 +28,7 @@ public class Favorite {
     private Expo expo;
 
     @CreationTimestamp
-    @Column(name = "created_at")
+    @Column(name = "created_at", columnDefinition = "TIMESTAMP", nullable = false)
     private LocalDateTime createdAt;
 
     @Builder

@@ -1,4 +1,4 @@
-package com.myce.advertisement.entity.code;
+package com.myce.advertisement.entity.type;
 
 public enum AdvertisementStatus {
     PENDING_APPROVAL,  // 관리자 승인 대기

@@ -1,4 +1,4 @@
-package com.myce.payment.entity.code;
+package com.myce.payment.entity.type;
 
 public enum PaymentMethod {
     CARD,
