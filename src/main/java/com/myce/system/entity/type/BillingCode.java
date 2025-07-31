@@ -1,4 +1,4 @@
-package com.myce.system.entity.code;
+package com.myce.system.entity.type;
 
 public enum BillingCode {
     REGISTRATION_FEE,     // 등록금

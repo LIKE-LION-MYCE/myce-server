@@ -1,21 +1,21 @@
 package com.myce.member.entity;
 
-import com.myce.member.entity.code.FontSize;
-import com.myce.member.entity.code.Language;
+import com.myce.member.entity.type.FontSize;
+import com.myce.member.entity.type.Language;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.Builder;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Getter
-@Setter
+@Entity @Getter
 @NoArgsConstructor
 @Table(name = "settings")
+@EntityListeners(AuditingEntityListener.class)
 public class Settings {
 
     @Id
@@ -28,30 +28,21 @@ public class Settings {
     private Member member;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "language", length = 10, nullable = false)
+    @Column(name = "language", nullable = false, columnDefinition = "VARCHAR(10)")
     private Language language;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "font_size", length = 20, nullable = false)
+    @Column(name = "font_size", nullable = false, columnDefinition = "VARCHAR(20)")
     private FontSize fontSize;
 
-    @Column(name = "is_receive_email")
-    private Boolean isReceiveEmail;
-
-    @Column(name = "is_receive_push")
-    private Boolean isReceivePush;
-
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
     @Builder
-    public Settings(Member member, Language language, FontSize fontSize,
-                    Boolean isReceiveEmail, Boolean isReceivePush) {
+    public Settings(Member member, Language language, FontSize fontSize) {
         this.member = member;
         this.language = language;
         this.fontSize = fontSize;
-        this.isReceiveEmail = isReceiveEmail;
-        this.isReceivePush = isReceivePush;
     }
 }

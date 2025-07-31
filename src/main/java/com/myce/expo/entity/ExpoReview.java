@@ -5,16 +5,14 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "expo_review")
-@Getter
-@Setter
+@Getter @Entity
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "expo_review")
+@EntityListeners(AuditingEntityListener.class)
 public class ExpoReview {
 
     @Id
@@ -30,17 +28,29 @@ public class ExpoReview {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
+    @Column(name = "title", length = 100, nullable = false)
+    private String title;
+
     @Column(name = "content", columnDefinition = "TEXT", nullable = false)
     private String content;
 
     @Column(name = "rating", nullable = false)
-    private Integer rating; // 1~5 정수로 제한하려면 유효성 검사 추가 필요
+    private Integer rating;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP", nullable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP", nullable = false)
     private LocalDateTime updatedAt;
+
+    public ExpoReview(Expo expo, Member member, String title, String content, Integer rating) {
+        this.expo = expo;
+        this.member = member;
+        this.title = title;
+        this.content = content;
+        this.rating = rating;
+    }
+
 }

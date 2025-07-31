@@ -1,63 +1,78 @@
 package com.myce.expo.entity;
 
-import com.myce.expo.entity.code.TargetType;
+import com.myce.expo.entity.type.TargetType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "business_profile")
-@Getter
-@Setter
+@Entity @Getter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "business_profile")
+@EntityListeners(AuditingEntityListener.class)
 public class BusinessProfile {
 
     @Id
-    @Column(name = "business_profile_id", length = 255)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "business_profile_id")
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "expo_id", nullable = false)
     private Expo expo;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "target_type", length = 20)
+    @Column(name = "target_type", nullable = false, columnDefinition = "VARCHAR(20)")
     private TargetType targetType;
 
-    @Column(name = "target_id")
+    @Column(name = "target_id", nullable = false)
     private Long targetId;
 
     @Column(name = "company_name", length = 100, nullable = false)
     private String companyName;
 
-    @Column(name = "ceo_name", length = 100)
+    @Column(name = "ceo_name", length = 20, nullable = false)
     private String ceoName;
 
-    @Column(name = "address", length = 255)
+    @Column(name = "address", length = 300, nullable = false)
     private String address;
 
-    @Column(name = "contact_phone", length = 30)
+    @Column(name = "contact_phone", length = 13, nullable = false)
     private String contactPhone;
 
-    @Column(name = "contact_email", length = 100)
+    @Column(name = "contact_email", length = 100, nullable = false)
     private String contactEmail;
 
-    @Column(name = "business_registration_number", length = 50)
+    @Column(name = "business_registration_number", length = 20, nullable = false)
     private String businessRegistrationNumber;
 
-    @Column(name = "logo_url", length = 255)
-    private String logoUrl;
-
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", updatable = false, nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
+
+
+    @Builder
+    public BusinessProfile(Expo expo, TargetType targetType, Long targetId, String companyName,
+                           String address, String ceoName, String contactEmail, String contactPhone,
+                            String businessRegistrationNumber) {
+        this.expo = expo;
+        this.targetType = targetType;
+        this.targetId = targetId;
+        this.companyName = companyName;
+        this.address = address;
+        this.ceoName = ceoName;
+        this.contactEmail = contactEmail;
+        this.contactPhone = contactPhone;
+        this.businessRegistrationNumber = businessRegistrationNumber;
+
+    }
+
 }
+

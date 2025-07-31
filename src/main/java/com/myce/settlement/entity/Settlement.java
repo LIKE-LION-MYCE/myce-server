@@ -32,36 +32,51 @@ public class Settlement {
     @JoinColumn(name = "admin_member_id")
     private Member adminMember;
 
-    @Column(name = "total_amount", nullable = false)
+    @Column(name = "total_amount")
     private Long totalAmount;
 
-    @Column(name = "supply_amount", nullable = false)
+    @Column(name = "supply_amount")
     private Long supplyAmount;
 
-    @Column(name = "settle_amount", nullable = false)
+    @Column(name = "settle_amount")
     private Long settleAmount;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "settlement_status", length = 50, nullable = false)
+    @Column(name = "settlement_status", nullable = false, columnDefinition = "VARCHAR(50)")
     private SettlementStatus settlementStatus;
 
-    @Column(name = "settlement_at")
+    @Column(name = "settlement_at", columnDefinition = "TIMESTAMP")
     private LocalDateTime settlementAt;
 
-    @Column(name = "receiver_name")
+    @Column(name = "receiver_name", nullable = false, length = 100)
     private String receiverName;
 
-    @Column(name = "bank_name", length = 10)
+    @Column(name = "bank_name", nullable = false, length = 10)
     private String bankName;
 
-    @Column(name = "bank_account", length = 50)
+    @Column(name = "bank_account", nullable = false, length = 50)
     private String bankAccount;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
+
+    public Settlement(Expo expo, Member adminMember, Long totalAmount, Long supplyAmount, Long settleAmount,
+                      SettlementStatus settlementStatus, LocalDateTime settlementAt, String receiverName,
+                      String bankName, String bankAccount) {
+        this.expo = expo;
+        this.adminMember = adminMember;
+        this.totalAmount = totalAmount;
+        this.supplyAmount = supplyAmount;
+        this.settleAmount = settleAmount;
+        this.settlementStatus = settlementStatus;
+        this.settlementAt = settlementAt;
+        this.receiverName = receiverName;
+        this.bankName = bankName;
+        this.bankAccount = bankAccount;
+    }
 }

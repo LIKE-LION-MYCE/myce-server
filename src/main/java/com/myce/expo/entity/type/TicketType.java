@@ -1,4 +1,4 @@
-package com.myce.expo.entity.code;
+package com.myce.expo.entity.type;
 
 public enum TicketType {
     EARLY_BIRD, GENERAL;

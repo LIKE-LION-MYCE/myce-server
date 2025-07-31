@@ -1,8 +1,8 @@
 package com.myce.system.entity;
 
-import com.myce.system.entity.code.BillingCode;
-import com.myce.system.entity.code.BillingTargetType;
-import com.myce.system.entity.code.BillingUnit;
+import com.myce.system.entity.type.BillingCode;
+import com.myce.system.entity.type.BillingTargetType;
+import com.myce.system.entity.type.BillingUnit;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -11,13 +11,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "billing_setting")
-@Getter
-@Setter
+@Entity @Getter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "billing_setting")
 public class BillingSetting {
 
     @Id
@@ -26,34 +22,47 @@ public class BillingSetting {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "target_type", length = 10, nullable = false)
+    @Column(name = "target_type", nullable = false, columnDefinition = "VARCHAR(20)")
     private BillingTargetType targetType;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "code", length = 50, nullable = false)
+    @Column(name = "code", nullable = false, columnDefinition = "VARCHAR(50)")
     private BillingCode code;
 
-    @Column(name = "name", length = 100)
+    @Column(name = "name", length = 100, nullable = false, unique = true)
     private String name;
 
-    @Column(name = "billing_message", length = 100)
+    @Column(name = "billing_message", length = 100, nullable = false)
     private String billingMessage;
 
     @Column(name = "amount", precision = 10, scale = 2, nullable = false)
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "unit", length = 20, nullable = false)
+    @Column(name = "unit", nullable = false, columnDefinition = "VARCHAR(10)")
     private BillingUnit unit;
 
-    @Column(name = "active")
-    private Boolean active = true;
+    @Column(name = "is_active", nullable = false, columnDefinition = "TINYINT(1)")
+    private Boolean isActive;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
+
+    @Builder
+    public BillingSetting(BillingTargetType targetType, BillingCode code,
+                          String name, String billingMessage,
+                          BigDecimal amount, BillingUnit unit, Boolean isActive) {
+        this.targetType = targetType;
+        this.code = code;
+        this.name = name;
+        this.billingMessage = billingMessage;
+        this.amount = amount;
+        this.unit = unit;
+        this.isActive = isActive;
+    }
 }
