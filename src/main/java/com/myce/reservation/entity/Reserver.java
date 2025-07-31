@@ -1,5 +1,6 @@
 package com.myce.reservation.entity;
 
+import com.myce.member.entity.type.Gender;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -28,7 +29,7 @@ public class Reserver {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", nullable = false, columnDefinition = "VARCHAR(6)")
-    private String gender;
+    private Gender gender;
 
     @Column(name = "phone", length = 13, nullable = false)
     private String phone;
@@ -46,7 +47,7 @@ public class Reserver {
 
     @Builder
     public Reserver(Reservation reservation, String name,
-                    String gender, String phone, String email) {
+                    Gender gender, String phone, String email) {
         this.reservation = reservation;
         this.name = name;
         this.gender = gender;
