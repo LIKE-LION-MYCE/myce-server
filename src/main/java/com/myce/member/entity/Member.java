@@ -1,5 +1,6 @@
 package com.myce.member.entity;
 
+import com.myce.member.entity.type.Gender;
 import com.myce.member.entity.type.ProviderType;
 import com.myce.member.entity.type.Role;
 import jakarta.persistence.*;
@@ -47,7 +48,7 @@ public class Member {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", nullable = false, columnDefinition = "VARCHAR(6)")
-    private String gender;
+    private Gender gender;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false, columnDefinition = "VARCHAR(20)")
@@ -72,7 +73,7 @@ public class Member {
 
     @Builder
     public Member(MemberGrade memberGrade, String name, String loginId, String password,
-                  String email, LocalDate birth, Role role, String gender,
+                  String email, LocalDate birth, Role role, Gender gender,
                   ProviderType providerType, String providerId, Integer mileage, Boolean isDeleted) {
         this.memberGrade = memberGrade;
         this.name = name;
