@@ -143,8 +143,6 @@ Temporary Items
 # iCloud generated files
 *.icloud
 
-application.properties
-
 # Ignore all .env files
 .env
 .env.*
@@ -153,4 +151,13 @@ application.properties
 
 # Claude Code configuration
 CLAUDE.md
+
+# Gradle
 .gradle/
+build/
+out/
+gradle/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+gradle.lockfile
+*.gradle.local
