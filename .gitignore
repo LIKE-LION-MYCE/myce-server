@@ -153,3 +153,4 @@ application.properties
 
 # Claude Code configuration
 CLAUDE.md
+.gradle/
