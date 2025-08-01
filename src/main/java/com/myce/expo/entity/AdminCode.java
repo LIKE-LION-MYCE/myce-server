@@ -29,7 +29,7 @@ public class AdminCode {
     @Column(name = "issued_by", length = 20, nullable = false)
     private String issuedBy;
 
-    @Column(name = "expired_at", nullable = false)
+    @Column(name = "expired_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime expiredAt;
 
     @CreationTimestamp

@@ -32,7 +32,7 @@ public class Ticket {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", length = 20, nullable = false)
+    @Column(name = "type", nullable = false, columnDefinition = "VARCHAR(20)")
     private TicketType type;
 
     @Column(name = "price", nullable = false)
