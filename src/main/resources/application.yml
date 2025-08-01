@@ -45,7 +45,7 @@ spring:
   logging:
     level:
       root: info
-      com.jobdam: debug
+      com.myce: debug
   datasource:   # MySQL
     url: ${DB_URL}
     username: ${DB_USERNAME}
