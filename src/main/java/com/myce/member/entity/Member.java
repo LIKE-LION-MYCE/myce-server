@@ -1,18 +1,21 @@
 package com.myce.member.entity;
 
+import com.myce.member.entity.type.Gender;
+import com.myce.member.entity.type.ProviderType;
+import com.myce.member.entity.type.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "member")
-@Getter
-@Setter
+@Entity @Getter
 @NoArgsConstructor
+@Table(name = "member")
+@EntityListeners(AuditingEntityListener.class)
 public class Member {
 
     @Id
@@ -24,51 +27,54 @@ public class Member {
     @JoinColumn(name = "member_grade_id", nullable = false)
     private MemberGrade memberGrade;
 
-    @Column(name = "name", length = 10)
+    @Column(name = "name", length = 10, nullable = false)
     private String name;
 
-    @Column(name = "login_id", length = 20)
+    @Column(name = "login_id", length = 20, nullable = false)
     private String loginId;
 
-    @Column(name = "password", length = 50)
+    @Column(name = "password", length = 200, nullable = false)
     private String password;
 
-    @Column(name = "email", length = 100)
+    @Column(name = "email", length = 100, nullable = false)
     private String email;
 
-    @Column(name = "birth")
+    @Column(name = "birth", nullable = false)
     private LocalDate birth;
 
-    @Column(name = "role", length = 20)
-    private String role; // 또는 Enum 사용 시 EnumType.STRING
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, columnDefinition = "VARCHAR(20)")
+    private Role role;
 
-    @Column(name = "gender", length = 10)
-    private String gender; // 또는 Enum 사용 시 EnumType.STRING
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", nullable = false, columnDefinition = "VARCHAR(6)")
+    private Gender gender;
 
-    @Column(name = "provider", length = 20)
-    private String provider;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provider", nullable = false, columnDefinition = "VARCHAR(20)")
+    private ProviderType providerType;
 
-    @Column(name = "provider_id", length = 100)
+    @Column(name = "provider_id", length = 100, nullable = false)
     private String providerId;
 
+    @Column(name = "mileage", nullable = false)
+    private Integer mileage;
+
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "TINYINT(1)")
+    private Boolean isDeleted;
+
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
-
-    @Column(name = "mileage")
-    private Integer mileage;
-
-    @Column(name = "is_deleted")
-    private Boolean isDeleted;
 
     @Builder
     public Member(MemberGrade memberGrade, String name, String loginId, String password,
-                  String email, LocalDate birth, String role, String gender,
-                  String provider, String providerId, Integer mileage, Boolean isDeleted) {
+                  String email, LocalDate birth, Role role, Gender gender,
+                  ProviderType providerType, String providerId, Integer mileage, Boolean isDeleted) {
         this.memberGrade = memberGrade;
         this.name = name;
         this.loginId = loginId;
@@ -77,7 +83,7 @@ public class Member {
         this.birth = birth;
         this.role = role;
         this.gender = gender;
-        this.provider = provider;
+        this.providerType = providerType;
         this.providerId = providerId;
         this.mileage = mileage;
         this.isDeleted = isDeleted;

@@ -1,22 +1,20 @@
 package com.myce.advertisement.entity;
 
 import com.myce.member.entity.Member;
-import com.myce.advertisement.entity.code.AdvertisementStatus;
+import com.myce.advertisement.entity.type.AdvertisementStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "advertisement")
-@Getter
-@Setter
+@Entity @Getter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "advertisement")
+@EntityListeners(AuditingEntityListener.class)
 public class Advertisement {
 
     @Id
@@ -31,13 +29,13 @@ public class Advertisement {
     @Column(name = "title", length = 100, nullable = false)
     private String title;
 
-    @Column(name = "description", columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "TEXT", nullable = false)
     private String description;
 
-    @Column(name = "image_url", length = 255, nullable = false)
+    @Column(name = "image_url", length = 500, nullable = false)
     private String imageUrl;
 
-    @Column(name = "link_url", length = 500)
+    @Column(name = "link_url", length = 500, nullable = false)
     private String linkUrl;
 
     @Column(name = "exposure_position", length = 50, nullable = false)
@@ -50,14 +48,29 @@ public class Advertisement {
     private LocalDate displayEndDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 50, nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(50)")
     private AdvertisementStatus status;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
+
+    @Builder
+    public Advertisement(Member member, String title, String description, String imageUrl,
+                         String linkUrl, String exposurePosition, LocalDate displayStartDate,
+                         LocalDate displayEndDate, AdvertisementStatus status) {
+        this.member = member;
+        this.title = title;
+        this.description = description;
+        this.imageUrl = imageUrl;
+        this.linkUrl = linkUrl;
+        this.exposurePosition = exposurePosition;
+        this.displayStartDate = displayStartDate;
+        this.displayEndDate = displayEndDate;
+        this.status = status;
+    }
 }
