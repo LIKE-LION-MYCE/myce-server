@@ -6,21 +6,27 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
-@Document(collection = "access_logs")
+
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Document(collection = "access_logs")
 public class AccessLog {
 
     @Id
-    private String id; // MongoDB의 기본 ID
+    private String id;
+    private String memberType;
+    private Long memberId;
+    private String memberLoginId;
+    private String memberAgent;
+    private LocalDateTime createdAt;
 
-    private String memberType;       // 관리자, 사용자 등
-    private Long memberId;           // 접속한 사용자 ID
-    private String memberLoginId;    // 로그인 ID
-    private String memberAgent;      // 브라우저/디바이스 정보
-    private LocalDateTime accessedAt; // 접속 시각
+    @Builder
+    public AccessLog(String memberType, Long memberId, String memberLoginId, String memberAgent) {
+        this.memberType = memberType;
+        this.memberId = memberId;
+        this.memberLoginId = memberLoginId;
+        this.memberAgent = memberAgent;
+        this.createdAt = LocalDateTime.now();
+    }
 }
 

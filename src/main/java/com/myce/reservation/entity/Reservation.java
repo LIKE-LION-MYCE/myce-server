@@ -11,14 +11,14 @@ import lombok.NoArgsConstructor;
 import lombok.Builder;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Getter
-@Setter
+@Entity @Getter
 @NoArgsConstructor
 @Table(name = "reservation")
+@EntityListeners(AuditingEntityListener.class)
 public class Reservation {
 
     @Id
@@ -41,22 +41,22 @@ public class Reservation {
     @Column(name = "reservation_code", length = 30, nullable = false)
     private String reservationCode;
 
-    @Column(name = "is_member", nullable = false)
+    @Column(name = "is_member", nullable = false, columnDefinition = "TINYINT(1)")
     private Boolean isMember;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 20)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(30)")
     private ReservationStatus status;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
     @Builder

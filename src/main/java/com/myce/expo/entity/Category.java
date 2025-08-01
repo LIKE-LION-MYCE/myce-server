@@ -4,16 +4,14 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "category")
-@Getter
-@Setter
+@Getter @Entity
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "category")
+@EntityListeners(AuditingEntityListener.class)
 public class Category {
 
     @Id
@@ -21,17 +19,25 @@ public class Category {
     @Column(name = "category_id")
     private Long id;
 
-    @Column(name = "category_code", length = 50, nullable = false)
-    private String categoryCode;
+    @Column(name = "category_code", length = 100, nullable = false)
+    private String code;
 
     @Column(name = "category_name", length = 100, nullable = false)
-    private String categoryName;
+    private String name;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", updatable = false, nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
+
+    @Builder
+    public Category(String code, String name) {
+        this.code = code;
+        this.name = name;
+    }
+
+
 }
