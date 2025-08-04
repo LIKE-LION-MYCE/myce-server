@@ -1,0 +1,66 @@
+package com.myce.payment.entity;
+
+import com.myce.expo.entity.Expo;
+import com.myce.payment.entity.type.PaymentStatus;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity @Getter
+@NoArgsConstructor
+@Table(name = "expo_payment_info")
+@EntityListeners(AuditingEntityListener.class)
+public class ExpoPaymentInfo {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "expo_payment_info_id")
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "expo_id", nullable = false)
+    private Expo expo;
+
+    @Column(name = "status", length = 100, nullable = false, columnDefinition = "VARCHAR(30)")
+    private PaymentStatus status;
+
+    @Column(name = "deposit", nullable = false)
+    private Integer deposit;
+
+    @Column(name = "premium_deposit", nullable = false)
+    private Integer premiumDeposit;
+
+    @Column(name = "total_day", nullable = false)
+    private Integer totalDay;
+
+    @Column(name = "daily_usage_fee", nullable = false)
+    private Integer dailyUsageFee;
+
+    @Column(name = "total_amount", nullable = false)
+    private Integer totalAmount;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
+    private LocalDateTime updatedAt;
+
+    @Builder
+    public ExpoPaymentInfo(Expo expo, PaymentStatus status, Integer deposit, Integer premiumDeposit,
+                           Integer totalDay, Integer dailyUsageFee, Integer totalAmount) {
+        this.expo = expo;
+        this.status = status;
+        this.deposit = deposit;
+        this.premiumDeposit = premiumDeposit;
+        this.totalDay = totalDay;
+        this.dailyUsageFee = dailyUsageFee;
+        this.totalAmount = totalAmount;
+    }
+}

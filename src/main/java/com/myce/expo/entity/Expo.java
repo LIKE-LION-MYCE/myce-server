@@ -31,8 +31,8 @@ public class Expo {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    @Column(name = "expo_title", length = 100, nullable = false)
-    private String expoTitle;
+    @Column(name = "title", length = 100, nullable = false)
+    private String title;
 
     @Column(name = "thumbnail_url", length = 500, nullable = false)
     private String thumbnailUrl;
@@ -62,14 +62,11 @@ public class Expo {
     @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(50)")
     private ExpoStatus status;
 
-    @Column(name = "reject_reason", columnDefinition = "TEXT", nullable = false)
-    private String rejectReason;
+    @Column(name = "display_start_date", nullable = false, columnDefinition = "TIMESTAMP")
+    private LocalDateTime displayStartDate;
 
-    @Column(name = "display_start_date", nullable = false)
-    private LocalDate displayStartDate;
-
-    @Column(name = "display_end_date", nullable = false)
-    private LocalDate displayEndDate;
+    @Column(name = "display_end_date", nullable = false, columnDefinition = "TIMESTAMP")
+    private LocalDateTime displayEndDate;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false, columnDefinition = "TIMESTAMP")
@@ -80,13 +77,13 @@ public class Expo {
     private LocalDateTime updatedAt;
 
     @Builder
-    public Expo(Member member, Category category, String expoTitle, String thumbnailUrl, String description,
+    public Expo(Member member, Category category, String title, String thumbnailUrl, String description,
                 String location, Integer maxReserverCount, BigDecimal latitude, BigDecimal longitude,
                 LocalDate startDate, LocalDate endDate, ExpoStatus status,
-                LocalDate displayStartDate, LocalDate displayEndDate) {
+                LocalDateTime displayStartDate, LocalDateTime displayEndDate) {
         this.member = member;
         this.category = category;
-        this.expoTitle = expoTitle;
+        this.title = title;
         this.thumbnailUrl = thumbnailUrl;
         this.description = description;
         this.location = location;

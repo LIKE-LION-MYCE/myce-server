@@ -9,7 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity @Getter
-@Table(name = "template_setting")
+@Table(name = "system_template")
 @NoArgsConstructor
 public class TemplateSetting {
 
@@ -18,8 +18,11 @@ public class TemplateSetting {
     @Column(name = "template_setting_id")
     private Long id;
 
-    @Column(name = "title", length = 50, nullable = false)
-    private String title;
+    @Column(name = "editor_name", length = 50, nullable = true)
+    private String editorName;
+
+    @Column(name = "name", length = 50, nullable = false)
+    private String name;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "channel_type", nullable = false, columnDefinition = "VARCHAR(20)")
@@ -36,8 +39,10 @@ public class TemplateSetting {
     @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
-    public TemplateSetting(String title, ChannelType channelType, String message) {
-        this.title = title;
+    @Builder
+    public TemplateSetting(String editorName, String name, ChannelType channelType, String message) {
+        this.editorName = editorName;
+        this.name = name;
         this.channelType = channelType;
         this.message = message;
     }
