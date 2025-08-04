@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Table(name = "expo_booth")
 @EntityListeners(AuditingEntityListener.class)
-public class ExpoBooth {
+public class Booth {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -59,9 +59,9 @@ public class ExpoBooth {
     private LocalDateTime updatedAt;
 
     @Builder
-    public ExpoBooth(Expo expo, String boothNumber, String name, String description,
-                     String mainImageUrl, String contactName, String contactPhone,
-                     String contactEmail, Boolean isPremium, Integer displayRank) {
+    public Booth(Expo expo, String boothNumber, String name, String description,
+                 String mainImageUrl, String contactName, String contactPhone,
+                 String contactEmail, Boolean isPremium, Integer displayRank) {
         this.expo = expo;
         this.boothNumber = boothNumber;
         this.name = name;

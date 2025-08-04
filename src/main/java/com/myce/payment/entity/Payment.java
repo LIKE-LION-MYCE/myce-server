@@ -14,7 +14,14 @@ import java.time.LocalDateTime;
 
 @Entity @Getter
 @NoArgsConstructor
-@Table(name = "payment")
+@Table(
+        name = "Payment",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "UniqueTargetTypeTargetId",
+                        columnNames = {"target_type", "target_id"})
+        }
+)
 @EntityListeners(AuditingEntityListener.class)
 public class Payment {
 
@@ -37,27 +44,17 @@ public class Payment {
     @Column(name = "amount", nullable = false)
     private Integer amount;
 
-    @Column(name = "used_mileage")
-    private Integer usedMileage;
-
-    @Column(name = "saved_mileage")
-    private Integer savedMileage;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false, columnDefinition = "VARCHAR(50)")
     private PaymentMethod paymentMethod;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(50)")
-    private PaymentStatus status;
-
-    @Column(name = "provider", length = 50)
+    @Column(name = "provider", length = 50, nullable = false)
     private String provider;
 
-    @Column(name = "merchant_uid", length = 100)
+    @Column(name = "merchant_uid", length = 100, nullable = false)
     private String merchantUid;
 
-    @Column(name = "imp_uid", length = 100)
+    @Column(name = "imp_uid", length = 100, nullable = false)
     private String impUid;
 
     @Column(name = "card_company", length = 100)
@@ -66,8 +63,8 @@ public class Payment {
     @Column(name = "card_number", length = 200)
     private String cardNumber;
 
-    @Column(name = "bank_name", length = 100)
-    private String bankName;
+    @Column(name = "account_bank", length = 100)
+    private String accountBank;
 
     @Column(name = "account_number", length = 200)
     private String accountNumber;
@@ -75,20 +72,9 @@ public class Payment {
     @Column(name = "country", length = 50)
     private String country;
 
-    @Column(name = "paid_at", columnDefinition = "TIMESTAMP")
-    private LocalDateTime paidAt;
-
-    @Column(name = "refunded_at", columnDefinition = "TIMESTAMP")
-    private LocalDateTime refundedAt;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
-    private LocalDateTime updatedAt;
-
 
 
 }
