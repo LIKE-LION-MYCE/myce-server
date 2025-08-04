@@ -69,7 +69,13 @@ spring:
       ddl-auto: none # in development (auto table create/modify)
       # ddl-auto: none  # in operation (manual sql management)
     show-sql: true
-  #mail:
+
+  web:
+    resources:
+      static-locations: classpath:/static/
+
+
+        #mail:
     #host: smtp.gmail.com
     #port: 587
     #username: "@gmail.com"
