@@ -69,6 +69,17 @@ spring:
       ddl-auto: none # in development (auto table create/modify)
       # ddl-auto: none  # in operation (manual sql management)
     show-sql: true
+  
+  cloud:        # AWS S3 Configuration
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY_ID}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
+      region:
+        static: ${AWS_REGION:ap-northeast-2}
+      s3:
+        bucket:
+          media: ${S3_MEDIA_BUCKET_NAME}
   #mail:
     #host: smtp.gmail.com
     #port: 587
