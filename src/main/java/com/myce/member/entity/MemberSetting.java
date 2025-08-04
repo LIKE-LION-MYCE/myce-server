@@ -5,7 +5,6 @@ import com.myce.member.entity.type.Language;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.Builder;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -14,13 +13,13 @@ import java.time.LocalDateTime;
 
 @Entity @Getter
 @NoArgsConstructor
-@Table(name = "settings")
+@Table(name = "member_setting")
 @EntityListeners(AuditingEntityListener.class)
-public class Settings {
+public class MemberSetting {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "settings_id")
+    @Column(name = "member_setting_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -35,14 +34,23 @@ public class Settings {
     @Column(name = "font_size", nullable = false, columnDefinition = "VARCHAR(20)")
     private FontSize fontSize;
 
+    @Column(name = "is_receive_email", nullable = false, columnDefinition = "TINYINT(1)")
+    private Boolean isReceiveEmail;
+
+    @Column(name = "is_receive_push", nullable = false, columnDefinition = "TINYINT(1)")
+    private Boolean isReceivePush;
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
     @Builder
-    public Settings(Member member, Language language, FontSize fontSize) {
+    public MemberSetting(Member member, Language language, FontSize fontSize,
+                         Boolean isReceiveEmail, Boolean isReceivePush) {
         this.member = member;
         this.language = language;
         this.fontSize = fontSize;
+        this.isReceiveEmail = isReceiveEmail;
+        this.isReceivePush = isReceivePush;
     }
 }
