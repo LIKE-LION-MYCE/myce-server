@@ -1,4 +1,4 @@
-package com.myce.expo.entity.type;
+package com.myce.common.entity.type;
 
 public enum TargetType {
     EXPO,

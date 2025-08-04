@@ -14,7 +14,7 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @Table(name = "expo_event")
 @EntityListeners(AuditingEntityListener.class)
-public class ExpoEvent {
+public class Event {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -60,9 +60,9 @@ public class ExpoEvent {
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
-    public ExpoEvent(Expo expo, String name, LocalDate eventDate, LocalTime startTime,
-                     LocalTime endTime, String location, String contactName, String contactPhone,
-                     String contactEmail, String description) {
+    public Event(Expo expo, String name, LocalDate eventDate, LocalTime startTime,
+                 LocalTime endTime, String location, String contactName, String contactPhone,
+                 String contactEmail, String description) {
         this.expo = expo;
         this.name = name;
         this.eventDate = eventDate;

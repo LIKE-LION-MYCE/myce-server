@@ -9,38 +9,36 @@ import java.time.LocalDateTime;
 
 @Entity @Getter
 @NoArgsConstructor
-@Table(name = "expo_admin_code")
+@Table(
+        name = "expo_category",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "UniqueCategoryIdExpoID",
+                        columnNames = {"category_id", "expo_id"})
+        }
+)
 @EntityListeners(AuditingEntityListener.class)
-public class AdminCode {
+public class ExpoCategory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "expo_admin_code_id")
+    @Column(name = "expo_category_id")
     private Long id;
 
-    @Setter
-    @OneToOne(mappedBy = "adminCode")
-    private AdminPermission adminPermission;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "expo_id", nullable = false)
     private Expo expo;
 
-    @Column(name = "code", length = 20, nullable = false)
-    private String code;
-
-    @Column(name = "expired_at", nullable = false, columnDefinition = "TIMESTAMP")
-    private LocalDateTime expiredAt;
-
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false, columnDefinition = "TIMESTAMP")
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
     @Builder
-    public AdminCode(Expo expo, String code, LocalDateTime expiredAt) {
+    public ExpoCategory(Category category, Expo expo) {
+        this.category = category;
         this.expo = expo;
-        this.code = code;
-        this.expiredAt = expiredAt;
     }
-
 }

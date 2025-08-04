@@ -1,6 +1,6 @@
-package com.myce.expo.entity;
+package com.myce.common.entity;
 
-import com.myce.expo.entity.type.TargetType;
+import com.myce.common.entity.type.TargetType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -11,7 +11,14 @@ import java.time.LocalDateTime;
 
 @Entity @Getter
 @NoArgsConstructor
-@Table(name = "business_profile")
+@Table(
+        name = "business_profile",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "UniqueTargetTypeTargetId",
+                        columnNames = {"target_type", "target_id"})
+        }
+)
 @EntityListeners(AuditingEntityListener.class)
 public class BusinessProfile {
 
@@ -19,10 +26,6 @@ public class BusinessProfile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "business_profile_id")
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "expo_id", nullable = false)
-    private Expo expo;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "target_type", nullable = false, columnDefinition = "VARCHAR(20)")
@@ -46,8 +49,11 @@ public class BusinessProfile {
     @Column(name = "contact_email", length = 100, nullable = false)
     private String contactEmail;
 
-    @Column(name = "business_registration_number", length = 20, nullable = false)
+    @Column(name = "business_registration_number", length = 50, nullable = false)
     private String businessRegistrationNumber;
+
+    @Column(name = "logo_url", length = 255, nullable = false)
+    private String logoUrl;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false, columnDefinition = "TIMESTAMP")
@@ -59,10 +65,9 @@ public class BusinessProfile {
 
 
     @Builder
-    public BusinessProfile(Expo expo, TargetType targetType, Long targetId, String companyName,
+    public BusinessProfile(TargetType targetType, Long targetId, String companyName,
                            String address, String ceoName, String contactEmail, String contactPhone,
                             String businessRegistrationNumber) {
-        this.expo = expo;
         this.targetType = targetType;
         this.targetId = targetId;
         this.companyName = companyName;

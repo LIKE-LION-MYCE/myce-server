@@ -33,7 +33,7 @@ public class Refund {
     @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(50)")
     private RefundStatus status;
 
-    @Column(name = "is_partial", nullable = false, columnDefinition = "TINYINT")
+    @Column(name = "is_partial", nullable = false, columnDefinition = "TINYINT(1)")
     private Boolean isPartial;
 
     @Column(name = "refunded_at", columnDefinition = "TIMESTAMP")

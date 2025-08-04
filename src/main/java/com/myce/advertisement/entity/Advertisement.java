@@ -38,8 +38,12 @@ public class Advertisement {
     @Column(name = "link_url", length = 500, nullable = false)
     private String linkUrl;
 
-    @Column(name = "exposure_position", length = 50, nullable = false)
-    private String exposurePosition;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ad_position_id", referencedColumnName = "ad_position_id", nullable = false)
+    private AdPosition adPosition;
+
+    @Column(name = "total_days", nullable = false)
+    private Integer totalDays;
 
     @Column(name = "display_start_date", nullable = false)
     private LocalDate displayStartDate;
@@ -59,16 +63,19 @@ public class Advertisement {
     @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
+
     @Builder
     public Advertisement(Member member, String title, String description, String imageUrl,
-                         String linkUrl, String exposurePosition, LocalDate displayStartDate,
-                         LocalDate displayEndDate, AdvertisementStatus status) {
+                         String linkUrl, AdPosition adPosition, Integer totalDays,
+                         LocalDate displayStartDate, LocalDate displayEndDate, AdvertisementStatus status
+                         ) {
         this.member = member;
         this.title = title;
         this.description = description;
         this.imageUrl = imageUrl;
         this.linkUrl = linkUrl;
-        this.exposurePosition = exposurePosition;
+        this.adPosition = adPosition;
+        this.totalDays = totalDays;
         this.displayStartDate = displayStartDate;
         this.displayEndDate = displayEndDate;
         this.status = status;
