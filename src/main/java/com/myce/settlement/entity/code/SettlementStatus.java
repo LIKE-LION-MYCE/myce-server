@@ -5,6 +5,4 @@ public enum SettlementStatus {
     PENDING,
     APPROVED,
     PAID,
-    CANCELLED;
-
 }

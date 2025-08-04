@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Table(name = "expo_review")
 @EntityListeners(AuditingEntityListener.class)
-public class ExpoReview {
+public class Review {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,7 +45,7 @@ public class ExpoReview {
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP", nullable = false)
     private LocalDateTime updatedAt;
 
-    public ExpoReview(Expo expo, Member member, String title, String content, Integer rating) {
+    public Review(Expo expo, Member member, String title, String content, Integer rating) {
         this.expo = expo;
         this.member = member;
         this.title = title;
