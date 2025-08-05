@@ -7,20 +7,20 @@ import com.myce.common.entity.BusinessProfile;
 import com.myce.member.entity.Member;
 
 public class AdvertisementMapper {
-    public static SimpleApplyAdvertisement getApplyBanner(Advertisement advertisement, BusinessProfile businessProfile){
+    public static SimpleApplyAdvertisement getApplyBanner(Advertisement advertisement, BusinessProfile businessProfile) {
         Member member = advertisement.getMember();
         AdPosition adPosition = advertisement.getAdPosition();
 
         return SimpleApplyAdvertisement.builder()
-                .id( advertisement.getId() )
-                .title( advertisement.getTitle() )
-                .memberUsername( member.getLoginId() )
-                .memberNickname( member.getName() )
-                .memberEmail( member.getEmail() )
-                .bannerLocationName( adPosition.getName() )
-                .createdAt( advertisement.getCreatedAt() )
-                .memberPhone( businessProfile.getContactPhone() )
-                .statusMessage( advertisement.getStatus().name() )
+                .id(advertisement.getId())
+                .title(advertisement.getTitle())
+                .memberUsername(member.getLoginId())
+                .memberNickname(member.getName())
+                .memberEmail(member.getEmail())
+                .bannerLocationName(adPosition.getName())
+                .createdAt(advertisement.getCreatedAt())
+                .memberPhone(businessProfile.getContactPhone())
+                .statusMessage(advertisement.getStatus().name())
                 .build();
     }
 }

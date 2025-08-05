@@ -1,15 +1,14 @@
 package com.myce.advertisement.dto;
 
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@Setter
+@NoArgsConstructor
 public class FilterRequest {
     @Min(value = 0, message = "page는 0 이상이어야 합니다")
-    private int page = 0;
+    private int page;
 
     private String keyword = "";
 

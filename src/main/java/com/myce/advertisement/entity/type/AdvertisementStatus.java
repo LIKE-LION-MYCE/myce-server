@@ -1,8 +1,6 @@
 package com.myce.advertisement.entity.type;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.myce.expo.entity.type.TicketType;
 
 public enum AdvertisementStatus {
     PENDING_APPROVAL,
@@ -14,9 +12,10 @@ public enum AdvertisementStatus {
     REJECTED,
     CANCELLED;
 
-    public static List<String> getNames() {
-        return Arrays.stream(AdvertisementStatus.values())
-                .map(Enum::name)
-                .collect(Collectors.toList());
+    public static TicketType fromString(String type) {
+        for (TicketType t : TicketType.values()) {
+            if (t.name().equalsIgnoreCase(type)) return t;
+        }
+        return null;
     }
 }
