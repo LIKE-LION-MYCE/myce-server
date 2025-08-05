@@ -3,7 +3,6 @@ package com.myce.advertisement.controller;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.service.PlatformAdminAdvertisementService;
 import com.myce.common.dto.PageResponse;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,7 +22,7 @@ public class PlatformAdminAdvertisementController {
     public PageResponse<SimpleApplyAdvertisement> getApplyList(@RequestParam int page,
                                                                @RequestParam(defaultValue = "true")
                                                                boolean latestFirst) {
-        return service.getList(page, PAGE_SIZE,  latestFirst);
+        return service.getAllApplyList(page, PAGE_SIZE,  latestFirst);
     }
 
     @GetMapping("/filter")
@@ -32,7 +31,7 @@ public class PlatformAdminAdvertisementController {
                                                                   @RequestParam(required = false) String keyword,
                                                                   @RequestParam(defaultValue = "true")
                                                                   boolean latestFirst) {
-        return service.getFiltersByKeyword(keyword, status,
+        return service.getFilteredApplyListByKeyword(keyword, status,
                 page, PAGE_SIZE, latestFirst);
     }
 

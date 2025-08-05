@@ -29,7 +29,7 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
     @Autowired
     private BusinessProfileRepository businessProfileRepository;
 
-    public PageResponse<SimpleApplyAdvertisement> getList(int page, int pageSize, boolean latestFirst) {
+    public PageResponse<SimpleApplyAdvertisement> getAllApplyList(int page, int pageSize, boolean latestFirst) {
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
                 : Sort.by("createdAt").ascending();
         Pageable pageable = PageRequest.of(page, pageSize, sort);
@@ -45,8 +45,8 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
-    public PageResponse<SimpleApplyAdvertisement> getFiltersByKeyword(String keyword, String statusText,
-                                                                      int page, int pageSize, boolean latestFirst) {
+    public PageResponse<SimpleApplyAdvertisement> getFilteredApplyListByKeyword(String keyword, String statusText,
+                                                                                int page, int pageSize, boolean latestFirst) {
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
                 : Sort.by("createdAt").ascending();
         Pageable pageable = PageRequest.of(page, pageSize, sort);
