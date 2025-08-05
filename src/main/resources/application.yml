@@ -79,7 +79,7 @@ spring:
         static: ${AWS_REGION:ap-northeast-2}
       s3:
         bucket:
-          media: ${S3_MEDIA_BUCKET_NAME}E
+          media: ${S3_MEDIA_BUCKET_NAME}
           cloudfront-domain: ${CLOUDFRONT_DOMAIN}
             #mail:
             #host: smtp.gmail.com
