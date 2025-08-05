@@ -19,7 +19,7 @@ public class ExpoController {
   // 박람회 등록
   @PostMapping
   public ResponseEntity<Long> registerExpo(@RequestBody ExpoRegistrationRequest expoRegistrationRequest){
-    Long expoId = exposervice.registerExpo(expoRegistrationRequest);
-    return ResponseEntity.status(HttpStatus.CREATED).body(expoId);
+    exposervice.registerExpo(expoRegistrationRequest);
+    return ResponseEntity.status(HttpStatus.CREATED).build();
   }
 }
