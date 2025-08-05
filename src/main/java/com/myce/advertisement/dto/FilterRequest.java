@@ -13,8 +13,6 @@ public class FilterRequest {
 
     private String keyword = "";
 
-    @NotBlank(message = "status가 존재하지 않습니다.")
     private String status;
 
-    // getters and setters
 }
