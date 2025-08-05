@@ -13,8 +13,10 @@ public enum CustomErrorCode {
     // 엑스포 E
 
     // 관계자 정보 I
-    BUSINESS_NOT_EXIST(HttpStatus.NOT_FOUND,"I001", "관계자 정보를 찾지 못했습니다");
+    BUSINESS_NOT_EXIST(HttpStatus.NOT_FOUND,"I001", "관계자 정보가 존재하지 않습니다."),
 
+    // 광고 A
+    BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다.");
     // 결제 P
 
     // 예약 R

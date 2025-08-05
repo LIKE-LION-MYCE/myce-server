@@ -1,5 +1,6 @@
 package com.myce.advertisement.service.impl;
 
+import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
@@ -18,8 +19,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.List;
 
@@ -63,6 +62,11 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
+    public DetailApplyAdvertisement getDetail(Long bannerId){
+        advertisementRepository.findById(bannerId).orElseThrow(() -> new CustomException(CustomErrorCode.))
+        return getDetailApplyAdvertisement()
+    }
+
 
 
     // DTO 변환
@@ -71,6 +75,14 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
                 .findByTargetIdAndTargetType(advertisement.getId(), TargetType.ADVERTISEMENT)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
 
-        return AdvertisementMapper.getApplyBanner(advertisement, businessProfile);
+        return AdvertisementMapper.getSimpleAdvertisement(advertisement, businessProfile);
+    }
+
+    private DetailApplyAdvertisement getDetailApplyAdvertisement(Advertisement advertisement) {
+        BusinessProfile businessProfile = businessProfileRepository
+                .findByTargetIdAndTargetType(advertisement.getId(), TargetType.ADVERTISEMENT)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
+
+        return AdvertisementMapper.getDetailAdvertisement(advertisement, businessProfile);
     }
 }

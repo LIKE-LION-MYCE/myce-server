@@ -1,5 +1,6 @@
 package com.myce.advertisement.mapper;
 
+import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.entity.AdPosition;
 import com.myce.advertisement.entity.Advertisement;
@@ -7,7 +8,7 @@ import com.myce.common.entity.BusinessProfile;
 import com.myce.member.entity.Member;
 
 public class AdvertisementMapper {
-    public static SimpleApplyAdvertisement getApplyBanner(Advertisement advertisement, BusinessProfile businessProfile){
+    public static SimpleApplyAdvertisement getSimpleAdvertisement(Advertisement advertisement, BusinessProfile businessProfile){
         Member member = advertisement.getMember();
         AdPosition adPosition = advertisement.getAdPosition();
 
@@ -23,4 +24,26 @@ public class AdvertisementMapper {
                 .statusMessage( advertisement.getStatus().name() )
                 .build();
     }
+
+    public static DetailApplyAdvertisement getDetailAdvertisement(Advertisement advertisement, BusinessProfile businessProfile){
+        Member member = advertisement.getMember();
+        AdPosition adPosition = advertisement.getAdPosition();
+
+        return DetailApplyAdvertisement.builder()
+                .id(advertisement.getId())
+                .title(advertisement.getTitle())
+                .bannerLocationName(adPosition.getName())
+                .bannerImageUrl(advertisement.getImageUrl())
+                .startAt(advertisement.getDisplayStartDate())
+                .endAt(advertisement.getDisplayEndDate())
+                .description(advertisement.getDescription())
+                .businessCompany(businessProfile.getCompanyName())
+                .representName(businessProfile.getCeoName())
+                .businessEmail(businessProfile.getContactEmail())
+                .businessPhone(businessProfile.getContactPhone())
+                .address(businessProfile.getAddress())
+                .businessNumber(businessProfile.getBusinessRegistrationNumber())
+                .build();
+    }
+
 }

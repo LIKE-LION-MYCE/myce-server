@@ -1,15 +1,12 @@
 package com.myce.advertisement.controller;
 
+import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.FilterRequest;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.service.PlatformAdminAdvertisementService;
 import com.myce.common.dto.PageResponse;
-import com.myce.common.exception.CustomException;
-import com.myce.common.exception.ErrorResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -29,6 +26,11 @@ public class PlatformAdminAdvertisementController {
     @GetMapping("/filter")
     public PageResponse<SimpleApplyAdvertisement> filterApplyList(@Valid FilterRequest request, @RequestParam(defaultValue = "true") boolean latestFirst) {
         return service.filterList(request.getKeyword(), request.getStatus(), request.getPage(), PAGE_SIZE, latestFirst);
+    }
+
+    @GetMapping("/{bannerId}")
+    public DetailApplyAdvertisement getApplyDetail(@PathVariable Long bannerId) {
+        return service.getDetail(bannerId);
     }
 
 }
