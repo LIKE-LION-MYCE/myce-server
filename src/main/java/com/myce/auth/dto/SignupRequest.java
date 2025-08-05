@@ -20,7 +20,7 @@ public class SignupRequest {
     @Size(min = 10, max = 100, message = "이메일은 10자 이상 100자 이하로 입력해주세요.")
     private String email;
     @NotBlank(message = "비밀번호를 입력해주세요.")
-    @Size(min = 6, max = 12, message = "비밀번호는 6자 이상 12자 이하로 입력해주세요.")
+    @Size(min = 6, max = 20, message = "비밀번호는 6자 이상 20자 이하로 입력해주세요.")
     private String password;
     @NotBlank(message = "생년월일을 입력해주세요.")
     @Size(min = 8, max = 8, message = "생년월일은 8자로만 입력해주세요.(YYYYMMdd)")
