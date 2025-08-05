@@ -13,5 +13,4 @@ public interface QrCodeRepository extends JpaRepository<QrCode, Long> {
     Optional<QrCode> findByQrToken(String token);
     Optional<QrCode> findByReserver(Reserver reserver);
 
-
 }
