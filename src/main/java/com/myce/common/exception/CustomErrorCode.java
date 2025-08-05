@@ -8,10 +8,12 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum CustomErrorCode {
     // 회원 M
-    MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "M001", "아이디 혹은 비밀번호를 확인해주세요");
+    MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "M001", "아이디 혹은 비밀번호를 확인해주세요"),
 
     // 엑스포 E
 
+    // 관계자 정보 I
+    BUSINESS_NOT_EXIST(HttpStatus.NOT_FOUND,"I001", "관계자 정보를 찾지 못했습니다");
 
     // 결제 P
 
