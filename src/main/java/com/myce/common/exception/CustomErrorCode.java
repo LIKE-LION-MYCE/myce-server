@@ -12,12 +12,12 @@ public enum CustomErrorCode {
 
     // 엑스포 E
     EXPO_NOT_EXIST(HttpStatus.NOT_FOUND, "E001", "운영중인 박람회가 존재하지 않습니다."),
-    CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E002", "카테고리가 존재하지 않습니다.");
+    CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E002", "카테고리가 존재하지 않습니다."),
 
     // 티켓 T
     TICKET_NOT_EXIST(HttpStatus.NOT_FOUND, "T001", "티켓이 존재하지 않습니다."),
     TICKET_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "T002", "해당 티켓은 현재 박람회에 속하지 않습니다."),
-    TICKET_TYPE_INVALID(HttpStatus.BAD_REQUEST, "T003", "유효하지 않은 티켓 타입입니다.");
+    TICKET_TYPE_INVALID(HttpStatus.BAD_REQUEST, "T003", "유효하지 않은 티켓 타입입니다."),
     
   
     // 관계자 정보 I
