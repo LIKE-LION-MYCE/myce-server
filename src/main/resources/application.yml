@@ -8,7 +8,7 @@ spring:
   jackson:    # port one 호환성을 위한 파트
     serialization:
       WRITE_DATES_AS_TIMESTAMPS: false
-  config:     # load .env variables
+  config:     # load ..env variables
     import: optional:file:.env[.properties]
   security:
     #oauth2:
@@ -69,13 +69,21 @@ spring:
       ddl-auto: none # in development (auto table create/modify)
       # ddl-auto: none  # in operation (manual sql management)
     show-sql: true
+  
+  cloud:        # AWS S3 Configuration
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY_ID}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
+      region:
+        static: ${AWS_REGION:ap-northeast-2}
+      s3:
+        bucket:
+          media: ${S3_MEDIA_BUCKET_NAME}
 
-  web:
-    resources:
-      static-locations: classpath:/static/
-
-
-        #mail:
+cloudfront:
+  domain: ${CLOUDFRONT_DOMAIN:https://media.myce.live}
+  #mail:
     #host: smtp.gmail.com
     #port: 587
     #username: "@gmail.com"
@@ -92,6 +100,7 @@ spring:
   #access-token-validity: 300000 # 5 minutes in milliseconds
   #refresh-token-validity: 1209600000 # 2 weeks in milliseconds
 
+
 #management:
   #endpoints:
     #web:
@@ -104,6 +113,8 @@ spring:
     #export:
       #prometheus:
         #enabled: true
+
+
 #port-one:
   #base-url: ${PORTONE_BASE_URL}
   #api-key: ${PORTONE_API_KEY}
