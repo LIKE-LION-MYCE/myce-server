@@ -12,9 +12,9 @@ public enum AdvertisementStatus {
     REJECTED,
     CANCELLED;
 
-    public static TicketType fromString(String type) {
-        for (TicketType t : TicketType.values()) {
-            if (t.name().equalsIgnoreCase(type)) return t;
+    public static AdvertisementStatus fromString(String text) {
+        for (AdvertisementStatus t : AdvertisementStatus.values()) {
+            if (t.name().equalsIgnoreCase(text))return t;
         }
         return null;
     }

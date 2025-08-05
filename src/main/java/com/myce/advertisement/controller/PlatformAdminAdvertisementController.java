@@ -1,6 +1,5 @@
 package com.myce.advertisement.controller;
 
-import com.myce.advertisement.dto.FilterRequest;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.service.PlatformAdminAdvertisementService;
 import com.myce.common.dto.PageResponse;
@@ -13,14 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-@RequestMapping("/api/platform/advertisement/list")
+@RequestMapping("/api/platform/ads/list")
 public class PlatformAdminAdvertisementController {
     @Autowired
     private PlatformAdminAdvertisementService service;
 
     private final int PAGE_SIZE = 10;
 
-    @GetMapping()
+    @GetMapping
     public PageResponse<SimpleApplyAdvertisement> getApplyList(@RequestParam int page,
                                                                @RequestParam(defaultValue = "true")
                                                                boolean latestFirst) {
@@ -28,10 +27,13 @@ public class PlatformAdminAdvertisementController {
     }
 
     @GetMapping("/filter")
-    public PageResponse<SimpleApplyAdvertisement> filterApplyList(@Valid FilterRequest request,
+    public PageResponse<SimpleApplyAdvertisement> filterApplyList(@RequestParam(defaultValue = "0") int page,
+                                                                  @RequestParam(required = false) String status,
+                                                                  @RequestParam(required = false) String keyword,
                                                                   @RequestParam(defaultValue = "true")
                                                                   boolean latestFirst) {
-        return service.filterList(request.getKeyword(), request.getStatus(), request.getPage(), PAGE_SIZE, latestFirst);
+        return service.getFiltersByKeyword(keyword, status,
+                page, PAGE_SIZE, latestFirst);
     }
 
 }

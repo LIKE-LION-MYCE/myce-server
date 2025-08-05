@@ -45,24 +45,23 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
-    public PageResponse<SimpleApplyAdvertisement> filterList(String keyword, String statusText,
-                                                             int page, int pageSize, boolean latestFirst){
+    public PageResponse<SimpleApplyAdvertisement> getFiltersByKeyword(String keyword, String statusText,
+                                                                      int page, int pageSize, boolean latestFirst) {
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
                 : Sort.by("createdAt").ascending();
         Pageable pageable = PageRequest.of(page, pageSize, sort);
         AdvertisementStatus status;
         Page<Advertisement> bannerEntityPage;
 
-        if(AdvertisementStatus.fromString(statusText) == null){
+        if (AdvertisementStatus.fromString(statusText) != null) {
             status = AdvertisementStatus.valueOf(statusText);
             bannerEntityPage = advertisementRepository.findByTitleContainingAndStatus(keyword, status, pageable);
-        }else{
+        } else {
             bannerEntityPage = advertisementRepository.findByTitleContaining(keyword, pageable);
         }
 
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
-
 
 
     // DTO 변환
