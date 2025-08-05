@@ -4,9 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@AllArgsConstructor
+@NoArgsConstructor
 public class SignupRequest {
 
     @NotBlank(message = "이름을 입력해주세요.")
@@ -25,7 +26,7 @@ public class SignupRequest {
     @Size(min = 8, max = 8, message = "생년월일은 8자로만 입력해주세요.(YYYYMMdd)")
     private String birth;
     @NotBlank(message = "전화번호를 입력해주세요.")
-    @Size(min = 13, max = 13, message = "전화번호는 11자로만 입력해주세요. 000-0000-0000")
+    @Size(min = 13, max = 13, message = "전화번호는 13자로 입력해주세요.(000-0000-0000)")
     private String phone;
     @NotBlank(message = "성별을 선택해주세요.")
     private String gender;
