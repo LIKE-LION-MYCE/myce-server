@@ -13,6 +13,9 @@ public enum CustomErrorCode {
 
     // 엑스포 E
     CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E001", "카테고리가 존재하지 않습니다."),
+  
+    // 관계자 정보 I
+    BUSINESS_NOT_EXIST(HttpStatus.NOT_FOUND,"I001", "관계자 정보를 찾지 못했습니다"),
 
     // QR 코드 Q
     QR_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "QR 코드를 찾을 수 없습니다."),
