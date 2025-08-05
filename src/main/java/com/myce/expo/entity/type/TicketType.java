@@ -1,5 +1,7 @@
 package com.myce.expo.entity.type;
 
+import com.myce.common.exception.CustomErrorCode;
+import com.myce.common.exception.CustomException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -15,6 +17,13 @@ public enum TicketType {
         for (TicketType t : TicketType.values()) {
             if (t.name().equalsIgnoreCase(type)) return t;
         }
-        return null;
+        throw new CustomException(CustomErrorCode.TICKET_TYPE_INVALID);
+    }
+
+    public static TicketType fromLabel(String label) {
+        for (TicketType t : TicketType.values()) {
+            if (t.getLabel().equals(label)) return t;
+        }
+        throw new CustomException(CustomErrorCode.TICKET_TYPE_INVALID);
     }
 }
