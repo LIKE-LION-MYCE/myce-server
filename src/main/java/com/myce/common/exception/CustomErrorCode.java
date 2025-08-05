@@ -22,6 +22,8 @@ public enum CustomErrorCode {
     QR_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q008", "QR 코드 생성 중 오류가 발생했습니다."),
     QR_REISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q009", "QR 코드 재발급 중 오류가 발생했습니다.");
 
+    // 기타 E
+
 
 
     private final HttpStatus status;
