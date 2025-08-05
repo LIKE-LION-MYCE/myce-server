@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -36,15 +37,19 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
             AdvertisementStatus.REJECTED,
             AdvertisementStatus.COMPLETED);
 
-    public PageResponse<SimpleApplyAdvertisement> getList(int page, int pageSize) {
-        Pageable pageable = PageRequest.of(page, pageSize);
+    public PageResponse<SimpleApplyAdvertisement> getList(int page, int pageSize, boolean latestFirst) {
+        Sort sort = latestFirst ? Sort.by("createdAt").descending()
+                : Sort.by("createdAt").ascending();
+        Pageable pageable = PageRequest.of(page, pageSize, sort);
         Page<Advertisement> bannerEntityPage = advertisementRepository.findByStatusIn(applyStatus, pageable);
 
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
-    public PageResponse<SimpleApplyAdvertisement> filterList(String keyword, String statusText, int page, int pageSize) throws IllegalArgumentException{
-        Pageable pageable = PageRequest.of(page, pageSize);
+    public PageResponse<SimpleApplyAdvertisement> filterList(String keyword, String statusText, int page, int pageSize, boolean latestFirst) throws IllegalArgumentException{
+        Sort sort = latestFirst ? Sort.by("createdAt").descending()
+                : Sort.by("createdAt").ascending();
+        Pageable pageable = PageRequest.of(page, pageSize, sort);
         AdvertisementStatus status;
         Page<Advertisement> bannerEntityPage;
 
