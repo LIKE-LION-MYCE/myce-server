@@ -10,7 +10,7 @@ public class ExpoAdminTicketMapper {
         return ExpoAdminTicketResponseDto.builder()
                 .ticketId(ticket.getId())
                 .name(ticket.getName())
-                .type(ticket.getType().name())
+                .type(ticket.getType().getLabel())
                 .description(ticket.getDescription())
                 .price(ticket.getPrice())
                 .totalQuantity(ticket.getTotalQuantity())
