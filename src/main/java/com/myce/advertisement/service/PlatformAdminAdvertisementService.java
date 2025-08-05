@@ -7,5 +7,5 @@ public interface PlatformAdminAdvertisementService {
     PageResponse<SimpleApplyAdvertisement> getAllApplyList(int page, int pageSize, boolean latestFirst);
 
     PageResponse<SimpleApplyAdvertisement> getFilteredApplyListByKeyword(String keyword, String status,
-                                                                         int page, int pageSize, boolean latestFirst);
+             int page, int pageSize, boolean latestFirst);
 }

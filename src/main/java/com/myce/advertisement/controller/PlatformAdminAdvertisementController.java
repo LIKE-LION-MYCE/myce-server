@@ -20,17 +20,17 @@ public class PlatformAdminAdvertisementController {
 
     @GetMapping
     public PageResponse<SimpleApplyAdvertisement> getApplyList(@RequestParam int page,
-                                                               @RequestParam(defaultValue = "true")
-                                                               boolean latestFirst) {
+               @RequestParam(defaultValue = "true")
+               boolean latestFirst) {
         return service.getAllApplyList(page, PAGE_SIZE,  latestFirst);
     }
 
     @GetMapping("/filter")
     public PageResponse<SimpleApplyAdvertisement> filterApplyList(@RequestParam(defaultValue = "0") int page,
-                                                                  @RequestParam(required = false) String status,
-                                                                  @RequestParam(required = false) String keyword,
-                                                                  @RequestParam(defaultValue = "true")
-                                                                  boolean latestFirst) {
+              @RequestParam(required = false) String status,
+              @RequestParam(required = false) String keyword,
+              @RequestParam(defaultValue = "true")
+              boolean latestFirst) {
         return service.getFilteredApplyListByKeyword(keyword, status,
                 page, PAGE_SIZE, latestFirst);
     }
