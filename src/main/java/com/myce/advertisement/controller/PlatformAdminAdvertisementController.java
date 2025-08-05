@@ -1,9 +1,13 @@
 package com.myce.advertisement.controller;
 
+import com.myce.advertisement.dto.DetailApplyAdvertisement;
+import com.myce.advertisement.dto.FilterRequest;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.service.PlatformAdminAdvertisementService;
 import com.myce.common.dto.PageResponse;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,6 +37,11 @@ public class PlatformAdminAdvertisementController {
               boolean latestFirst) {
         return service.getFilteredApplyListByKeyword(keyword, status,
                 page, PAGE_SIZE, latestFirst);
+    }
+
+    @GetMapping("/{bannerId}")
+    public DetailApplyAdvertisement getApplyDetail(@PathVariable Long bannerId) {
+        return service.getDetail(bannerId);
     }
 
 }
