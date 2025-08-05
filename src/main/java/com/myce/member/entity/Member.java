@@ -12,7 +12,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-@Entity @Getter
+@Entity
+@Getter
 @NoArgsConstructor
 @Table(name = "member")
 @EntityListeners(AuditingEntityListener.class)
@@ -74,7 +75,7 @@ public class Member {
     @Builder
     public Member(MemberGrade memberGrade, String name, String loginId, String password,
                   String email, LocalDate birth, Role role, Gender gender,
-                  ProviderType providerType, String providerId, Integer mileage, Boolean isDeleted) {
+                  ProviderType providerType, String providerId) {
         this.memberGrade = memberGrade;
         this.name = name;
         this.loginId = loginId;
@@ -85,7 +86,7 @@ public class Member {
         this.gender = gender;
         this.providerType = providerType;
         this.providerId = providerId;
-        this.mileage = mileage;
-        this.isDeleted = isDeleted;
+        this.mileage = 0;
+        this.isDeleted = false;
     }
 }
