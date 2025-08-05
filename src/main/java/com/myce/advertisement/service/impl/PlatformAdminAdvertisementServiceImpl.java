@@ -43,9 +43,15 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
-    public PageResponse<SimpleApplyAdvertisement> filterList(String keyword, String statusText, int page, int pageSize){
+    public PageResponse<SimpleApplyAdvertisement> filterList(String keyword, String statusText, int page, int pageSize) throws IllegalArgumentException{
         Pageable pageable = PageRequest.of(page, pageSize);
-        AdvertisementStatus status = AdvertisementStatus.valueOf(statusText);
+        AdvertisementStatus status;
+
+        try{
+            status = AdvertisementStatus.valueOf(statusText);
+        }catch (IllegalArgumentException e){
+            throw new IllegalArgumentException("Parameter not valid : " + statusText);
+        }
 
         Page<Advertisement> bannerEntityPage = advertisementRepository.findByTitleContainingAndStatus(keyword, status, pageable);
 
