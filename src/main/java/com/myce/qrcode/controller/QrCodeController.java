@@ -14,14 +14,14 @@ public class QrCodeController {
     private final QrCodeService qrCodeService;
 
     @PostMapping("/issue/{reserverId}")
-    public ResponseEntity<Void> issue(@PathVariable Long reserverId) throws Exception {
+    public ResponseEntity<Void> issue(@PathVariable Long reserverId) {
         qrCodeService.issueQr(reserverId);
         return ResponseEntity.ok().build(); // 201 Created
     }
 
     @PostMapping("/reissue/{reserverId}")
     public ResponseEntity<Void> reissue(@PathVariable Long reserverId,
-                                        @RequestParam Long adminId) throws Exception {
+                                        @RequestParam Long adminId){
         qrCodeService.reissueQr(reserverId, adminId);
         return ResponseEntity.ok().build();
     }
@@ -36,16 +36,15 @@ public class QrCodeController {
 
     @GetMapping("/reserver/{reserverId}")
     public ResponseEntity<String> getQrUrlByReserverId(@PathVariable Long reserverId) {
-        return qrCodeService.getQrImageUrlByReserverId(reserverId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        String url = qrCodeService.getQrImageUrlByReserverId(reserverId);
+        return ResponseEntity.ok(url);
     }
+
 
     @GetMapping("/token/{token}")
     public ResponseEntity<String> getQrUrlByToken(@PathVariable String token) {
-        return qrCodeService.getQrImageUrlByToken(token)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        String url = qrCodeService.getQrImageUrlByToken(token);
+        return ResponseEntity.ok(url);
     }
 
 }

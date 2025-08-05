@@ -19,7 +19,8 @@ public class OpenAPIConfig {
                 .info(new Info()
                         .title("MYCE API")
                         .description("MYCE 서비스 API 문서")
-                        .version("v1.0.0"))
+                        .version("v1.0.0")
+                )
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
                 .components(new Components()
                         .addSecuritySchemes(SECURITY_SCHEME_NAME,
