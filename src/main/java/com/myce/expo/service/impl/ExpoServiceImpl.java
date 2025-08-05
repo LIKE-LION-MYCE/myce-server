@@ -1,12 +1,15 @@
-package com.myce.expo.service;
+package com.myce.expo.service.impl;
 
 import com.myce.common.entity.BusinessProfile;
+import com.myce.common.exception.CustomErrorCode;
+import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.expo.dto.ExpoRegistrationCompanyRequest;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.ExpoCategory;
+import com.myce.expo.service.ExpoService;
 import com.myce.expo.service.mapper.BusinessProfileMapper;
 import com.myce.expo.service.mapper.ExpoMapper;
 import com.myce.expo.repository.CategoryRepository;
@@ -27,10 +30,10 @@ public class ExpoServiceImpl implements ExpoService {
   private final BusinessProfileRepository businessProfileRepository;
 
   @Override
-  public void registerExpo(ExpoRegistrationRequest request) {
+  public void saveExpo(ExpoRegistrationRequest request) {
     // 로그인한 사용자
     Member member = memberRepository.findById(request.getMemberId())
-        .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
+        .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
 
     // expo 객체 생성
     Expo expo = ExpoMapper.toEntity(request, member);
@@ -38,7 +41,7 @@ public class ExpoServiceImpl implements ExpoService {
     // 카테고리 추가
     for (Long categoryId : request.getCategoryIds()) {
       Category category = categoryRepository.findById(categoryId)
-          .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다"));
+          .orElseThrow(() -> new CustomException(CustomErrorCode.CATEGORY_NOT_EXIST));
 
       ExpoCategory expoCategory = ExpoCategory.builder()
           .category(category)
@@ -49,12 +52,12 @@ public class ExpoServiceImpl implements ExpoService {
     }
 
     // 박람회 등록(저장)
-    Expo registeredExpo = expoRepository.save(expo);
+    Expo savedExpo = expoRepository.save(expo);
 
     // 등록 신청한 회사 정보 저장
     ExpoRegistrationCompanyRequest company = request.getExpoRegistrationCompanyRequest();
 
-    BusinessProfile businessProfile = BusinessProfileMapper.toEntity(company, registeredExpo.getId());
+    BusinessProfile businessProfile = BusinessProfileMapper.toEntity(company, savedExpo.getId());
 
     businessProfileRepository.save(businessProfile);
   }
