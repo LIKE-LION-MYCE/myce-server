@@ -1,4 +1,4 @@
-package com.myce.auth.service;
+package com.myce.auth.service.impl;
 
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.common.exception.CustomErrorCode;
@@ -26,6 +26,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         return CustomUserDetails.builder()
                 .memberId(member.getId())
                 .name(member.getName())
+                .loginId(loginId)
                 .password(member.getPassword())
                 .providerType(member.getProviderType())
                 .role(member.getRole().name())
