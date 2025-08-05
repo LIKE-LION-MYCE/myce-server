@@ -97,14 +97,31 @@ public class QrCodeServiceImpl implements QrCodeService {
                         return new IllegalStateException("기존 QR 코드가 존재하지 않습니다.");
                     });
 
+            if (existing.getStatus() != QrCodeStatus.ACTIVE) {
+                log.error("재발급 불가능한 QR 상태 - QR ID: {}, 상태: {}", existing.getId(), existing.getStatus());
+                throw new IllegalStateException("ACTIVE 상태의 QR만 재발급 가능합니다.");
+            }
+
             log.info("기존 QR 코드 만료 처리 - QR ID: {}", existing.getId());
             existing.expire();
             qrCodeRepository.save(existing);
 
-            QrCode newQr = issueQr(reserverId);
-            log.info("QR 코드 재발급 완료 - 예약자 ID: {}, 새 QR ID: {}", reserverId, newQr.getId());
+            // 새 QR 직접 생성 (issueQr 호출하지 않음)
+            String token = UUID.randomUUID().toString();
+            byte[] image = generateQrImage(token);
+            String imageUrl = uploadToStorage(image, token);
+
+            QrCode newQr = QrCode.builder()
+                    .reserver(reserver)
+                    .qrToken(token)
+                    .qrImageUrl(imageUrl)
+                    .status(QrCodeStatus.ACTIVE)
+                    .build();
+
+            QrCode savedQr = qrCodeRepository.save(newQr);
+            log.info("QR 코드 재발급 완료 - 예약자 ID: {}, 새 QR ID: {}", reserverId, savedQr.getId());
             
-            return newQr;
+            return savedQr;
         } catch (Exception e) {
             log.error("QR 코드 재발급 실패 - 예약자 ID: {}, 관리자 ID: {}, 오류: {}", 
                      reserverId, adminMemberId, e.getMessage(), e);
