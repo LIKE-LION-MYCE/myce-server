@@ -69,7 +69,7 @@ spring:
       ddl-auto: none # in development (auto table create/modify)
       # ddl-auto: none  # in operation (manual sql management)
     show-sql: true
-
+    
   cloud: # AWS S3 Configuration
     aws:
       credentials:
@@ -80,21 +80,21 @@ spring:
       s3:
         bucket:
           media: ${S3_MEDIA_BUCKET_NAME}
-            #mail:
-            #host: smtp.gmail.com
-            #port: 587
-            #username: "@gmail.com"
-            #password: ${MAIL_PASSWORD}
-            #properties:
-            #mail:
-            #smtp:
-          #auth: true
-          #starttls:
-          #enable: true
+  #mail:
+  #host: smtp.gmail.com
+  #port: 587
+  #username: "@gmail.com"
+  #password: ${MAIL_PASSWORD}
+  #properties:
+  #mail:
+  #smtp:
+  #auth: true
+  #starttls:
+  #enable: true
 
 jwt:
   secret: ${JWT_SECRET}
-  access-token-validity: 300000 # 5 minutes in milliseconds
+  access-token-validity: 18000000 # 5 hour in milliseconds
   refresh-token-validity: 1209600000 # 2 weeks in milliseconds
 
     #management:
