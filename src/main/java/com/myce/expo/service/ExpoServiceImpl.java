@@ -27,7 +27,7 @@ public class ExpoServiceImpl implements ExpoService {
   private final BusinessProfileRepository businessProfileRepository;
 
   @Override
-  public Long registerExpo(ExpoRegistrationRequest request) {
+  public void registerExpo(ExpoRegistrationRequest request) {
     // 로그인한 사용자
     Member member = memberRepository.findById(request.getMemberId())
         .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
@@ -84,8 +84,5 @@ public class ExpoServiceImpl implements ExpoService {
         .build();
 
     businessProfileRepository.save(businessProfile);
-
-    // 박람회 아이디 반환
-    return registeredExpo.getId();
   }
 }
