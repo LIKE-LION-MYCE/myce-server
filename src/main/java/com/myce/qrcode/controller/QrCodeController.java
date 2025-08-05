@@ -9,7 +9,6 @@ import com.myce.qrcode.service.QrCodeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayOutputStream;
@@ -37,6 +36,20 @@ public class QrCodeController {
                                            @RequestParam Long adminId) {
         qrCodeService.markQrAsUsed(token, adminId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/reserver/{reserverId}")
+    public ResponseEntity<QrCode> getByReserverId(@PathVariable Long reserverId) {
+        return qrCodeService.getQrByReserverId(reserverId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/token/{token}")
+    public ResponseEntity<QrCode> getByToken(@PathVariable String token) {
+        return qrCodeService.getQrByToken(token)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
 }

@@ -28,6 +28,9 @@ public class MemberGrade {
     @Column(name = "mileage_rate", precision = 5, scale = 2, nullable = false)
     private BigDecimal mileageRate;
 
+    @Column(name = "base_amount")
+    private Integer baseAmount;
+
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 

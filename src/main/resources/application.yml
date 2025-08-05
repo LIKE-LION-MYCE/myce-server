@@ -97,6 +97,13 @@ jwt:
   access-token-validity: 300000 # 5 minutes in milliseconds
   refresh-token-validity: 1209600000 # 2 weeks in milliseconds
 
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    persistAuthorization: true
+  api-docs:
+    path: /v3/api-docs
     #management:
     #endpoints:
     #web:
