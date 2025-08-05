@@ -6,6 +6,7 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.common.service.S3Service;
 import com.myce.qrcode.entity.QrCode;
 import com.myce.qrcode.entity.code.QrCodeStatus;
 import com.myce.qrcode.repository.QrCodeRepository;
@@ -18,9 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.UUID;
 
 @Service
@@ -30,6 +28,7 @@ public class QrCodeServiceImpl implements QrCodeService {
 
     private final QrCodeRepository qrCodeRepository;
     private final ReserverRepository reserverRepository;
+    private final S3Service s3Service;
 
     @Override
     @Transactional
@@ -154,18 +153,10 @@ public class QrCodeServiceImpl implements QrCodeService {
     }
 
     private String uploadToStorage(byte[] image, String token) {
-        String directoryPath = "src/main/resources/static/qr";
-        File directory = new File(directoryPath);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
-
-        String filePath = directoryPath + "/" + token + ".png";
-        try (FileOutputStream fos = new FileOutputStream(filePath)) {
-            fos.write(image);
-            return "/qr/" + token + ".png";
-        } catch (IOException e) {
-            log.error("QR 이미지 파일 저장 실패 - token: {}, 오류: {}", token, e.getMessage(), e);
+        try {
+            return s3Service.uploadQrImage(image, token);
+        } catch (Exception e) {
+            log.error("QR 이미지 S3 업로드 실패 - token: {}, 오류: {}", token, e.getMessage(), e);
             throw new CustomException(CustomErrorCode.QR_GENERATION_FAILED);
         }
     }

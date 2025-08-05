@@ -80,6 +80,7 @@ spring:
       s3:
         bucket:
           media: ${S3_MEDIA_BUCKET_NAME}
+          cloudfront-domain: ${CLOUDFRONT_DOMAIN}
             #mail:
             #host: smtp.gmail.com
             #port: 587
