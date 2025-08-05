@@ -1,0 +1,12 @@
+package com.myce.expo.repository;
+
+import com.myce.expo.entity.Ticket;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface ExpoAdminTicketRepository extends JpaRepository<Ticket,Long> {
+    List<Ticket> findByExpoId(Long id);
+}
