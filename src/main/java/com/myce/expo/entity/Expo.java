@@ -11,6 +11,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Getter @Entity
 @NoArgsConstructor
@@ -43,6 +44,9 @@ public class Expo {
     @Column(name = "location", length = 100, nullable = false)
     private String location;
 
+    @Column(name = "location_detail", length = 100, nullable = false)
+    private String locationDetail;
+
     @Column(name = "max_reserver_count", nullable = false)
     private Integer maxReserverCount;
 
@@ -68,6 +72,15 @@ public class Expo {
     @Column(name = "display_end_date", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime displayEndDate;
 
+    @Column(name = "start_time", nullable = false)
+    private LocalTime startTime;
+
+    @Column(name = "end_time", nullable = false)
+    private LocalTime endTime;
+
+    @Column(name = "is_premium", columnDefinition = "TINYINT(1)", nullable = false)
+    private Boolean isPremium;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
@@ -77,16 +90,16 @@ public class Expo {
     private LocalDateTime updatedAt;
 
     @Builder
-    public Expo(Member member, Category category, String title, String thumbnailUrl, String description,
-                String location, Integer maxReserverCount, BigDecimal latitude, BigDecimal longitude,
+    public Expo(Member member, String title, String thumbnailUrl, String description,
+                String location, String locationDetail, Integer maxReserverCount, BigDecimal latitude, BigDecimal longitude,
                 LocalDate startDate, LocalDate endDate, ExpoStatus status,
                 LocalDateTime displayStartDate, LocalDateTime displayEndDate) {
         this.member = member;
-        this.category = category;
         this.title = title;
         this.thumbnailUrl = thumbnailUrl;
         this.description = description;
         this.location = location;
+        this.locationDetail = locationDetail;
         this.maxReserverCount = maxReserverCount;
         this.latitude = latitude;
         this.longitude = longitude;
