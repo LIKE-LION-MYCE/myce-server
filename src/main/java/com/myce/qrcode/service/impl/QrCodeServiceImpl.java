@@ -30,104 +30,58 @@ public class QrCodeServiceImpl implements QrCodeService {
     private final QrCodeRepository qrCodeRepository;
     private final ReserverRepository reserverRepository;
 
-    private byte[] generateQrImage(String text) throws Exception {
-        BitMatrix matrix = new MultiFormatWriter()
-                .encode(text, BarcodeFormat.QR_CODE, 300, 300);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        MatrixToImageWriter.writeToStream(matrix, "PNG", out);
-        return out.toByteArray();
-    }
-
     @Override
     @Transactional
-    public QrCode issueQr(Long reserverId) throws Exception {
+    public void issueQr(Long reserverId) throws Exception {
         log.info("QR 코드 발급 시작 - 예약자 ID: {}", reserverId);
-        
-        try {
-            Reserver reserver = reserverRepository.findById(reserverId)
-                    .orElseThrow(() -> {
-                        log.error("예약자를 찾을 수 없음 - ID: {}", reserverId);
-                        return new IllegalArgumentException("예약자를 찾을 수 없습니다.");
-                    });
 
-            if (qrCodeRepository.findByReserver(reserver).isPresent()) {
-                log.warn("이미 QR 코드가 발급된 예약자 - ID: {}", reserverId);
-                throw new IllegalStateException("이미 QR 코드가 발급된 예약자입니다.");
-            }
+        Reserver reserver = reserverRepository.findById(reserverId)
+                .orElseThrow(() -> {
+                    log.error("예약자를 찾을 수 없음 - ID: {}", reserverId);
+                    return new IllegalArgumentException("예약자를 찾을 수 없습니다.");
+                });
 
-            String token = UUID.randomUUID().toString();
-            byte[] image = generateQrImage(token);
-            String imageUrl = uploadToStorage(image, token);
-
-            QrCode qr = QrCode.builder()
-                    .reserver(reserver)
-                    .qrToken(token)
-                    .qrImageUrl(imageUrl)
-                    .status(QrCodeStatus.ACTIVE)
-                    .build();
-
-            QrCode savedQr = qrCodeRepository.save(qr);
-            log.info("QR 코드 발급 완료 - 예약자 ID: {}, QR ID: {}", reserverId, savedQr.getId());
-            
-            return savedQr;
-        } catch (Exception e) {
-            log.error("QR 코드 발급 실패 - 예약자 ID: {}, 오류: {}", reserverId, e.getMessage(), e);
-            throw e;
+        if (qrCodeRepository.findByReserver(reserver).isPresent()) {
+            log.warn("이미 QR 코드가 발급된 예약자 - ID: {}", reserverId);
+            throw new IllegalStateException("이미 QR 코드가 발급된 예약자입니다.");
         }
+
+        createAndSaveQrCode(reserver);
     }
+
 
     @Override
     @Transactional
-    public QrCode reissueQr(Long reserverId, Long adminMemberId) throws Exception {
+    public void reissueQr(Long reserverId, Long adminMemberId) throws Exception {
         log.info("QR 코드 재발급 시작 - 예약자 ID: {}, 관리자 ID: {}", reserverId, adminMemberId);
-        
-        try {
-            Reserver reserver = reserverRepository.findById(reserverId)
-                    .orElseThrow(() -> {
-                        log.error("예약자를 찾을 수 없음 - ID: {}", reserverId);
-                        return new IllegalArgumentException("예약자를 찾을 수 없습니다.");
-                    });
 
-            validateExpoManager(adminMemberId, reserver);
-            log.info("관리자 권한 검증 완료 - 관리자 ID: {}, 예약자 ID: {}", adminMemberId, reserverId);
+        Reserver reserver = reserverRepository.findById(reserverId)
+                .orElseThrow(() -> {
+                    log.error("예약자를 찾을 수 없음 - ID: {}", reserverId);
+                    return new IllegalArgumentException("예약자를 찾을 수 없습니다.");
+                });
 
-            QrCode existing = qrCodeRepository.findByReserver(reserver)
-                    .orElseThrow(() -> {
-                        log.error("기존 QR 코드를 찾을 수 없음 - 예약자 ID: {}", reserverId);
-                        return new IllegalStateException("기존 QR 코드가 존재하지 않습니다.");
-                    });
+        validateExpoManager(adminMemberId, reserver);
+        log.info("관리자 권한 검증 완료 - 관리자 ID: {}, 예약자 ID: {}", adminMemberId, reserverId);
 
-            if (existing.getStatus() != QrCodeStatus.ACTIVE) {
-                log.error("재발급 불가능한 QR 상태 - QR ID: {}, 상태: {}", existing.getId(), existing.getStatus());
-                throw new IllegalStateException("ACTIVE 상태의 QR만 재발급 가능합니다.");
-            }
+        QrCode existing = qrCodeRepository.findByReserver(reserver)
+                .orElseThrow(() -> {
+                    log.error("기존 QR 코드를 찾을 수 없음 - 예약자 ID: {}", reserverId);
+                    return new IllegalStateException("기존 QR 코드가 존재하지 않습니다.");
+                });
 
-            log.info("기존 QR 코드 만료 처리 - QR ID: {}", existing.getId());
-            existing.expire();
-            qrCodeRepository.save(existing);
-
-            // 새 QR 직접 생성 (issueQr 호출하지 않음)
-            String token = UUID.randomUUID().toString();
-            byte[] image = generateQrImage(token);
-            String imageUrl = uploadToStorage(image, token);
-
-            QrCode newQr = QrCode.builder()
-                    .reserver(reserver)
-                    .qrToken(token)
-                    .qrImageUrl(imageUrl)
-                    .status(QrCodeStatus.ACTIVE)
-                    .build();
-
-            QrCode savedQr = qrCodeRepository.save(newQr);
-            log.info("QR 코드 재발급 완료 - 예약자 ID: {}, 새 QR ID: {}", reserverId, savedQr.getId());
-            
-            return savedQr;
-        } catch (Exception e) {
-            log.error("QR 코드 재발급 실패 - 예약자 ID: {}, 관리자 ID: {}, 오류: {}", 
-                     reserverId, adminMemberId, e.getMessage(), e);
-            throw e;
+        if (existing.getStatus() != QrCodeStatus.ACTIVE) {
+            log.error("재발급 불가능한 QR 상태 - QR ID: {}, 상태: {}", existing.getId(), existing.getStatus());
+            throw new IllegalStateException("ACTIVE 상태의 QR만 재발급 가능합니다.");
         }
+
+        log.info("기존 QR 코드 삭제 처리 - QR ID: {}", existing.getId());
+        qrCodeRepository.delete(existing);
+        qrCodeRepository.flush();
+
+        createAndSaveQrCode(reserver);
     }
+
 
     @Override
     @Transactional
@@ -163,41 +117,40 @@ public class QrCodeServiceImpl implements QrCodeService {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<QrCode> getQrByReserverId(Long reserverId) {
-        log.info("예약자 ID로 QR 코드 조회 - 예약자 ID: {}", reserverId);
-        
+    public Optional<String> getQrImageUrlByReserverId(Long reserverId) {
+        log.info("예약자 ID로 QR 이미지 URL 조회 - 예약자 ID: {}", reserverId);
+
         try {
             Optional<Reserver> reserver = reserverRepository.findById(reserverId);
             if (reserver.isEmpty()) {
                 log.warn("존재하지 않는 예약자 ID - ID: {}", reserverId);
                 return Optional.empty();
             }
-            
-            Optional<QrCode> qrCode = qrCodeRepository.findByReserver(reserver.get());
-            log.info("QR 코드 조회 결과 - 예약자 ID: {}, 존재 여부: {}", reserverId, qrCode.isPresent());
-            
-            return qrCode;
+
+            return qrCodeRepository.findByReserver(reserver.get())
+                    .map(QrCode::getQrImageUrl);
         } catch (Exception e) {
-            log.error("QR 코드 조회 실패 - 예약자 ID: {}, 오류: {}", reserverId, e.getMessage(), e);
+            log.error("QR 이미지 URL 조회 실패 - 예약자 ID: {}, 오류: {}", reserverId, e.getMessage(), e);
             return Optional.empty();
         }
     }
 
+
     @Override
     @Transactional(readOnly = true)
-    public Optional<QrCode> getQrByToken(String token) {
-        log.info("토큰으로 QR 코드 조회 - 토큰: {}", token);
-        
+    public Optional<String> getQrImageUrlByToken(String token) {
+        log.info("토큰으로 QR 이미지 URL 조회 - 토큰: {}", token);
+
         try {
-            Optional<QrCode> qrCode = qrCodeRepository.findByQrToken(token);
-            log.info("QR 코드 조회 결과 - 토큰: {}, 존재 여부: {}", token, qrCode.isPresent());
-            
-            return qrCode;
+            return qrCodeRepository.findByQrToken(token)
+                    .map(QrCode::getQrImageUrl);
         } catch (Exception e) {
-            log.error("QR 코드 조회 실패 - 토큰: {}, 오류: {}", token, e.getMessage(), e);
+            log.error("QR 이미지 URL 조회 실패 - 토큰: {}, 오류: {}", token, e.getMessage(), e);
             return Optional.empty();
         }
     }
+
+
 
     private void validateExpoManager(Long adminId, Reserver reserver) {
         Long managerId = reserver.getReservation()
@@ -209,6 +162,7 @@ public class QrCodeServiceImpl implements QrCodeService {
             throw new SecurityException("해당 박람회의 관리자만 처리할 수 있습니다.");
         }
     }
+
 
     private String uploadToStorage(byte[] image, String token) throws IOException {
 
@@ -225,5 +179,27 @@ public class QrCodeServiceImpl implements QrCodeService {
 
         return "/qr/" + token + ".png";
     }
+
+    private QrCode createAndSaveQrCode(Reserver reserver) throws Exception {
+        String token = UUID.randomUUID().toString();
+
+        BitMatrix matrix = new MultiFormatWriter()
+                .encode(token, BarcodeFormat.QR_CODE, 300, 300);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(matrix, "PNG", out);
+        byte[] image = out.toByteArray();
+
+        String imageUrl = uploadToStorage(image, token);
+
+        QrCode qr = QrCode.builder()
+                .reserver(reserver)
+                .qrToken(token)
+                .qrImageUrl(imageUrl)
+                .status(QrCodeStatus.ACTIVE)
+                .build();
+
+        return qrCodeRepository.save(qr);
+    }
+
 
 }

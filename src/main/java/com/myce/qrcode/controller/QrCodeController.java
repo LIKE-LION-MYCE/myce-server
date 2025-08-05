@@ -1,17 +1,10 @@
 package com.myce.qrcode.controller;
 
-import com.google.zxing.BarcodeFormat;
-import com.google.zxing.MultiFormatWriter;
-import com.google.zxing.client.j2se.MatrixToImageWriter;
-import com.google.zxing.common.BitMatrix;
 import com.myce.qrcode.entity.QrCode;
 import com.myce.qrcode.service.QrCodeService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.io.ByteArrayOutputStream;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,15 +14,18 @@ public class QrCodeController {
     private final QrCodeService qrCodeService;
 
     @PostMapping("/issue/{reserverId}")
-    public ResponseEntity<QrCode> issue(@PathVariable Long reserverId) throws Exception {
-        return ResponseEntity.ok(qrCodeService.issueQr(reserverId));
+    public ResponseEntity<Void> issue(@PathVariable Long reserverId) throws Exception {
+        qrCodeService.issueQr(reserverId);
+        return ResponseEntity.ok().build(); // 201 Created
     }
 
     @PostMapping("/reissue/{reserverId}")
-    public ResponseEntity<QrCode> reissue(@PathVariable Long reserverId,
-                                          @RequestParam Long adminId) throws Exception {
-        return ResponseEntity.ok(qrCodeService.reissueQr(reserverId, adminId));
+    public ResponseEntity<Void> reissue(@PathVariable Long reserverId,
+                                        @RequestParam Long adminId) throws Exception {
+        qrCodeService.reissueQr(reserverId, adminId);
+        return ResponseEntity.ok().build();
     }
+
 
     @PostMapping("/token/{token}/use")
     public ResponseEntity<Void> useByToken(@PathVariable String token,
@@ -39,15 +35,15 @@ public class QrCodeController {
     }
 
     @GetMapping("/reserver/{reserverId}")
-    public ResponseEntity<QrCode> getByReserverId(@PathVariable Long reserverId) {
-        return qrCodeService.getQrByReserverId(reserverId)
+    public ResponseEntity<String> getQrUrlByReserverId(@PathVariable Long reserverId) {
+        return qrCodeService.getQrImageUrlByReserverId(reserverId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/token/{token}")
-    public ResponseEntity<QrCode> getByToken(@PathVariable String token) {
-        return qrCodeService.getQrByToken(token)
+    public ResponseEntity<String> getQrUrlByToken(@PathVariable String token) {
+        return qrCodeService.getQrImageUrlByToken(token)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
