@@ -3,6 +3,9 @@ package com.myce.expo.entity;
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.member.entity.Member;
 import jakarta.persistence.*;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -85,11 +88,21 @@ public class Expo {
     @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
+    @Column(name = "start_time", nullable = false, columnDefinition = "TIME")
+    private LocalTime startTime;
+
+    @Column(name = "end_time", nullable = false, columnDefinition = "TIME")
+    private LocalTime endTime;
+
+    @Column(name = "is_premium", nullable = false, columnDefinition = "TINYINT(1)")
+    private Boolean isPremium;
+
     @Builder
     public Expo(Member member, String title, String thumbnailUrl, String description,
-                String location, String locationDetail, Integer maxReserverCount, BigDecimal latitude, BigDecimal longitude,
-                LocalDate startDate, LocalDate endDate, ExpoStatus status,
-                LocalDateTime displayStartDate, LocalDateTime displayEndDate) {
+                String location, String locationDetail, Integer maxReserverCount,
+                BigDecimal latitude, BigDecimal longitude, LocalDate startDate,
+                LocalDate endDate, ExpoStatus status, LocalDateTime displayStartDate,
+                LocalDateTime displayEndDate, LocalTime startTime, LocalTime endTime, Boolean isPremium) {
         this.member = member;
         this.title = title;
         this.thumbnailUrl = thumbnailUrl;
@@ -104,6 +117,8 @@ public class Expo {
         this.status = status;
         this.displayStartDate = displayStartDate;
         this.displayEndDate = displayEndDate;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.isPremium = isPremium;
     }
-
 }
