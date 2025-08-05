@@ -1,64 +1,64 @@
 server:
-  # port: 8081
+# port: 8081
 spring:
-  servlet:    # file uploads
+  servlet: # file uploads
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
-  jackson:    # port one 호환성을 위한 파트
+  jackson: # port one 호환성을 위한 파트
     serialization:
       WRITE_DATES_AS_TIMESTAMPS: false
-  config:     # load ..env variables
+  config: # load ..env variables
     import: optional:file:.env[.properties]
   security:
-    #oauth2:
-      #client:
-        #registration:
-          #google:
-            #client-id: ${GOOGLE_CLIENT_ID}
-            #client-secret: ${GOOGLE_CLIENT_SECRET}
-            #redirect-uri: "{baseUrl}/api/oauth/google/callback"
-            #scope:
-              #- openid
-              #- profile
-              #- email
-          #kakao:
-            #client-id: ${KAKAO_CLIENT_ID}
-            #client-secret: ${KAKAO_CLIENT_SECRET}
-            #redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
-            #scope:
-              #- profile_nickname
-              #- profile_image
-              #- account_email
-            #authorization-grant-type: authorization_code
-        #provider:
-          #google:
-            #authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
-            #token-uri: https://oauth2.googleapis.com/token
-            #user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
-            #user-name-attribute: sub
-          #kakao:
-            #authorization-uri: https://kauth.kakao.com/oauth/authorize
-            #token-uri: https://kauth.kakao.com/oauth/token
-            #user-info-uri: https://kapi.kakao.com/v2/user/me
-            #user-name-attribute: id
+  #oauth2:
+  #client:
+  #registration:
+  #google:
+  #client-id: ${GOOGLE_CLIENT_ID}
+  #client-secret: ${GOOGLE_CLIENT_SECRET}
+  #redirect-uri: "{baseUrl}/api/oauth/google/callback"
+  #scope:
+  #- openid
+  #- profile
+  #- email
+  #kakao:
+  #client-id: ${KAKAO_CLIENT_ID}
+  #client-secret: ${KAKAO_CLIENT_SECRET}
+  #redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
+  #scope:
+  #- profile_nickname
+  #- profile_image
+  #- account_email
+  #authorization-grant-type: authorization_code
+  #provider:
+  #google:
+  #authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+  #token-uri: https://oauth2.googleapis.com/token
+  #user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+  #user-name-attribute: sub
+  #kakao:
+  #authorization-uri: https://kauth.kakao.com/oauth/authorize
+  #token-uri: https://kauth.kakao.com/oauth/token
+  #user-info-uri: https://kapi.kakao.com/v2/user/me
+  #user-name-attribute: id
   logging:
     level:
       root: info
       com.myce: debug
-  datasource:   # MySQL
+  datasource: # MySQL
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: ${DB_DRIVER_CLASS_NAME}
-    hikari:     # MySQL process mgmt
+    hikari: # MySQL process mgmt
       maximum-pool-size: 5
       minimum-idle: 2
       idle-timeout: 300000
       max-lifetime: 1800000
       connection-timeout: 20000
 
-  data:         # MongoDB
+  data: # MongoDB
     mongodb:
       uri: ${MONGODB_URI}
     redis:
@@ -70,7 +70,7 @@ spring:
       # ddl-auto: none  # in operation (manual sql management)
     show-sql: true
   
-  cloud:        # AWS S3 Configuration
+  cloud: # AWS S3 Configuration
     aws:
       credentials:
         access-key: ${AWS_ACCESS_KEY_ID}
@@ -83,39 +83,39 @@ spring:
 
 cloudfront:
   domain: ${CLOUDFRONT_DOMAIN:https://media.myce.live}
-  #mail:
+    #mail:
     #host: smtp.gmail.com
     #port: 587
     #username: "@gmail.com"
     #password: ${MAIL_PASSWORD}
     #properties:
-      #mail:
-        #smtp:
-          #auth: true
-          #starttls:
-            #enable: true
+    #mail:
+  #smtp:
+  #auth: true
+  #starttls:
+  #enable: true
 
-#jwt:
-  #secret: ${JWT_SECRET}
-  #access-token-validity: 300000 # 5 minutes in milliseconds
-  #refresh-token-validity: 1209600000 # 2 weeks in milliseconds
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-validity: 18000000 # 5 hour in milliseconds
+  refresh-token-validity: 1209600000 # 2 weeks in milliseconds
 
 
-#management:
-  #endpoints:
+    #management:
+    #endpoints:
     #web:
-      #exposure:
-        #include: health, info, prometheus
-  #endpoint:
+    #exposure:
+    #include: health, info, prometheus
+    #endpoint:
     #prometheus:
-      #enabled: true
+    #enabled: true
   #metrics:
-    #export:
-      #prometheus:
-        #enabled: true
+  #export:
+  #prometheus:
+  #enabled: true
 
 
-#port-one:
+  #port-one:
   #base-url: ${PORTONE_BASE_URL}
   #api-key: ${PORTONE_API_KEY}
   #api-secret: ${PORTONE_API_SECRET}
