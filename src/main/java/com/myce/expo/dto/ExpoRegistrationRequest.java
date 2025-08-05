@@ -6,13 +6,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
 @NoArgsConstructor
-@AllArgsConstructor
 public class ExpoRegistrationRequest {
   private Long memberId;  // 박람회 등록 아이디 => 로그인 사용자 정보
   private String thumbnailUrl; // 박람회 포스터
