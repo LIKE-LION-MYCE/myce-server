@@ -1,14 +1,14 @@
 package com.myce.expo.service;
 
 import com.myce.common.entity.BusinessProfile;
-import com.myce.common.entity.type.TargetType;
 import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.expo.dto.ExpoRegistrationCompanyRequest;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.ExpoCategory;
-import com.myce.expo.entity.type.ExpoStatus;
+import com.myce.expo.service.mapper.BusinessProfileMapper;
+import com.myce.expo.service.mapper.ExpoMapper;
 import com.myce.expo.repository.CategoryRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.member.entity.Member;
@@ -33,25 +33,7 @@ public class ExpoServiceImpl implements ExpoService {
         .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
 
     // expo 객체 생성
-    Expo expo = Expo.builder()
-        .member(member)
-        .title(request.getTitle())
-        .thumbnailUrl(request.getThumbnailUrl())
-        .description(request.getDescription())
-        .location(request.getLocation())
-        .locationDetail(request.getLocationDetail())
-        .latitude(request.getLatitude())
-        .longitude(request.getLongitude())
-        .startDate(request.getStartDate())
-        .endDate(request.getEndDate())
-        .displayStartDate(request.getDisplayStartDate())
-        .displayEndDate(request.getDisplayEndDate())
-        .startTime(request.getStartTime())
-        .endTime(request.getEndTime())
-        .status(ExpoStatus.PENDING_APPROVAL) // 맨 첫 등록은 승인 대기로
-        .isPremium(request.getIsPremium())
-        .maxReserverCount(request.getMaxReserverCount())
-        .build();
+    Expo expo = ExpoMapper.toEntity(request, member);
 
     // 카테고리 추가
     for (Long categoryId : request.getCategoryIds()) {
@@ -72,16 +54,7 @@ public class ExpoServiceImpl implements ExpoService {
     // 등록 신청한 회사 정보 저장
     ExpoRegistrationCompanyRequest company = request.getExpoRegistrationCompanyRequest();
 
-    BusinessProfile businessProfile = BusinessProfile.builder()
-        .targetType(TargetType.EXPO)
-        .targetId(registeredExpo.getId())
-        .companyName(company.getCompanyName())
-        .address(company.getAddress())
-        .ceoName(company.getCeoName())
-        .contactPhone(company.getContactPhone())
-        .contactEmail(company.getContactEmail())
-        .businessRegistrationNumber(company.getBusinessRegistrationNumber())
-        .build();
+    BusinessProfile businessProfile = BusinessProfileMapper.toEntity(company, registeredExpo.getId());
 
     businessProfileRepository.save(businessProfile);
   }

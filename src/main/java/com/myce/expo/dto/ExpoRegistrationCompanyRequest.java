@@ -1,12 +1,10 @@
 package com.myce.expo.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
 @NoArgsConstructor
-@AllArgsConstructor
 public class ExpoRegistrationCompanyRequest {
   private String companyName;   // 회사명
   private String businessRegistrationNumber;  // 사업자번호

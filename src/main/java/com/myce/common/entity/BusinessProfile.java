@@ -52,7 +52,7 @@ public class BusinessProfile {
     @Column(name = "business_registration_number", length = 50, nullable = false)
     private String businessRegistrationNumber;
 
-    @Column(name = "logo_url", length = 255, nullable = true)
+    @Column(name = "logo_url", length = 500, nullable = true)
     private String logoUrl;
 
     @CreationTimestamp
