@@ -3,6 +3,9 @@ package com.myce.expo.entity;
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.member.entity.Member;
 import jakarta.persistence.*;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -27,9 +30,8 @@ public class Expo {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    private Category category;
+    @OneToMany(mappedBy = "expo", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ExpoCategory> expoCategories = new ArrayList<>();
 
     @Column(name = "title", length = 100, nullable = false)
     private String title;
@@ -42,6 +44,9 @@ public class Expo {
 
     @Column(name = "location", length = 100, nullable = false)
     private String location;
+
+    @Column(name = "location_detail", length = 100, nullable = false)
+    private String locationDetail;
 
     @Column(name = "max_reserver_count", nullable = false)
     private Integer maxReserverCount;
@@ -76,17 +81,27 @@ public class Expo {
     @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
+    @Column(name = "start_time", nullable = false, columnDefinition = "TIME")
+    private LocalTime startTime;
+
+    @Column(name = "end_time", nullable = false, columnDefinition = "TIME")
+    private LocalTime endTime;
+
+    @Column(name = "is_premium", nullable = false, columnDefinition = "TINYINT(1)")
+    private Boolean isPremium;
+
     @Builder
-    public Expo(Member member, Category category, String title, String thumbnailUrl, String description,
-                String location, Integer maxReserverCount, BigDecimal latitude, BigDecimal longitude,
-                LocalDate startDate, LocalDate endDate, ExpoStatus status,
-                LocalDateTime displayStartDate, LocalDateTime displayEndDate) {
+    public Expo(Member member, String title, String thumbnailUrl, String description,
+                String location, String locationDetail, Integer maxReserverCount,
+                BigDecimal latitude, BigDecimal longitude, LocalDate startDate,
+                LocalDate endDate, ExpoStatus status, LocalDateTime displayStartDate,
+                LocalDateTime displayEndDate, LocalTime startTime, LocalTime endTime, Boolean isPremium) {
         this.member = member;
-        this.category = category;
         this.title = title;
         this.thumbnailUrl = thumbnailUrl;
         this.description = description;
         this.location = location;
+        this.locationDetail = locationDetail;
         this.maxReserverCount = maxReserverCount;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -95,6 +110,8 @@ public class Expo {
         this.status = status;
         this.displayStartDate = displayStartDate;
         this.displayEndDate = displayEndDate;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.isPremium = isPremium;
     }
-
 }
