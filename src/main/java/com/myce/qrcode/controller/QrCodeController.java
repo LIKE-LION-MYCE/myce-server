@@ -26,7 +26,6 @@ public class QrCodeController {
         return ResponseEntity.ok().build();
     }
 
-
     @PostMapping("/token/{token}/use")
     public ResponseEntity<Void> useByToken(@PathVariable String token,
                                            @RequestParam Long adminId) {
@@ -39,7 +38,6 @@ public class QrCodeController {
         String url = qrCodeService.getQrImageUrlByReserverId(reserverId);
         return ResponseEntity.ok(url);
     }
-
 
     @GetMapping("/token/{token}")
     public ResponseEntity<String> getQrUrlByToken(@PathVariable String token) {

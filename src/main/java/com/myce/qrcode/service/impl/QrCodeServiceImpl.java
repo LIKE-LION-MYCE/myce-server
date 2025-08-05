@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -52,7 +51,6 @@ public class QrCodeServiceImpl implements QrCodeService {
             throw new CustomException(CustomErrorCode.QR_GENERATION_FAILED);
         }
     }
-
 
     @Override
     @Transactional
@@ -86,7 +84,6 @@ public class QrCodeServiceImpl implements QrCodeService {
 
     }
 
-
     @Override
     @Transactional
     public void markQrAsUsed(String qrToken, Long adminMemberId) {
@@ -106,7 +103,6 @@ public class QrCodeServiceImpl implements QrCodeService {
         }
 
         qr.markAsUsed();
-        qrCodeRepository.save(qr);
         log.info("QR 코드 사용 처리 완료 - QR ID: {}, 예약자 ID: {}", 
                 qr.getId(), qr.getReserver().getId());
     }
@@ -130,8 +126,6 @@ public class QrCodeServiceImpl implements QrCodeService {
         return url;
     }
 
-
-
     @Override
     @Transactional(readOnly = true)
     public String getQrImageUrlByToken(String token) {
@@ -148,9 +142,6 @@ public class QrCodeServiceImpl implements QrCodeService {
         return url;
     }
 
-
-
-
     private void validateExpoManager(Long adminId, Reserver reserver) {
         Long managerId = reserver.getReservation()
                 .getExpo()
@@ -161,7 +152,6 @@ public class QrCodeServiceImpl implements QrCodeService {
             throw new CustomException(CustomErrorCode.QR_UNAUTHORIZED);
         }
     }
-
 
     private String uploadToStorage(byte[] image, String token) {
         String directoryPath = "src/main/resources/static/qr";
@@ -180,8 +170,7 @@ public class QrCodeServiceImpl implements QrCodeService {
         }
     }
 
-
-    private QrCode createAndSaveQrCode(Reserver reserver) {
+    private void createAndSaveQrCode(Reserver reserver) {
         try {
             String token = UUID.randomUUID().toString();
 
@@ -200,13 +189,10 @@ public class QrCodeServiceImpl implements QrCodeService {
                     .status(QrCodeStatus.ACTIVE)
                     .build();
 
-            return qrCodeRepository.save(qr);
+            qrCodeRepository.save(qr);
         } catch (Exception e) {
             log.error("QR 코드 생성 중 오류 - 예약자 ID: {}, 오류: {}", reserver.getId(), e.getMessage(), e);
             throw new CustomException(CustomErrorCode.QR_GENERATION_FAILED);
         }
     }
-
-
-
 }

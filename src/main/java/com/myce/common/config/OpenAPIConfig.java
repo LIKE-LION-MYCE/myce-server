@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenAPIConfig {
 
-    private static final String SECURITY_SCHEME_NAME = "bearerAuth";
+    private static final String NAME = "bearerAuth";
 
     @Bean
     public OpenAPI customOpenAPI() {
@@ -21,11 +21,11 @@ public class OpenAPIConfig {
                         .description("MYCE 서비스 API 문서")
                         .version("v1.0.0")
                 )
-                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
+                .addSecurityItem(new SecurityRequirement().addList(NAME))
                 .components(new Components()
-                        .addSecuritySchemes(SECURITY_SCHEME_NAME,
+                        .addSecuritySchemes(NAME,
                                 new SecurityScheme()
-                                        .name(SECURITY_SCHEME_NAME)
+                                        .name(NAME)
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
                                         .bearerFormat("JWT")
