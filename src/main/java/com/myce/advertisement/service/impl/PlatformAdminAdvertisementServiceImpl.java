@@ -46,7 +46,7 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
     }
 
     public PageResponse<SimpleApplyAdvertisement> getFilteredApplyListByKeyword(String keyword, String statusText,
-                                                                                int page, int pageSize, boolean latestFirst) {
+                                                                    int page, int pageSize, boolean latestFirst) {
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
                 : Sort.by("createdAt").ascending();
         Pageable pageable = PageRequest.of(page, pageSize, sort);
