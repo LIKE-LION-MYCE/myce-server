@@ -10,24 +10,22 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
+@Getter
 public class CustomUserDetails implements UserDetails {
 
-    @Getter
     private final Long memberId;
     private final String name;
-
-    @Getter
+    private final String loginId;
     private final ProviderType providerType;
-
     private final String password;
-
-    @Getter
     private final String role;
 
     @Builder
-    public CustomUserDetails(Long memberId, String name, String password, ProviderType providerType, String role) {
+    public CustomUserDetails(Long memberId, String name, String loginId,
+                             String password, ProviderType providerType, String role) {
         this.memberId = memberId;
         this.providerType = providerType;
+        this.loginId = loginId;
         this.password = password;
         this.name = name;
         this.role = role;
@@ -36,11 +34,6 @@ public class CustomUserDetails implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(role));
-    }
-
-    @Override
-    public String getPassword() {
-        return password;
     }
 
     @Override
