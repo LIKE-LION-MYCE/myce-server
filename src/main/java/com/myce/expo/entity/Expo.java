@@ -31,6 +31,9 @@ public class Expo {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
+    @OneToMany(mappedBy = "expo", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ExpoCategory> expoCategories = new ArrayList<>();
+
     @Column(name = "title", length = 100, nullable = false)
     private String title;
 
@@ -70,15 +73,6 @@ public class Expo {
 
     @Column(name = "display_end_date", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime displayEndDate;
-
-    @Column(name = "start_time", nullable = false)
-    private LocalTime startTime;
-
-    @Column(name = "end_time", nullable = false)
-    private LocalTime endTime;
-
-    @Column(name = "is_premium", columnDefinition = "TINYINT(1)", nullable = false)
-    private Boolean isPremium;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false, columnDefinition = "TIMESTAMP")
