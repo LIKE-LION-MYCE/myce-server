@@ -49,7 +49,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         CustomUserDetails userDetails = (CustomUserDetails) authResult.getPrincipal();
 
         Long memberId = userDetails.getMemberId();
-        String loginId = request.getParameter("loginId");
+        String loginId = userDetails.getLoginId();
         String name = userDetails.getUsername();
         String role = userDetails.getRole();
 

@@ -1,7 +1,7 @@
 package com.myce.auth.security.filter;
 
 import com.myce.auth.dto.CustomUserDetails;
-import com.myce.auth.service.UserDetailsServiceImpl;
+import com.myce.auth.service.impl.UserDetailsServiceImpl;
 import com.myce.common.exception.CustomException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
