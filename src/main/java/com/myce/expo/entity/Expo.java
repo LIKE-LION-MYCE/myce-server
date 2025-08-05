@@ -93,7 +93,8 @@ public class Expo {
     public Expo(Member member, String title, String thumbnailUrl, String description,
                 String location, String locationDetail, Integer maxReserverCount, BigDecimal latitude, BigDecimal longitude,
                 LocalDate startDate, LocalDate endDate, ExpoStatus status,
-                LocalDateTime displayStartDate, LocalDateTime displayEndDate) {
+                LocalDateTime displayStartDate, LocalDateTime displayEndDate, LocalTime startTime,
+                LocalTime endTime, Boolean isPremium) {
         this.member = member;
         this.title = title;
         this.thumbnailUrl = thumbnailUrl;
@@ -108,6 +109,9 @@ public class Expo {
         this.status = status;
         this.displayStartDate = displayStartDate;
         this.displayEndDate = displayEndDate;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.isPremium = isPremium;
     }
 
 }
