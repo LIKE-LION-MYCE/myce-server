@@ -5,5 +5,6 @@ import com.myce.expo.dto.ExpoAdminTicketResponseDto;
 import java.util.List;
 
 public interface ExpoAdminTicketService {
-    List<ExpoAdminTicketResponseDto> getMyExpoTickets();
+    List<ExpoAdminTicketResponseDto> getMyExpoTickets(Long memberId);
+    void deleteMyExpoTicket(Long memberId, Long ticketId);
 }
