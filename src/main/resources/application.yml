@@ -1,6 +1,8 @@
 server:
 # port: 8081
 spring:
+  profiles:
+    active: ${PROFILE} # local | product
   servlet: # file uploads
     multipart:
       max-file-size: 10MB
@@ -108,13 +110,13 @@ springdoc:
     #endpoints:
     #web:
     #exposure:
-    #include: health, info, prometheus
-    #endpoint:
-    #prometheus:
-    #enabled: true
-    #metrics:
-    #export:
-    #prometheus:
+  #include: health, info, prometheus
+  #endpoint:
+  #prometheus:
+  #enabled: true
+  #metrics:
+  #export:
+  #prometheus:
   #enabled: true
   #port-one:
   #base-url: ${PORTONE_BASE_URL}

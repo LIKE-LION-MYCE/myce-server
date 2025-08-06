@@ -4,11 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.auth.dto.LoginRequest;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,6 +25,8 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final String profile;
+    private static final String PRODUCT_PROFILE = "product";
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
@@ -36,7 +39,8 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
             String password = loginRequest.getPassword();
             log.info("Get loginId: {}, password: {}", loginId, password);
 
-            UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(loginId, password);
+            UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(loginId,
+                    password);
             return authenticationManager.authenticate(authRequest);
         } catch (IOException e) {
             throw new AuthenticationServiceException("Failed to parse login request", e);
@@ -56,10 +60,9 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         String accessToken = jwtUtil.createToken(JwtUtil.ACCESS_TOKEN, memberId, loginId, name, role);
         String refreshToken = jwtUtil.createToken(JwtUtil.REFRESH_TOKEN, memberId, loginId, name, role);
 
-
         response.addHeader(JwtUtil.AUTHORIZATION_HEADER, accessToken);
-        Cookie cookie = getCookie(JwtUtil.REFRESH_TOKEN, refreshToken);
-        response.addCookie(cookie);
+        ResponseCookie cookie = getCookie(JwtUtil.REFRESH_TOKEN, refreshToken);
+        response.addHeader("Set-Cookie", cookie.toString());
         response.setStatus(HttpServletResponse.SC_OK);
         log.info("Successfully login. loginId: {}", loginId);
     }
@@ -70,9 +73,14 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     }
 
-    private Cookie getCookie(String key, String token) {
-        Cookie cookie = new Cookie(key, token);
-        cookie.setHttpOnly(true);
-        return cookie;
+    private ResponseCookie getCookie(String key, String token) {
+        boolean isProd = this.profile.equals(PRODUCT_PROFILE);
+        return ResponseCookie.from(key, token)
+                .httpOnly(true)
+                .sameSite(isProd ? "None" : "Lax")
+                .secure(isProd)
+                .maxAge(Duration.ofDays(14))
+                .path("/")
+                .build();
     }
 }
