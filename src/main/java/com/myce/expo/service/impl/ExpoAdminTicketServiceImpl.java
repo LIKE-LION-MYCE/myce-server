@@ -63,7 +63,7 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
 
     @Override//TODO:하위 관리자
     @Transactional
-    public void updateMyExpoTicket(Long memberId, Long ticketId, ExpoAdminTicketRequestDto dto) {
+    public ExpoAdminTicketResponseDto updateMyExpoTicket(Long memberId, Long ticketId, ExpoAdminTicketRequestDto dto) {
         Expo expo =  getActiveExpo(memberId);
 
         Ticket ticket = ticketRepository.findById(ticketId)
@@ -84,7 +84,9 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
                 dto.getSaleEndDate()
         );
 
-        ticketRepository.save(ticket);
+       Ticket saved = ticketRepository.save(ticket);
+
+       return mapper.toDto(saved);
     }
 
     private Expo getActiveExpo(Long memberId){

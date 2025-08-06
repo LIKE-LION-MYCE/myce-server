@@ -45,12 +45,11 @@ public class ExpoAdminTicketController {
     }
 
     @PutMapping("/{ticketId}")//TODO:하위관리자
-    public ResponseEntity<Void> updateMyExpoTicket(
+    public ResponseEntity<ExpoAdminTicketResponseDto> updateMyExpoTicket(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long ticketId,
             @Valid @RequestBody ExpoAdminTicketRequestDto dto){
         Long memberId = customUserDetails.getMemberId();
-        service.updateMyExpoTicket(memberId,ticketId,dto);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(service.updateMyExpoTicket(memberId,ticketId,dto));
     }
 }
