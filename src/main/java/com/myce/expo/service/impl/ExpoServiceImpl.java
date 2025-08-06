@@ -4,13 +4,13 @@ import com.myce.common.entity.BusinessProfile;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
-import com.myce.expo.dto.ExpoRegistrationCompanyRequest;
+import com.myce.common.dto.RegistrationCompanyRequest;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.ExpoCategory;
 import com.myce.expo.service.ExpoService;
-import com.myce.expo.service.mapper.BusinessProfileMapper;
+import com.myce.common.service.mapper.BusinessProfileMapper;
 import com.myce.expo.service.mapper.ExpoMapper;
 import com.myce.expo.repository.CategoryRepository;
 import com.myce.expo.repository.ExpoRepository;
@@ -55,7 +55,7 @@ public class ExpoServiceImpl implements ExpoService {
     Expo savedExpo = expoRepository.save(expo);
 
     // 등록 신청한 회사 정보 저장
-    ExpoRegistrationCompanyRequest company = request.getExpoRegistrationCompanyRequest();
+    RegistrationCompanyRequest company = request.getRegistrationCompanyRequest();
 
     BusinessProfile businessProfile = BusinessProfileMapper.toEntity(company, savedExpo.getId());
 

@@ -1,11 +1,11 @@
-package com.myce.expo.service.mapper;
+package com.myce.common.service.mapper;
 
 import com.myce.common.entity.BusinessProfile;
 import com.myce.common.entity.type.TargetType;
-import com.myce.expo.dto.ExpoRegistrationCompanyRequest;
+import com.myce.common.dto.RegistrationCompanyRequest;
 
 public class BusinessProfileMapper {
-  public static BusinessProfile toEntity(ExpoRegistrationCompanyRequest company, Long expoId){
+  public static BusinessProfile toEntity(RegistrationCompanyRequest company, Long expoId){
     return BusinessProfile.builder()
           .targetType(TargetType.EXPO)
           .targetId(expoId)
