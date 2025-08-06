@@ -17,8 +17,8 @@ public class ExpoRegistrationRequest {
   private String title; // 박람회 이름
   private LocalDate startDate;// 박람회 개최 시작일
   private LocalDate endDate; // 박람회 개최 종료일
-  private LocalDateTime displayStartDate;// 박람회 게시 시작일
-  private LocalDateTime displayEndDate; // 박람회 게시 종료일
+  private LocalDate displayStartDate;// 박람회 게시 시작일
+  private LocalDate displayEndDate; // 박람회 게시 종료일
   private String location; // 박람회 장소
   private String locationDetail;  // 박람회 세부 장소
   private BigDecimal latitude; // 박람회 위도
