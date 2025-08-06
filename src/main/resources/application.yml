@@ -1,6 +1,8 @@
 server:
 # port: 8081
 spring:
+  profiles:
+    active: ${PROFILE} # local | product
   servlet: # file uploads
     multipart:
       max-file-size: 10MB
@@ -80,14 +82,14 @@ spring:
       s3:
         bucket:
           media: ${S3_MEDIA_BUCKET_NAME}
-            #mail:
-            #host: smtp.gmail.com
-            #port: 587
-            #username: "@gmail.com"
-            #password: ${MAIL_PASSWORD}
-            #properties:
-            #mail:
-            #smtp:
+          #mail:
+          #host: smtp.gmail.com
+          #port: 587
+          #username: "@gmail.com"
+          #password: ${MAIL_PASSWORD}
+          #properties:
+          #mail:
+          #smtp:
           #auth: true
           #starttls:
           #enable: true
@@ -101,13 +103,13 @@ jwt:
     #endpoints:
     #web:
     #exposure:
-    #include: health, info, prometheus
-    #endpoint:
-    #prometheus:
-    #enabled: true
-    #metrics:
-    #export:
-    #prometheus:
+  #include: health, info, prometheus
+  #endpoint:
+  #prometheus:
+  #enabled: true
+  #metrics:
+  #export:
+  #prometheus:
   #enabled: true
   #port-one:
   #base-url: ${PORTONE_BASE_URL}
