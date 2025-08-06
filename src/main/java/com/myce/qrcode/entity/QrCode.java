@@ -50,4 +50,14 @@ public class QrCode {
         this.status = status;
         this.usedAt = usedAt;
     }
+
+    public void markAsUsed() {
+        this.status = QrCodeStatus.USED;
+        this.usedAt = LocalDateTime.now();
+    }
+
+    public void expire() {
+        this.status = QrCodeStatus.EXPIRED;
+    }
+
 }
