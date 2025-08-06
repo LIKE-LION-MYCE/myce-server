@@ -1,6 +1,5 @@
 package com.myce.advertisement.controller;
 
-import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.service.PlatformAdminAdvertisementService;
 import com.myce.common.dto.PageResponse;
@@ -35,11 +34,6 @@ public class PlatformAdminAdvertisementController {
               boolean latestFirst) {
         return service.getFilteredApplyListByKeyword(keyword, status,
                 page, PAGE_SIZE, latestFirst);
-    }
-
-    @GetMapping("/detail/{bannerId}")
-    public DetailApplyAdvertisement getApplyDetail(@PathVariable Long bannerId) {
-        return service.getDetailApply(bannerId);
     }
 
 }

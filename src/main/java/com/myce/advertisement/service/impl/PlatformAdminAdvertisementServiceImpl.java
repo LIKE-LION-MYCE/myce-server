@@ -1,6 +1,5 @@
 package com.myce.advertisement.service.impl;
 
-import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
@@ -60,11 +59,6 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
-    public DetailApplyAdvertisement getDetailApply(Long bannerId){
-        Advertisement advertisement = advertisementRepository.findById(bannerId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.BANNER_NOT_EXIST));
-        return getDetailApplyAdvertisement(advertisement);
-    }
 
 
     private List<AdvertisementStatus> getApplyStatusList() {
@@ -80,13 +74,5 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
 
         return AdvertisementMapper.getSimpleAdvertisement(advertisement, businessProfile);
-    }
-
-    private DetailApplyAdvertisement getDetailApplyAdvertisement(Advertisement advertisement) {
-        BusinessProfile businessProfile = businessProfileRepository
-                .findByTargetIdAndTargetType(advertisement.getId(), TargetType.ADVERTISEMENT)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
-
-        return AdvertisementMapper.getDetailAdvertisement(advertisement, businessProfile);
     }
 }

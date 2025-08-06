@@ -9,6 +9,4 @@ public interface PlatformAdminAdvertisementService {
 
     PageResponse<SimpleApplyAdvertisement> getFilteredApplyListByKeyword(String keyword, String status,
              int page, int pageSize, boolean latestFirst);
-
-    DetailApplyAdvertisement getDetailApply(Long bannerId);
 }
