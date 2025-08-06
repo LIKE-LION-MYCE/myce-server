@@ -53,7 +53,7 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         if (requestedStatus != null && applyStatusList.contains(requestedStatus)) {
             bannerEntityPage = advertisementRepository.findByTitleContainingAndStatus(keyword, requestedStatus, pageable);
         } else {
-            bannerEntityPage = advertisementRepository.findByTitleContainingAndStatusIn(applyStatusList, keyword, pageable);
+            bannerEntityPage = advertisementRepository.findByTitleContainingAndStatusIn(keyword, applyStatusList, pageable);
         }
 
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));

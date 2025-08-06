@@ -1,6 +1,5 @@
 package com.myce.advertisement.service;
 
-import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.common.dto.PageResponse;
 

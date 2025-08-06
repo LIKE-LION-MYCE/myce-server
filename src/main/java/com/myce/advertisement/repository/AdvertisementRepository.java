@@ -6,12 +6,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface AdvertisementRepository extends JpaRepository<Advertisement, Long> {
     Page<Advertisement> findByStatusIn(List<AdvertisementStatus> statuses, Pageable pageable);
 
-    Page<Advertisement> findByTitleContainingAndStatusIn(List<AdvertisementStatus> statuses, String title, Pageable pageable);
+    Page<Advertisement> findByTitleContainingAndStatusIn(String title, Collection<AdvertisementStatus> status, Pageable pageable);
 
     Page<Advertisement> findByTitleContainingAndStatus(String title, AdvertisementStatus status, Pageable pageable);
 }
