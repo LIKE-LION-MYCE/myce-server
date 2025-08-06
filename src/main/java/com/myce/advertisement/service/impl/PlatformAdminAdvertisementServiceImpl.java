@@ -3,7 +3,7 @@ package com.myce.advertisement.service.impl;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
-import com.myce.advertisement.mapper.AdvertisementMapper;
+import com.myce.advertisement.service.mapper.AdvertisementMapper;
 import com.myce.advertisement.repository.AdvertisementRepository;
 import com.myce.advertisement.service.PlatformAdminAdvertisementService;
 import com.myce.common.dto.PageResponse;
