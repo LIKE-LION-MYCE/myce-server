@@ -1,11 +1,14 @@
 package com.myce.expo.entity;
 
+import com.myce.expo.dto.MyExpoUpdateRequest;
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.member.entity.Member;
 import jakarta.persistence.*;
+
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -15,7 +18,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-@Getter @Entity
+@Getter
+@Entity
 @NoArgsConstructor
 @Table(name = "expo")
 @EntityListeners(AuditingEntityListener.class)
@@ -113,5 +117,22 @@ public class Expo {
         this.startTime = startTime;
         this.endTime = endTime;
         this.isPremium = isPremium;
+    }
+
+    // DTO를 사용하여 엔티티의 필드를 업데이트하는 메서드 (더티 체킹 활용)
+    public void updateFromDto(MyExpoUpdateRequest dto) {
+        this.title = dto.getTitle();
+        this.thumbnailUrl = dto.getThumbnailUrl();
+        this.description = dto.getDescription();
+        this.location = dto.getLocation();
+        this.locationDetail = dto.getLocationDetail();
+        this.maxReserverCount = dto.getMaxReserverCount();
+        this.startDate = dto.getStartDate();
+        this.endDate = dto.getEndDate();
+        this.displayStartDate = dto.getDisplayStartDate();
+        this.displayEndDate = dto.getDisplayEndDate();
+        this.startTime = dto.getStartTime();
+        this.endTime = dto.getEndTime();
+        this.isPremium = dto.getIsPremium();
     }
 }

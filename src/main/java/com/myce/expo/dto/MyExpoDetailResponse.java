@@ -1,6 +1,7 @@
 package com.myce.expo.dto;
 
 import com.myce.expo.entity.type.ExpoStatus;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,6 +14,8 @@ import java.util.List;
 // 나의 박람회 상세 조회 응답 DTO
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class MyExpoDetailResponse {
 
     private Long id;
@@ -33,26 +36,4 @@ public class MyExpoDetailResponse {
     private LocalTime endTime;
     private Boolean isPremium;
 
-    @Builder
-    public MyExpoDetailResponse(Long id, List<Long> categoryIds, String title, String thumbnailUrl, String description,
-                                String location, String locationDetail, Integer maxReserverCount, LocalDate startDate,
-                                LocalDate endDate, ExpoStatus status, LocalDate displayStartDate,
-                                LocalDate displayEndDate, LocalTime startTime, LocalTime endTime, Boolean isPremium) {
-        this.id = id;
-        this.categoryIds = categoryIds;
-        this.title = title;
-        this.thumbnailUrl = thumbnailUrl;
-        this.description = description;
-        this.location = location;
-        this.locationDetail = locationDetail;
-        this.maxReserverCount = maxReserverCount;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.status = status;
-        this.displayStartDate = displayStartDate;
-        this.displayEndDate = displayEndDate;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.isPremium = isPremium;
-    }
 }
