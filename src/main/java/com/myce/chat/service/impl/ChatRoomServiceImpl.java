@@ -2,6 +2,7 @@ package com.myce.chat.service.impl;
 
 import com.myce.chat.document.ChatRoom;
 import com.myce.chat.dto.ChatRoomListResponse;
+import com.myce.member.entity.type.Role;
 import com.myce.chat.repository.ChatRoomRepository;
 import com.myce.chat.service.ChatRoomService;
 import com.myce.common.exception.CustomErrorCode;
@@ -28,9 +29,6 @@ import java.util.stream.Collectors;
  * 2. 읽지 않은 메시지 개수 계산
  * 3. 상대방 정보 매핑 (관리자 ↔ 참가자)
  * 4. 예외 상황 처리 (CustomException 사용)
- * 
- * @author MYCE Team
- * @since 2025-08-06
  */
 @Slf4j
 @Service
@@ -63,7 +61,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         // 3. 역할별 채팅방 조회 로직 분기
         List<ChatRoom> chatRooms;
         
-        if ("ADMIN".equals(memberRole)) {
+        if (Role.EXPO_ADMIN.name().equals(memberRole)) {
             // 관리자인 경우: 본인이 관리하는 박람회들의 모든 채팅방 조회
             log.debug("관리자 권한으로 채팅방 조회 - 회원ID: {}", memberId);
             chatRooms = getChatRoomsForAdmin(memberId);
@@ -114,7 +112,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
 
         // 4. DTO 변환
         List<ChatRoomListResponse.ChatRoomInfo> chatRoomInfos = chatRooms.stream()
-            .map(chatRoom -> convertToChatRoomInfo(chatRoom, adminId, "ADMIN"))
+            .map(chatRoom -> convertToChatRoomInfo(chatRoom, adminId, Role.EXPO_ADMIN.name()))
             .collect(Collectors.toList());
 
         // 5. 응답 생성
@@ -157,17 +155,17 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         Member otherMember;
         String otherMemberRole;
 
-        if ("ADMIN".equals(currentMemberRole)) {
+        if (Role.EXPO_ADMIN.name().equals(currentMemberRole)) {
             // 현재 사용자가 관리자면 → 상대방은 일반 참가자
             otherMember = memberRepository.findById(chatRoom.getMemberId())
                 .orElseThrow(() -> new CustomException(CustomErrorCode.CHAT_MEMBER_NOT_FOUND));
-            otherMemberRole = "USER";
+            otherMemberRole = Role.USER.name();
         } else {
             // 현재 사용자가 일반 사용자면 → 상대방은 박람회 관리자
             Expo expo = expoRepository.findById(chatRoom.getExpoId())
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
             otherMember = expo.getMember();
-            otherMemberRole = "ADMIN";
+            otherMemberRole = Role.EXPO_ADMIN.name();
         }
 
         // 2. 박람회 정보 조회

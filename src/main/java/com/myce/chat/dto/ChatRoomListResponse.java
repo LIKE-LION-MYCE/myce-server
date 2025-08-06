@@ -75,7 +75,7 @@ public class ChatRoomListResponse {
         private String otherMemberName;
         
         /**
-         * 상대방 역할 ("ADMIN" | "USER")
+         * 상대방 역할 (ChatMemberRole enum 값)
          */
         private String otherMemberRole;
         

@@ -15,9 +15,6 @@ import java.util.Optional;
  * 1. 사용자별 채팅방 목록 조회 (권한 기반)
  * 2. 박람회별 채팅방 조회 (관리자용)
  * 3. roomCode 기반 채팅방 검색
- * 
- * @author MYCE Team
- * @since 2025-08-06
  */
 @Repository
 public interface ChatRoomRepository extends MongoRepository<ChatRoom, String> {
