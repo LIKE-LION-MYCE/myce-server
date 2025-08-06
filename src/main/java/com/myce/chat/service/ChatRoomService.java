@@ -11,16 +11,6 @@ import com.myce.member.entity.type.Role;
 public interface ChatRoomService {
 
     /**
-     * 관리자 역할 문자열
-     */
-    String ADMIN_ROLE = Role.EXPO_ADMIN.name();
-    
-    /**
-     * 일반 사용자 역할 문자열  
-     */
-    String USER_ROLE = Role.USER.name();
-    
-    /**
      * 시스템 메시지 형식
      */
     String ENTER_MESSAGE_FORMAT = "%s님이 채팅방에 입장하셨습니다.";
@@ -35,11 +25,4 @@ public interface ChatRoomService {
      * 박람회별 채팅방 목록 조회 (관리자 전용, 권한 검증)
      */
     ChatRoomListResponse getChatRoomsByExpo(Long expoId, Long adminId);
-    
-    /**
-     * 역할 기반 권한 검증
-     */
-    default boolean isAdmin(String memberRole) {
-        return ADMIN_ROLE.equals(memberRole);
-    }
 }
