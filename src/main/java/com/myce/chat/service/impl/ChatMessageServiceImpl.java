@@ -21,9 +21,9 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     /**
      * 기본 메시지 타입
      */
-    public static final String DEFAULT_MESSAGE_TYPE = "TEXT";
-    public static final String EMPTY_JSON = "{}";
-    public static final Long SYSTEM_SENDER_ID = 0L;
+    private static final String DEFAULT_MESSAGE_TYPE = "TEXT";
+    private static final String EMPTY_JSON = "{}";
+    private static final Long SYSTEM_SENDER_ID = 0L;
     
     /**
      * 시스템 메시지 타입

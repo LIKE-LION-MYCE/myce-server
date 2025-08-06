@@ -20,7 +20,6 @@ import com.myce.chat.service.mapper.ChatRoomMapper;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
 /**
  * 채팅방 서비스 구현체
  * 

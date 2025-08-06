@@ -2,14 +2,12 @@ package com.myce.chat.service;
 
 import com.myce.chat.dto.ChatRoomListResponse;
 import com.myce.member.entity.type.Role;
-import org.springframework.stereotype.Component;
 
 /**
  * 채팅방 비즈니스 로직 서비스
  * 
  * 역할별 권한 검증 및 채팅방 조회 로직을 제공합니다.
  */
-@Component
 public interface ChatRoomService {
 
     /**

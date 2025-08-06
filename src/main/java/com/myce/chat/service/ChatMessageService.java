@@ -4,9 +4,8 @@ import com.myce.chat.document.ChatMessage;
 
 /**
  * 채팅 메시지 생성 서비스
- * 
- * 메시지 생성 로직을 중앙화하여 일관성 보장
  */
+
 public interface ChatMessageService {
 
     /**
