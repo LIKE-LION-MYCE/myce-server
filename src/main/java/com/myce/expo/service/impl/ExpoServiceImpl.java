@@ -30,9 +30,9 @@ public class ExpoServiceImpl implements ExpoService {
   private final BusinessProfileRepository businessProfileRepository;
 
   @Override
-  public void saveExpo(ExpoRegistrationRequest request) {
+  public void saveExpo(Long memberId, ExpoRegistrationRequest request) {
     // 로그인한 사용자
-    Member member = memberRepository.findById(request.getMemberId())
+    Member member = memberRepository.findById(memberId)
         .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
 
     // expo 객체 생성

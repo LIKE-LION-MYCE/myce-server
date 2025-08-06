@@ -63,7 +63,6 @@ public class BusinessProfile {
     @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
-
     @Builder
     public BusinessProfile(TargetType targetType, Long targetId, String companyName,
                            String address, String ceoName, String contactEmail, String contactPhone,
@@ -76,8 +75,16 @@ public class BusinessProfile {
         this.contactEmail = contactEmail;
         this.contactPhone = contactPhone;
         this.businessRegistrationNumber = businessRegistrationNumber;
-
     }
 
+    public void updateProfileInfo(String logoUrl, String companyName, String address, String ceoName,
+                              String contactEmail, String contactPhone, String businessRegistrationNumber) {
+        this.logoUrl = logoUrl;
+        this.companyName = companyName;
+        this.address = address;
+        this.ceoName = ceoName;
+        this.contactEmail = contactEmail;
+        this.contactPhone = contactPhone;
+        this.businessRegistrationNumber = businessRegistrationNumber;
+    }
 }
-
