@@ -58,10 +58,24 @@ public class Ticket {
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Builder
     public Ticket(Expo expo, String name, String description, TicketType type,
                   Integer price, Integer remainingQuantity, Integer totalQuantity,
                   LocalDate saleStartDate, LocalDate saleEndDate) {
         this.expo = expo;
+        this.name = name;
+        this.description = description;
+        this.type = type;
+        this.price = price;
+        this.remainingQuantity = remainingQuantity;
+        this.totalQuantity = totalQuantity;
+        this.saleStartDate = saleStartDate;
+        this.saleEndDate = saleEndDate;
+    }
+
+    public void updateTicketInfo(String name, String description, TicketType type,
+                                 Integer price, Integer remainingQuantity, Integer totalQuantity,
+                                 LocalDate saleStartDate, LocalDate saleEndDate) {
         this.name = name;
         this.description = description;
         this.type = type;
