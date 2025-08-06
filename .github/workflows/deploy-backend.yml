@@ -3,12 +3,10 @@ name: Deploy Backend to EC2
 on:
   push:
     branches:
-      - feature/init  # Testing on current branch
-      # - develop    # Will re-enable after testing
+      - develop  # Production deployment branch
   pull_request:
     branches:
-      - develop
-    types: [closed]
+      - develop  # Deploy on PRs to develop
 
 env:
   DOCKER_IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/myce-backend
@@ -92,33 +90,12 @@ jobs:
             echo "⬇️ Pulling latest image..."
             docker pull ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
             
-            echo "🔐 Fetching secrets from AWS Systems Manager..."
-            export DB_URL=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/db-url" --with-decryption --query "Parameter.Value" --output text)
-            export DB_USERNAME=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/db-username" --query "Parameter.Value" --output text)
-            export DB_PASSWORD=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/db-password" --with-decryption --query "Parameter.Value" --output text)
-            export MONGODB_URI=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/mongodb-uri" --with-decryption --query "Parameter.Value" --output text)
-            export REDIS_URL=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/redis-url" --with-decryption --query "Parameter.Value" --output text)
-            export JWT_SECRET=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/jwt-secret" --with-decryption --query "Parameter.Value" --output text)
-            # AWS credentials now provided by EC2 IAM role - no need to fetch from SSM
-            export S3_MEDIA_BUCKET_NAME=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/s3-bucket-name" --query "Parameter.Value" --output text)
-            export CLOUDFRONT_DOMAIN=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/cloudfront-domain" --query "Parameter.Value" --output text)
-            
-            echo "🚀 Running new container..."
+            echo "🚀 Running new container with self-managed environment variables..."
+            echo "Container will fetch secrets from AWS SSM Parameter Store on startup"
             docker run -d \
               --name myce-backend \
               --restart unless-stopped \
               -p 8080:8080 \
-              -e DB_URL="$DB_URL" \
-              -e DB_USERNAME="$DB_USERNAME" \
-              -e DB_PASSWORD="$DB_PASSWORD" \
-              -e DB_DRIVER_CLASS_NAME="com.mysql.cj.jdbc.Driver" \
-              -e MONGODB_URI="$MONGODB_URI" \
-              -e REDIS_URL="$REDIS_URL" \
-              -e JWT_SECRET="$JWT_SECRET" \
-              -e AWS_REGION="${{ env.AWS_REGION }}" \
-              -e S3_MEDIA_BUCKET_NAME="$S3_MEDIA_BUCKET_NAME" \
-              -e CLOUDFRONT_DOMAIN="$CLOUDFRONT_DOMAIN" \
-              -e PROFILE=prod \
               ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
             
             echo "⏱️ Waiting for container to start..."
