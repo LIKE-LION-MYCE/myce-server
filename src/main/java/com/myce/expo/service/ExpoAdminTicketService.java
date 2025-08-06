@@ -6,8 +6,8 @@ import com.myce.expo.dto.ExpoAdminTicketResponseDto;
 import java.util.List;
 
 public interface ExpoAdminTicketService {
-    List<ExpoAdminTicketResponseDto> getMyExpoTickets(Long memberId);
-    void deleteMyExpoTicket(Long memberId, Long ticketId);
-    ExpoAdminTicketResponseDto saveMyExpoTicket(Long memberId, ExpoAdminTicketRequestDto dto);
-    ExpoAdminTicketResponseDto updateMyExpoTicket(Long memberId, Long ticketId, ExpoAdminTicketRequestDto dto);
+    List<ExpoAdminTicketResponseDto> getMyExpoTickets(Long expoId, Long memberId);
+    void deleteMyExpoTicket(Long expoId, Long memberId, Long ticketId);
+    ExpoAdminTicketResponseDto saveMyExpoTicket(Long expoId, Long memberId, ExpoAdminTicketRequestDto dto);
+    ExpoAdminTicketResponseDto updateMyExpoTicket(Long expoId, Long memberId, Long ticketId, ExpoAdminTicketRequestDto dto);
 }
