@@ -1,0 +1,183 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - feature/init  # Testing on current branch
+      # - develop    # Will re-enable after testing
+  pull_request:
+    branches:
+      - develop
+    types: [closed]
+
+env:
+  DOCKER_IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/myce-backend
+  DOCKER_TAG: ${{ github.sha }}
+  EC2_HOST: ${{ vars.EC2_HOST }}
+  EC2_USER: ${{ vars.EC2_USER || 'ubuntu' }}
+  AWS_REGION: ${{ vars.AWS_REGION || 'ap-northeast-2' }}
+
+jobs:
+  build-and-deploy:
+    name: Build Docker Image and Deploy to EC2
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: 🔧 Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: 🧪 Run tests (skipped for now)
+        run: echo "Tests skipped - will configure later"
+        # TODO: Configure test profile with embedded H2 database
+        # run: ./gradlew test
+
+      - name: 📦 Build JAR
+        run: ./gradlew bootJar
+
+      - name: 🧹 Verify build output
+        run: |
+          echo "Build completed. Checking JAR file:"
+          ls -la build/libs/
+          echo "JAR file size:"
+          du -sh build/libs/*.jar
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 🏗️ Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+            ${{ env.DOCKER_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🚀 Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            
+            echo "📁 Navigating to backend directory..."
+            cd /home/ubuntu/apps/backend
+            
+            echo "🧹 Stopping existing container..."
+            docker stop myce-backend || true
+            docker rm myce-backend || true
+            
+            echo "⬇️ Pulling latest image..."
+            docker pull ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+            
+            echo "🔐 Fetching secrets from AWS Systems Manager..."
+            export DB_URL=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/db-url" --with-decryption --query "Parameter.Value" --output text)
+            export DB_USERNAME=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/db-username" --query "Parameter.Value" --output text)
+            export DB_PASSWORD=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/db-password" --with-decryption --query "Parameter.Value" --output text)
+            export MONGODB_URI=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/mongodb-uri" --with-decryption --query "Parameter.Value" --output text)
+            export REDIS_URL=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/redis-url" --with-decryption --query "Parameter.Value" --output text)
+            export JWT_SECRET=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/jwt-secret" --with-decryption --query "Parameter.Value" --output text)
+            # AWS credentials now provided by EC2 IAM role - no need to fetch from SSM
+            export S3_MEDIA_BUCKET_NAME=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/s3-bucket-name" --query "Parameter.Value" --output text)
+            export CLOUDFRONT_DOMAIN=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/cloudfront-domain" --query "Parameter.Value" --output text)
+            
+            echo "🚀 Running new container..."
+            docker run -d \
+              --name myce-backend \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              -e DB_URL="$DB_URL" \
+              -e DB_USERNAME="$DB_USERNAME" \
+              -e DB_PASSWORD="$DB_PASSWORD" \
+              -e DB_DRIVER_CLASS_NAME="com.mysql.cj.jdbc.Driver" \
+              -e MONGODB_URI="$MONGODB_URI" \
+              -e REDIS_URL="$REDIS_URL" \
+              -e JWT_SECRET="$JWT_SECRET" \
+              -e AWS_REGION="${{ env.AWS_REGION }}" \
+              -e S3_MEDIA_BUCKET_NAME="$S3_MEDIA_BUCKET_NAME" \
+              -e CLOUDFRONT_DOMAIN="$CLOUDFRONT_DOMAIN" \
+              -e PROFILE=prod \
+              ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+            
+            echo "⏱️ Waiting for container to start..."
+            sleep 15
+            
+            echo "🧹 Cleaning up old images (keeping last 3 versions)..."
+            docker images ${{ env.DOCKER_IMAGE }} --format "table {{.Tag}}\t{{.ID}}" | grep -v "TAG" | tail -n +4 | awk '{print $2}' | xargs -r docker rmi || true
+
+      - name: 🏥 Health Check
+        run: |
+          echo "🏥 Performing health check..."
+          sleep 30
+          
+          # Try health check endpoint
+          if curl -f http://${{ env.EC2_HOST }}:8080/actuator/health; then
+            echo "✅ Health check passed!"
+          else
+            echo "❌ Health check failed, trying root endpoint..."
+            curl -f http://${{ env.EC2_HOST }}:8080/ || {
+              echo "❌ Both health check and root endpoint failed"
+              exit 1
+            }
+          fi
+
+      - name: 🎉 백엔드 배포 성공 알림
+        if: success()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_MESSAGE: |
+            🎉 *백엔드 배포 완료!*
+            
+            🐳 **Docker 이미지:** ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+            🖥️ **EC2 호스트:** ${{ env.EC2_HOST }}
+            🌍 **API URL:** http://${{ env.EC2_HOST }}:8080
+            📝 **브랜치:** ${{ github.ref_name }}
+            👤 **배포자:** ${{ github.actor }}
+            🏥 **헬스체크:** ✅ 통과
+            
+            🔗 **API 테스트:** http://${{ env.EC2_HOST }}:8080/actuator/health
+          SLACK_TITLE: 'Myce 백엔드 배포'
+          SLACK_COLOR: 'good'
+          SLACK_USERNAME: 'GitHub Actions'
+          SLACK_ICON: ':rocket:'
+
+      - name: ❌ 백엔드 배포 실패 알림
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_MESSAGE: |
+            ❌ *백엔드 배포 실패*
+            
+            🐳 **Docker 이미지:** ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+            🖥️ **EC2 호스트:** ${{ env.EC2_HOST }}
+            📝 **브랜치:** ${{ github.ref_name }}
+            👤 **시도한 사람:** ${{ github.actor }}
+            🔍 **로그 확인:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SLACK_TITLE: 'Myce 백엔드 배포'
+          SLACK_COLOR: 'danger'
+          SLACK_USERNAME: 'GitHub Actions'
+          SLACK_ICON: ':x:'
