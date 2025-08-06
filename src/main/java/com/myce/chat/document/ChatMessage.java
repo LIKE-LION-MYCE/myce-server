@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import com.myce.chat.type.MessageSenderType;
+import com.myce.chat.service.ChatRoomService;
 
 import java.time.LocalDateTime;
 
@@ -119,7 +120,7 @@ public class ChatMessage {
         return ChatMessage.builder()
                 .roomCode(roomCode)
                 .senderId(0L)  // 시스템 메시지는 senderId = 0
-                .senderName("시스템")
+                .senderName(MessageSenderType.SYSTEM.getDescription())
                 .senderType(MessageSenderType.SYSTEM.name())
                 .messageType(messageType)
                 .content(content)
@@ -132,7 +133,7 @@ public class ChatMessage {
      */
     public static ChatMessage createEnterMessage(String roomCode, String memberName) {
         return createSystemMessage(roomCode, "SYSTEM_ENTER", 
-                memberName + "님이 채팅방에 입장하셨습니다.");
+                String.format(ChatRoomService.ENTER_MESSAGE_FORMAT, memberName));
     }
 
     /**
@@ -140,6 +141,6 @@ public class ChatMessage {
      */
     public static ChatMessage createLeaveMessage(String roomCode, String memberName) {
         return createSystemMessage(roomCode, "SYSTEM_LEAVE",
-                memberName + "님이 채팅방을 나가셨습니다.");
+                String.format(ChatRoomService.LEAVE_MESSAGE_FORMAT, memberName));
     }
 }
