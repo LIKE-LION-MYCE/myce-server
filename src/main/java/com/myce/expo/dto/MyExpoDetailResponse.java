@@ -27,8 +27,8 @@ public class MyExpoDetailResponse {
     private LocalDate startDate;
     private LocalDate endDate;
     private ExpoStatus status;
-    private LocalDateTime displayStartDate;
-    private LocalDateTime displayEndDate;
+    private LocalDate displayStartDate;
+    private LocalDate displayEndDate;
     private LocalTime startTime;
     private LocalTime endTime;
     private Boolean isPremium;
@@ -36,8 +36,8 @@ public class MyExpoDetailResponse {
     @Builder
     public MyExpoDetailResponse(Long id, List<Long> categoryIds, String title, String thumbnailUrl, String description,
                                 String location, String locationDetail, Integer maxReserverCount, LocalDate startDate,
-                                LocalDate endDate, ExpoStatus status, LocalDateTime displayStartDate,
-                                LocalDateTime displayEndDate, LocalTime startTime, LocalTime endTime, Boolean isPremium) {
+                                LocalDate endDate, ExpoStatus status, LocalDate displayStartDate,
+                                LocalDate displayEndDate, LocalTime startTime, LocalTime endTime, Boolean isPremium) {
         this.id = id;
         this.categoryIds = categoryIds;
         this.title = title;
