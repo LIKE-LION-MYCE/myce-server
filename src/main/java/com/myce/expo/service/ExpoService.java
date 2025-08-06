@@ -3,6 +3,6 @@ package com.myce.expo.service;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 
 public interface ExpoService {
-  void saveExpo(ExpoRegistrationRequest request);
+  void saveExpo(Long memberId, ExpoRegistrationRequest request);
 }
 
