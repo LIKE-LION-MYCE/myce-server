@@ -80,6 +80,9 @@ jobs:
           script: |
             set -e
             
+            echo "📁 Navigating to backend directory..."
+            cd /home/ubuntu/apps/backend
+            
             echo "🧹 Stopping existing container..."
             docker stop myce-backend || true
             docker rm myce-backend || true
@@ -107,6 +110,7 @@ jobs:
               -e DB_URL="$DB_URL" \
               -e DB_USERNAME="$DB_USERNAME" \
               -e DB_PASSWORD="$DB_PASSWORD" \
+              -e DB_DRIVER_CLASS_NAME="com.mysql.cj.jdbc.Driver" \
               -e MONGODB_URI="$MONGODB_URI" \
               -e REDIS_URL="$REDIS_URL" \
               -e JWT_SECRET="$JWT_SECRET" \
@@ -116,7 +120,6 @@ jobs:
               -e S3_MEDIA_BUCKET_NAME="$S3_MEDIA_BUCKET_NAME" \
               -e CLOUDFRONT_DOMAIN="$CLOUDFRONT_DOMAIN" \
               -e PROFILE=prod \
-              -e SPRING_PROFILES_ACTIVE=prod \
               ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
             
             echo "⏱️ Waiting for container to start..."
