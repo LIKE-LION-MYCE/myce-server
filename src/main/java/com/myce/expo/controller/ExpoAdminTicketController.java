@@ -37,21 +37,19 @@ public class ExpoAdminTicketController {
     }
 
     @PostMapping//TODO:하위관리자
-    public ResponseEntity<Void> saveMyExpoTicket(
+    public ResponseEntity<ExpoAdminTicketResponseDto> saveMyExpoTicket(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody ExpoAdminTicketRequestDto dto){
         Long memberId = customUserDetails.getMemberId();
-        service.saveMyExpoTicket(memberId,dto);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.saveMyExpoTicket(memberId,dto));
     }
 
     @PutMapping("/{ticketId}")//TODO:하위관리자
-    public ResponseEntity<Void> updateMyExpoTicket(
+    public ResponseEntity<ExpoAdminTicketResponseDto> updateMyExpoTicket(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long ticketId,
             @Valid @RequestBody ExpoAdminTicketRequestDto dto){
         Long memberId = customUserDetails.getMemberId();
-        service.updateMyExpoTicket(memberId,ticketId,dto);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(service.updateMyExpoTicket(memberId,ticketId,dto));
     }
 }
