@@ -75,7 +75,6 @@ public class BusinessProfile {
         this.contactEmail = contactEmail;
         this.contactPhone = contactPhone;
         this.businessRegistrationNumber = businessRegistrationNumber;
-
     }
 
     public void updateProfileInfo(String logoUrl, String companyName, String address, String ceoName,
