@@ -35,9 +35,6 @@ public class MyExpoController {
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody MyExpoUpdateRequest updateRequest) {
-        if (customUserDetails == null) {
-            throw new CustomException(CustomErrorCode.AUTHORIZATION_NOT_EXIST);
-        }
         Long memberId = customUserDetails.getMemberId();
         MyExpoDetailResponse updatedExpo = expoService.updateMyExpoDetail(expoId, memberId, updateRequest); // 서비스에서 DTO 반환
         return ResponseEntity.ok(updatedExpo); // 업데이트된 DTO 반환
