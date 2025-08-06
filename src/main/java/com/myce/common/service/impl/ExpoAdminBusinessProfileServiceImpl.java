@@ -1,5 +1,6 @@
 package com.myce.common.service.impl;
 
+import com.myce.common.dto.ExpoAdminBusinessProfileRequestDto;
 import com.myce.common.dto.ExpoAdminBusinessProfileResponseDto;
 import com.myce.common.entity.BusinessProfile;
 import com.myce.common.entity.type.TargetType;
@@ -13,6 +14,7 @@ import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +32,29 @@ public class ExpoAdminBusinessProfileServiceImpl implements ExpoAdminBusinessPro
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
 
         return mapper.toDto(profile);
+    }
+
+    @Override//TODO:하위관리자
+    @Transactional
+    public void updateMyBusinessProfile(Long memberId, Long profileId, ExpoAdminBusinessProfileRequestDto dto) {
+        Expo expo = getActiveExpo(memberId);
+
+        BusinessProfile profile = businessProfileRepository.findById(profileId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
+
+        if(!expo.getId().equals(profile.getTargetId()) || !profile.getTargetType().equals(TargetType.EXPO)){
+            throw new CustomException(CustomErrorCode.BUSINESS_NOT_BELONG_TO_EXPO);
+        }
+
+        profile.updateProfileInfo(
+                dto.getLogoUrl(),
+                dto.getCompanyName(),
+                dto.getAddress(),
+                dto.getCeoName(),
+                dto.getContactEmail(),
+                dto.getContactPhone(),
+                dto.getBusinessRegistrationNumber()
+        );
     }
 
     private Expo getActiveExpo(Long memberId) {
