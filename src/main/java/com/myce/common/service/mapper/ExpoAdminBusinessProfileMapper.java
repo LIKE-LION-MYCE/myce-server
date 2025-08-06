@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 public class ExpoAdminBusinessProfileMapper {
     public ExpoAdminBusinessProfileResponseDto toDto(BusinessProfile profile) {
         return ExpoAdminBusinessProfileResponseDto.builder()
-                .profileId(profile.getId())
                 .logoUrl(profile.getLogoUrl())
                 .companyName(profile.getCompanyName())
                 .ceoName(profile.getCeoName())
