@@ -3,12 +3,10 @@ name: Deploy Backend to EC2
 on:
   push:
     branches:
-      - feature/init  # Testing on current branch
-      # - develop    # Will re-enable after testing
+      - develop  # Production deployment branch
   pull_request:
     branches:
-      - develop
-    types: [closed]
+      - develop  # Deploy on PRs to develop
 
 env:
   DOCKER_IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/myce-backend
