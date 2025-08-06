@@ -1,5 +1,6 @@
 package com.myce.advertisement.service.impl;
 
+import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
@@ -33,43 +34,59 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
                 : Sort.by("createdAt").ascending();
         Pageable pageable = PageRequest.of(page, pageSize, sort);
+        List<AdvertisementStatus> applyStatusList = getApplyStatusList();
 
-        List<AdvertisementStatus> applyStatus = List.of(
-                AdvertisementStatus.PENDING_APPROVAL,
-                AdvertisementStatus.PENDING_PAYMENT,
-                AdvertisementStatus.REJECTED,
-                AdvertisementStatus.COMPLETED);
-
-        Page<Advertisement> bannerEntityPage = advertisementRepository.findByStatusIn(applyStatus, pageable);
+        Page<Advertisement> bannerEntityPage = advertisementRepository.findByStatusIn(applyStatusList, pageable);
 
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
     public PageResponse<SimpleApplyAdvertisement> getFilteredApplyListByKeyword(String keyword, String statusText,
-                                                                    int page, int pageSize, boolean latestFirst) {
+            int page, int pageSize, boolean latestFirst) {
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
                 : Sort.by("createdAt").ascending();
         Pageable pageable = PageRequest.of(page, pageSize, sort);
-        AdvertisementStatus status;
         Page<Advertisement> bannerEntityPage;
 
-        if (AdvertisementStatus.fromString(statusText) != null) {
-            status = AdvertisementStatus.valueOf(statusText);
-            bannerEntityPage = advertisementRepository.findByTitleContainingAndStatus(keyword, status, pageable);
+        List<AdvertisementStatus> applyStatusList = getApplyStatusList();
+        AdvertisementStatus requestedStatus = AdvertisementStatus.fromString(statusText);
+
+        if (requestedStatus != null && applyStatusList.contains(requestedStatus)) {
+            bannerEntityPage = advertisementRepository.findByTitleContainingAndStatus(keyword, requestedStatus, pageable);
         } else {
-            bannerEntityPage = advertisementRepository.findByTitleContaining(keyword, pageable);
+            bannerEntityPage = advertisementRepository.findByTitleContainingAndStatusIn(applyStatusList, keyword, pageable);
         }
 
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
+    public DetailApplyAdvertisement getDetailApply(Long bannerId){
+        Advertisement advertisement = advertisementRepository.findById(bannerId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BANNER_NOT_EXIST));
+        return getDetailApplyAdvertisement(advertisement);
+    }
 
+
+    private List<AdvertisementStatus> getApplyStatusList() {
+        return List.of(AdvertisementStatus.PENDING_APPROVAL,
+                        AdvertisementStatus.PENDING_PAYMENT,
+                        AdvertisementStatus.REJECTED,
+                        AdvertisementStatus.COMPLETED);
+    }
     // DTO 변환
     private SimpleApplyAdvertisement getSimpleApplyAdvertisement(Advertisement advertisement) {
         BusinessProfile businessProfile = businessProfileRepository
                 .findByTargetIdAndTargetType(advertisement.getId(), TargetType.ADVERTISEMENT)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
 
-        return AdvertisementMapper.getApplyBanner(advertisement, businessProfile);
+        return AdvertisementMapper.getSimpleAdvertisement(advertisement, businessProfile);
+    }
+
+    private DetailApplyAdvertisement getDetailApplyAdvertisement(Advertisement advertisement) {
+        BusinessProfile businessProfile = businessProfileRepository
+                .findByTargetIdAndTargetType(advertisement.getId(), TargetType.ADVERTISEMENT)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
+
+        return AdvertisementMapper.getDetailAdvertisement(advertisement, businessProfile);
     }
 }

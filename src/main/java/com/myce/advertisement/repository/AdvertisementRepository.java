@@ -11,7 +11,7 @@ import java.util.List;
 public interface AdvertisementRepository extends JpaRepository<Advertisement, Long> {
     Page<Advertisement> findByStatusIn(List<AdvertisementStatus> statuses, Pageable pageable);
 
-    Page<Advertisement> findByTitleContaining(String title, Pageable pageable);
+    Page<Advertisement> findByTitleContainingAndStatusIn(List<AdvertisementStatus> statuses, String title, Pageable pageable);
 
     Page<Advertisement> findByTitleContainingAndStatus(String title, AdvertisementStatus status, Pageable pageable);
 }

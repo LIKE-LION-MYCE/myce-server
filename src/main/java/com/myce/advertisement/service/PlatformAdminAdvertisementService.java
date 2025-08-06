@@ -1,5 +1,6 @@
 package com.myce.advertisement.service;
 
+import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.common.dto.PageResponse;
 
@@ -8,4 +9,6 @@ public interface PlatformAdminAdvertisementService {
 
     PageResponse<SimpleApplyAdvertisement> getFilteredApplyListByKeyword(String keyword, String status,
              int page, int pageSize, boolean latestFirst);
+
+    DetailApplyAdvertisement getDetailApply(Long bannerId);
 }
