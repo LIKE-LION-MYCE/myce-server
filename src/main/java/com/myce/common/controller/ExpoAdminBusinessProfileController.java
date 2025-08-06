@@ -20,7 +20,7 @@ public class ExpoAdminBusinessProfileController {
     public ResponseEntity<ExpoAdminBusinessProfileResponseDto> getMyBusinessProfile(
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         Long memberId = customUserDetails.getMemberId();
-        return ResponseEntity.ok(service.getExpoAdminBusinessProfile(memberId));
+        return ResponseEntity.ok(service.getMyBusinessProfile(memberId));
     }
 
     @PutMapping("/{profileId}")//TODO:하위관리자

@@ -25,7 +25,7 @@ public class ExpoAdminBusinessProfileServiceImpl implements ExpoAdminBusinessPro
     private final ExpoAdminBusinessProfileMapper mapper;
 
     @Override//TODO:하위관리자
-    public ExpoAdminBusinessProfileResponseDto getExpoAdminBusinessProfile(Long memberId) {
+    public ExpoAdminBusinessProfileResponseDto getMyBusinessProfile(Long memberId) {
         Expo expo = getActiveExpo(memberId);
 
         BusinessProfile profile = businessProfileRepository.findByTargetIdAndTargetType(expo.getId(), TargetType.EXPO)
