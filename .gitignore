@@ -155,6 +155,7 @@ Temporary Items
 .env.*
 
 !src/main/resources/application.yml
+/src/main/resources/static/qr/
 
 # Claude Code configuration
 CLAUDE.md

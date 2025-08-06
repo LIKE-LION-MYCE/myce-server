@@ -3,6 +3,9 @@ package com.myce.expo.entity;
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.member.entity.Member;
 import jakarta.persistence.*;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -28,9 +31,8 @@ public class Expo {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    private Category category;
+    @OneToMany(mappedBy = "expo", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ExpoCategory> expoCategories = new ArrayList<>();
 
     @Column(name = "title", length = 100, nullable = false)
     private String title;
@@ -66,20 +68,11 @@ public class Expo {
     @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(50)")
     private ExpoStatus status;
 
-    @Column(name = "display_start_date", nullable = false, columnDefinition = "TIMESTAMP")
-    private LocalDateTime displayStartDate;
+    @Column(name = "display_start_date", nullable = false)
+    private LocalDate displayStartDate;
 
-    @Column(name = "display_end_date", nullable = false, columnDefinition = "TIMESTAMP")
-    private LocalDateTime displayEndDate;
-
-    @Column(name = "start_time", nullable = false)
-    private LocalTime startTime;
-
-    @Column(name = "end_time", nullable = false)
-    private LocalTime endTime;
-
-    @Column(name = "is_premium", columnDefinition = "TINYINT(1)", nullable = false)
-    private Boolean isPremium;
+    @Column(name = "display_end_date", nullable = false)
+    private LocalDate displayEndDate;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false, columnDefinition = "TIMESTAMP")
@@ -89,12 +82,21 @@ public class Expo {
     @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
+    @Column(name = "start_time", nullable = false, columnDefinition = "TIME")
+    private LocalTime startTime;
+
+    @Column(name = "end_time", nullable = false, columnDefinition = "TIME")
+    private LocalTime endTime;
+
+    @Column(name = "is_premium", nullable = false, columnDefinition = "TINYINT(1)")
+    private Boolean isPremium;
+
     @Builder
     public Expo(Member member, String title, String thumbnailUrl, String description,
-                String location, String locationDetail, Integer maxReserverCount, BigDecimal latitude, BigDecimal longitude,
-                LocalDate startDate, LocalDate endDate, ExpoStatus status,
-                LocalDateTime displayStartDate, LocalDateTime displayEndDate, LocalTime startTime,
-                LocalTime endTime, Boolean isPremium) {
+                String location, String locationDetail, Integer maxReserverCount,
+                BigDecimal latitude, BigDecimal longitude, LocalDate startDate,
+                LocalDate endDate, ExpoStatus status, LocalDate displayStartDate,
+                LocalDate displayEndDate, LocalTime startTime, LocalTime endTime, Boolean isPremium) {
         this.member = member;
         this.title = title;
         this.thumbnailUrl = thumbnailUrl;
@@ -113,5 +115,4 @@ public class Expo {
         this.endTime = endTime;
         this.isPremium = isPremium;
     }
-
 }
