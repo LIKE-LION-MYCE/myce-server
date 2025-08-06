@@ -9,6 +9,7 @@ import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.ExpoCategory;
+import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.service.ExpoService;
 import com.myce.expo.service.mapper.BusinessProfileMapper;
 import com.myce.expo.service.mapper.ExpoMapper;
@@ -19,6 +20,8 @@ import com.myce.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @Transactional
@@ -60,5 +63,13 @@ public class ExpoServiceImpl implements ExpoService {
     BusinessProfile businessProfile = BusinessProfileMapper.toEntity(company, savedExpo.getId());
 
     businessProfileRepository.save(businessProfile);
+  }
+
+  @Override
+  public List<Long> getMyExpos(Long memberId) {
+    List<Expo> expos = expoRepository.findByMemberIdAndStatusIn(memberId, ExpoStatus.ACTIVE_STATUSES);
+    return expos.stream()
+            .map(Expo::getId)
+            .toList();
   }
 }
