@@ -6,7 +6,9 @@ import com.myce.auth.dto.LoginRequest;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.time.Duration;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseCookie;
@@ -81,6 +83,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
                 .secure(isProd)
                 .maxAge(Duration.ofDays(14))
                 .path("/")
+                .domain(".myce.live")  // Allow cookie to be shared across subdomains
                 .build();
     }
 }
