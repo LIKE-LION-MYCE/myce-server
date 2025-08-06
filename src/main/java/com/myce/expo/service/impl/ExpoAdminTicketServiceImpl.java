@@ -53,10 +53,12 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
 
     @Override//TODO:하위 관리자
     @Transactional
-    public void saveMyExpoTicket(Long memberId, ExpoAdminTicketRequestDto dto) {
+    public ExpoAdminTicketResponseDto saveMyExpoTicket(Long memberId, ExpoAdminTicketRequestDto dto) {
         Expo expo =  getActiveExpo(memberId);
         Ticket ticket = mapper.toEntity(dto,expo);
-        ticketRepository.save(ticket);
+        Ticket saved = ticketRepository.save(ticket);
+
+        return mapper.toDto(saved);
     }
 
     @Override//TODO:하위 관리자

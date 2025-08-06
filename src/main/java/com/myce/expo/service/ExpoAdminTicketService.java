@@ -8,6 +8,6 @@ import java.util.List;
 public interface ExpoAdminTicketService {
     List<ExpoAdminTicketResponseDto> getMyExpoTickets(Long memberId);
     void deleteMyExpoTicket(Long memberId, Long ticketId);
-    void saveMyExpoTicket(Long memberId, ExpoAdminTicketRequestDto dto);
+    ExpoAdminTicketResponseDto saveMyExpoTicket(Long memberId, ExpoAdminTicketRequestDto dto);
     void updateMyExpoTicket(Long memberId, Long ticketId, ExpoAdminTicketRequestDto dto);
 }
