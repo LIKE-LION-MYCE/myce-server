@@ -8,7 +8,8 @@ import com.myce.common.entity.BusinessProfile;
 import com.myce.member.entity.Member;
 
 public class AdvertisementMapper {
-    public static SimpleApplyAdvertisement getSimpleAdvertisement(Advertisement advertisement, BusinessProfile businessProfile){
+    public static SimpleApplyAdvertisement getSimpleAdvertisement(Advertisement advertisement,
+              BusinessProfile businessProfile) {
         Member member = advertisement.getMember();
         AdPosition adPosition = advertisement.getAdPosition();
 
@@ -25,13 +26,14 @@ public class AdvertisementMapper {
                 .build();
     }
 
-    public static DetailApplyAdvertisement getDetailAdvertisement(Advertisement advertisement, BusinessProfile businessProfile){
-        Member member = advertisement.getMember();
+    public static DetailApplyAdvertisement getDetailAdvertisement(Advertisement advertisement,
+              BusinessProfile businessProfile) {
         AdPosition adPosition = advertisement.getAdPosition();
 
         return DetailApplyAdvertisement.builder()
                 .id(advertisement.getId())
                 .title(advertisement.getTitle())
+                .statusMessage(advertisement.getStatus().name())
                 .bannerLocationName(adPosition.getName())
                 .bannerImageUrl(advertisement.getImageUrl())
                 .startAt(advertisement.getDisplayStartDate())

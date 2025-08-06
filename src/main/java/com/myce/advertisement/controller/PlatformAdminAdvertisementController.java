@@ -27,7 +27,6 @@ public class PlatformAdminAdvertisementController {
                @RequestParam(defaultValue = "true")
                boolean latestFirst) {
         return service.getAllApplyList(page, PAGE_SIZE,  latestFirst);
-    }
 
     @GetMapping("/filter")
     public PageResponse<SimpleApplyAdvertisement> filterApplyList(@RequestParam(defaultValue = "0") int page,
@@ -37,9 +36,13 @@ public class PlatformAdminAdvertisementController {
               boolean latestFirst) {
         return service.getFilteredApplyListByKeyword(keyword, status,
                 page, PAGE_SIZE, latestFirst);
+    public PageResponse<SimpleApplyAdvertisement> filterApplyList(@Valid FilterRequest request,
+                @RequestParam(defaultValue = "true") boolean latestFirst) {
+        return service.filterList(request.getKeyword(), request.getStatus(),
+                request.getPage(), PAGE_SIZE, latestFirst);
     }
 
-    @GetMapping("/{bannerId}")
+    @GetMapping("/detail/{bannerId}")
     public DetailApplyAdvertisement getApplyDetail(@PathVariable Long bannerId) {
         return service.getDetail(bannerId);
     }

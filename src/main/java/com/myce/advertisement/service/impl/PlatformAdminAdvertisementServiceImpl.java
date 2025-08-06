@@ -65,8 +65,9 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
     }
 
     public DetailApplyAdvertisement getDetail(Long bannerId){
-        advertisementRepository.findById(bannerId).orElseThrow(() -> new CustomException(CustomErrorCode.))
-        return getDetailApplyAdvertisement()
+        Advertisement advertisement = advertisementRepository.findById(bannerId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BANNER_NOT_EXIST));
+        return getDetailApplyAdvertisement(advertisement);
     }
 
 
