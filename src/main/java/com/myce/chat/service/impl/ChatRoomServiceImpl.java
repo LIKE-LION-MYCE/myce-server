@@ -46,11 +46,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     private final ExpoRepository expoRepository;
 
     /**
-     * 현재 로그인한 사용자의 채팅방 목록 조회 (CRM-186 메인 로직)
-     * 
-     * @param memberId 현재 로그인한 회원 ID
-     * @param memberRole 회원 역할 ("ADMIN" | "USER")  
-     * @return 채팅방 목록 (복수형 네이밍: chatRooms)
+     * 현재 로그인한 사용자의 채팅방 목록 조회
      */
     @Override
     public ChatRoomListResponse getChatRooms(Long memberId, String memberRole) {
@@ -95,10 +91,6 @@ public class ChatRoomServiceImpl implements ChatRoomService {
 
     /**
      * 특정 박람회의 채팅방 목록 조회 (관리자 전용)
-     * 
-     * @param expoId 박람회 ID
-     * @param adminId 관리자 ID
-     * @return 해당 박람회의 채팅방 목록
      */
     @Override
     public ChatRoomListResponse getChatRoomsByExpo(Long expoId, Long adminId) {
@@ -137,7 +129,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     }
 
     /**
-     * 관리자가 관리하는 모든 박람회의 채팅방 조회 (private 메서드)
+     * 관리자가 관리하는 모든 박람회의 채팅방 조회
      */
     private List<ChatRoom> getChatRoomsForAdmin(Long adminId) {
         // 1. 관리자가 소유한 활성 박람회 조회 (기존 메서드 활용)
@@ -156,12 +148,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     }
 
     /**
-     * ChatRoom Document를 ChatRoomInfo DTO로 변환 (private 메서드)
-     * 
-     * @param chatRoom MongoDB Document
-     * @param currentMemberId 현재 로그인한 회원 ID  
-     * @param currentMemberRole 현재 회원의 역할
-     * @return ChatRoomInfo DTO
+     * ChatRoom Document를 ChatRoomInfo DTO로 변환
      */
     private ChatRoomListResponse.ChatRoomInfo convertToChatRoomInfo(
             ChatRoom chatRoom, Long currentMemberId, String currentMemberRole) {
@@ -187,8 +174,8 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         Expo expo = expoRepository.findById(chatRoom.getExpoId())
             .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
 
-        // 3. 읽지 않은 메시지 개수 계산 (임시로 0, 추후 CRM-188에서 구현)
-        Integer unreadCount = 0; // TODO: CRM-188에서 실제 로직 구현
+        // 3. 읽지 않은 메시지 개수 계산 (추후 CRM-188에서 구현)
+        Integer unreadCount = 0; //
 
         // 4. ChatRoomInfo DTO 생성 및 반환
         return ChatRoomListResponse.ChatRoomInfo.builder()

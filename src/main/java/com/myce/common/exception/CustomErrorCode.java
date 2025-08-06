@@ -48,7 +48,7 @@ public enum CustomErrorCode {
     CHAT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "C005", "채팅 참여자 정보를 찾을 수 없습니다."),
 
     // 광고 A  
-    BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다."),
+    BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다.");
     // 결제 P
 
     // 예약 R

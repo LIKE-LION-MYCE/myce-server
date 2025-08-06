@@ -3,11 +3,16 @@ package com.myce.chat.controller;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.chat.dto.ChatRoomListResponse;
 import com.myce.chat.service.ChatRoomService;
+import com.myce.chat.document.ChatRoom;
+import com.myce.chat.repository.ChatRoomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 /**
  * CRM-186: 채팅방 목록 조회 API
