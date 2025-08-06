@@ -30,31 +30,36 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
     @Autowired
     private BusinessProfileRepository businessProfileRepository;
 
-    public PageResponse<SimpleApplyAdvertisement> getAllApplyList(int page, int pageSize, boolean latestFirst) {
+    public PageResponse<SimpleApplyAdvertisement> getAllAdvertisementList(
+            int page, int pageSize,
+            boolean latestFirst, boolean isApply) {
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
                 : Sort.by("createdAt").ascending();
         Pageable pageable = PageRequest.of(page, pageSize, sort);
-        List<AdvertisementStatus> applyStatusList = getApplyStatusList();
+        List<AdvertisementStatus> applyStatusList = getApplyStatusList(isApply);
 
         Page<Advertisement> bannerEntityPage = advertisementRepository.findByStatusIn(applyStatusList, pageable);
 
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
-    public PageResponse<SimpleApplyAdvertisement> getFilteredApplyListByKeyword(String keyword, String statusText,
-            int page, int pageSize, boolean latestFirst) {
+    public PageResponse<SimpleApplyAdvertisement> getFilteredAdvertisementListByKeyword(
+            String keyword, String statusText,
+            int page, int pageSize, boolean latestFirst, boolean isApply) {
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
                 : Sort.by("createdAt").ascending();
         Pageable pageable = PageRequest.of(page, pageSize, sort);
         Page<Advertisement> bannerEntityPage;
 
-        List<AdvertisementStatus> applyStatusList = getApplyStatusList();
+        List<AdvertisementStatus> applyStatusList = getApplyStatusList(isApply);
         AdvertisementStatus requestedStatus = AdvertisementStatus.fromString(statusText);
 
         if (requestedStatus != null && applyStatusList.contains(requestedStatus)) {
-            bannerEntityPage = advertisementRepository.findByTitleContainingAndStatus(keyword, requestedStatus, pageable);
+            bannerEntityPage = advertisementRepository
+                    .findByTitleContainingAndStatus(keyword, requestedStatus, pageable);
         } else {
-            bannerEntityPage = advertisementRepository.findByTitleContainingAndStatusIn(keyword, applyStatusList, pageable);
+            bannerEntityPage = advertisementRepository
+                    .findByTitleContainingAndStatusIn(keyword, applyStatusList, pageable);
         }
 
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
@@ -68,11 +73,16 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
 
 
 
-    private List<AdvertisementStatus> getApplyStatusList() {
-        return List.of(AdvertisementStatus.PENDING_APPROVAL,
-                        AdvertisementStatus.PENDING_PAYMENT,
-                        AdvertisementStatus.REJECTED,
-                        AdvertisementStatus.COMPLETED);
+    private List<AdvertisementStatus> getApplyStatusList(boolean isApply) {
+        if(isApply){
+            return List.of(AdvertisementStatus.PENDING_APPROVAL,
+                    AdvertisementStatus.PENDING_PAYMENT,
+                    AdvertisementStatus.REJECTED,
+                    AdvertisementStatus.COMPLETED);
+        }else{
+            return List.of(AdvertisementStatus.PUBLISHED,
+                    AdvertisementStatus.PENDING_CANCEL);
+        }
     }
     // DTO 변환
     private SimpleApplyAdvertisement getSimpleApplyAdvertisement(Advertisement advertisement) {

@@ -21,18 +21,22 @@ public class PlatformAdminAdvertisementController {
     private final int PAGE_SIZE = 10;
 
     @GetMapping
-    public PageResponse<SimpleApplyAdvertisement> getApplyList(@RequestParam int page,
-          @RequestParam(defaultValue = "true") boolean latestFirst) {
-        return service.getAllApplyList(page, PAGE_SIZE, latestFirst);
+    public PageResponse<SimpleApplyAdvertisement> getAdvertisementList(
+            @RequestParam int page,
+            @RequestParam(defaultValue = "true") boolean latestFirst,
+            @RequestParam(defaultValue = "true") boolean isApply) {
+        return service.getAllAdvertisementList(page, PAGE_SIZE, latestFirst, isApply);
     }
 
     @GetMapping("/filter")
-    public PageResponse<SimpleApplyAdvertisement> filterApplyList(@RequestParam(defaultValue = "0") int page,
-          @RequestParam(required = false) String status,
-          @RequestParam(required = false) String keyword,
-          @RequestParam(defaultValue = "true") boolean latestFirst) {
-        return service.getFilteredApplyListByKeyword(keyword, status,
-                page, PAGE_SIZE, latestFirst);
+    public PageResponse<SimpleApplyAdvertisement> filterAdvertisementList(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "true") boolean latestFirst,
+            @RequestParam(defaultValue = "true") boolean isApply) {
+        return service.getFilteredAdvertisementListByKeyword(keyword, status,
+                page, PAGE_SIZE, latestFirst, isApply);
     }
 
     @GetMapping("/detail/{bannerId}")
