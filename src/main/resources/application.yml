@@ -105,18 +105,25 @@ springdoc:
     persistAuthorization: true
   api-docs:
     path: /v3/api-docs
-    #management:
-    #endpoints:
-    #web:
-    #exposure:
-  #include: health, info, prometheus
-  #endpoint:
-  #prometheus:
-  #enabled: true
-  #metrics:
-  #export:
-  #prometheus:
-  #enabled: true
+
+# Spring Boot Actuator configuration for ALB health checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      enabled: true
+      show-details: when-authorized
+    info:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
   #port-one:
   #base-url: ${PORTONE_BASE_URL}
   #api-key: ${PORTONE_API_KEY}
