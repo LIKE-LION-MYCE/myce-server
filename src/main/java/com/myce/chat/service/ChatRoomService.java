@@ -42,15 +42,4 @@ public interface ChatRoomService {
     default boolean isAdmin(String memberRole) {
         return ADMIN_ROLE.equals(memberRole);
     }
-    
-    /**
-     * 시스템 메시지 생성
-     */
-    default String getEnterMessage(String memberName) {
-        return String.format(ENTER_MESSAGE_FORMAT, memberName);
-    }
-    
-    default String getLeaveMessage(String memberName) {
-        return String.format(LEAVE_MESSAGE_FORMAT, memberName);
-    }
 }

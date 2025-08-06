@@ -35,4 +35,6 @@ public interface ChatMessageService {
      * 퇴장 알림 메시지 생성
      */
     ChatMessage createLeaveMessage(String roomCode, String memberName);
+
+
 }

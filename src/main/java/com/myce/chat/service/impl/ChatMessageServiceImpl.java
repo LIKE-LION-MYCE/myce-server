@@ -59,15 +59,29 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     @Override
     public ChatMessage createEnterMessage(String roomCode, String memberName) {
         log.debug("입장 알림 메시지 생성 - roomCode: {}, memberName: {}", roomCode, memberName);
-        String content = String.format(ChatRoomService.ENTER_MESSAGE_FORMAT, memberName);
+        String content = getEnterMessage(memberName);
         return createSystemMessage(roomCode, SYSTEM_ENTER_TYPE, content);
     }
 
     @Override
     public ChatMessage createLeaveMessage(String roomCode, String memberName) {
         log.debug("퇴장 알림 메시지 생성 - roomCode: {}, memberName: {}", roomCode, memberName);
-        String content = String.format(ChatRoomService.LEAVE_MESSAGE_FORMAT, memberName);
+        String content = getLeaveMessage(memberName);
         return createSystemMessage(roomCode, SYSTEM_LEAVE_TYPE, content);
+    }
+
+    /**
+     * 입장 메시지 포맷 생성
+     */
+    public String getEnterMessage(String memberName) {
+        return String.format(ChatRoomService.ENTER_MESSAGE_FORMAT, memberName);
+    }
+    
+    /**
+     * 퇴장 메시지 포맷 생성
+     */
+    public String getLeaveMessage(String memberName) {
+        return String.format(ChatRoomService.LEAVE_MESSAGE_FORMAT, memberName);
     }
 
     /**
