@@ -4,7 +4,7 @@ import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
-import com.myce.advertisement.mapper.AdvertisementMapper;
+import com.myce.advertisement.service.mapper.AdvertisementMapper;
 import com.myce.advertisement.repository.AdvertisementRepository;
 import com.myce.advertisement.service.PlatformAdminAdvertisementService;
 import com.myce.common.dto.PageResponse;
@@ -45,7 +45,8 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
-    public PageResponse<SimpleApplyAdvertisement> filterList(String keyword, String statusText, int page, int pageSize, boolean latestFirst) throws IllegalArgumentException{
+    public PageResponse<SimpleApplyAdvertisement> filterList(String keyword, String statusText,
+         int page, int pageSize, boolean latestFirst) throws IllegalArgumentException{
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
                 : Sort.by("createdAt").ascending();
         Pageable pageable = PageRequest.of(page, pageSize, sort);
@@ -63,8 +64,9 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
     }
 
     public DetailApplyAdvertisement getDetail(Long bannerId){
-        advertisementRepository.findById(bannerId).orElseThrow(() -> new CustomException(CustomErrorCode.))
-        return getDetailApplyAdvertisement()
+        Advertisement advertisement = advertisementRepository.findById(bannerId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BANNER_NOT_EXIST));
+        return getDetailApplyAdvertisement(advertisement);
     }
 
 
