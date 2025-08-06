@@ -19,7 +19,7 @@ public class CorsConfig {
         corsConfiguration.setAllowedMethods( List.of( "GET", "POST", "PUT", "DELETE", "OPTIONS" ) );
         corsConfiguration.setAllowedHeaders( Collections.singletonList( "*" ) );
         corsConfiguration.setAllowCredentials( true );
-        corsConfiguration.setExposedHeaders( List.of( "Authorization", "Set-Cookie" ) );
+        corsConfiguration.setExposedHeaders( List.of( "Authorization" ) );
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration( "/**", corsConfiguration );
