@@ -1,6 +1,8 @@
 server:
 # port: 8081
 spring:
+  profiles:
+    active: ${PROFILE} # local | product
   servlet: # file uploads
     multipart:
       max-file-size: 10MB
@@ -90,7 +92,7 @@ spring:
             #mail:
             #smtp:
             #auth: true
-            #starttls:
+          #starttls:
           #enable: true
 
         #jwt:
