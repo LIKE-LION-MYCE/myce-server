@@ -27,7 +27,9 @@ public class ImageController {
     @Value("${spring.cloud.aws.s3.bucket.media}")
     private String bucketName;
 
-    @Value("${spring.cloud.aws.s3.bucket.cloudfront-domain:https://media.myce.live}")
+
+    @Value("${cloudfront.domain:https://media.myce.live}"/)
+
     private String cloudfrontDomain;
 
     @GetMapping("/presign")
