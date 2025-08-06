@@ -15,22 +15,14 @@ public class CorsConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of(
-                "https://www.myce.live",
-                "https://myce.live",
-                "https://media.myce.live",
-                "http://localhost:3000",
-                "http://localhost:5173",
-                "http://localhost:8080",
-                "http://localhost:8081",
-                "https://api.myce.live"
-        ));
-        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        corsConfiguration.setAllowedHeaders(Collections.singletonList("*"));
-        corsConfiguration.setAllowCredentials(true);
+        corsConfiguration.setAllowedOrigins( List.of( "https://www.myce.live", "https://myce.live", "https://media.myce.live", "http://localhost:3000", "http://localhost:5173", "http://localhost:8080", "http://localhost:8081", "https://api.myce.live" ) );
+        corsConfiguration.setAllowedMethods( List.of( "GET", "POST", "PUT", "DELETE", "OPTIONS" ) );
+        corsConfiguration.setAllowedHeaders( Collections.singletonList( "*" ) );
+        corsConfiguration.setAllowCredentials( true );
+        corsConfiguration.setExposedHeaders( List.of( "Authorization", "Set-Cookie" ) );
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", corsConfiguration);
+        source.registerCorsConfiguration( "/**", corsConfiguration );
 
         return source;
     }
