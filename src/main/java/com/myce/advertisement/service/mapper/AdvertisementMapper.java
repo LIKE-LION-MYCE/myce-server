@@ -1,4 +1,4 @@
-package com.myce.advertisement.mapper;
+package com.myce.advertisement.service.mapper;
 
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.entity.AdPosition;
