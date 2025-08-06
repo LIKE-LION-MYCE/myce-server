@@ -18,8 +18,7 @@ public class PlatformAdminAdvertisementController {
 
     @GetMapping
     public PageResponse<SimpleApplyAdvertisement> getApplyList(@RequestParam int page,
-           @RequestParam(defaultValue = "true")
-           boolean latestFirst) {
+           @RequestParam(defaultValue = "true") boolean latestFirst) {
         return service.getAllApplyList(page, PAGE_SIZE, latestFirst);
     }
 

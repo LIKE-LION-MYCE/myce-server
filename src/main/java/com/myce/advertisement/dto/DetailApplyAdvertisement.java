@@ -16,9 +16,7 @@ public class DetailApplyAdvertisement {
     private String bannerLocationName;
     private LocalDate startAt;
     private LocalDate endAt;
-
     private String description;
-
     private String businessCompany;
     private String representName;
     private String businessEmail;
