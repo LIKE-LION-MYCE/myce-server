@@ -99,7 +99,7 @@ jobs:
             export MONGODB_URI=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/mongodb-uri" --with-decryption --query "Parameter.Value" --output text)
             export REDIS_URL=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/redis-url" --with-decryption --query "Parameter.Value" --output text)
             export JWT_SECRET=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/jwt-secret" --with-decryption --query "Parameter.Value" --output text)
-# AWS credentials now provided by EC2 IAM role - no need to fetch from SSM
+            # AWS credentials now provided by EC2 IAM role - no need to fetch from SSM
             export S3_MEDIA_BUCKET_NAME=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/s3-bucket-name" --query "Parameter.Value" --output text)
             export CLOUDFRONT_DOMAIN=$(aws ssm get-parameter --region ${{ env.AWS_REGION }} --name "/myce/cloudfront-domain" --query "Parameter.Value" --output text)
             
