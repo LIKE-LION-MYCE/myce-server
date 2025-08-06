@@ -10,11 +10,6 @@ import com.myce.member.entity.type.Role;
  */
 public interface ChatRoomService {
 
-    /**
-     * 시스템 메시지 형식
-     */
-    String ENTER_MESSAGE_FORMAT = "%s님이 채팅방에 입장하셨습니다.";
-    String LEAVE_MESSAGE_FORMAT = "%s님이 채팅방을 나가셨습니다.";
 
     /**
      * 사용자별 채팅방 목록 조회 (USER: 본인 참여, ADMIN: 관리 박람회 전체)

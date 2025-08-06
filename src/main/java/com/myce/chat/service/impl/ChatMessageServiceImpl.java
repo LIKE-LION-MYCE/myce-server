@@ -30,6 +30,12 @@ public class ChatMessageServiceImpl implements ChatMessageService {
      */
     private static final String SYSTEM_ENTER_TYPE = "SYSTEM_ENTER";
     private static final String SYSTEM_LEAVE_TYPE = "SYSTEM_LEAVE";
+    
+    /**
+     * 시스템 메시지 포맷
+     */
+    private static final String ENTER_MESSAGE_FORMAT = "%s님이 채팅방에 입장하셨습니다.";
+    private static final String LEAVE_MESSAGE_FORMAT = "%s님이 채팅방을 나가셨습니다.";
 
     @Override
     public ChatMessage createMessage(String roomCode, String senderType, Long senderId, 
@@ -74,14 +80,14 @@ public class ChatMessageServiceImpl implements ChatMessageService {
      * 입장 메시지 포맷 생성
      */
     public String getEnterMessage(String memberName) {
-        return String.format(ChatRoomService.ENTER_MESSAGE_FORMAT, memberName);
+        return String.format(ENTER_MESSAGE_FORMAT, memberName);
     }
     
     /**
      * 퇴장 메시지 포맷 생성
      */
     public String getLeaveMessage(String memberName) {
-        return String.format(ChatRoomService.LEAVE_MESSAGE_FORMAT, memberName);
+        return String.format(LEAVE_MESSAGE_FORMAT, memberName);
     }
 
     /**
