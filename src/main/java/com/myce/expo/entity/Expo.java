@@ -67,11 +67,11 @@ public class Expo {
     @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(50)")
     private ExpoStatus status;
 
-    @Column(name = "display_start_date", nullable = false, columnDefinition = "TIMESTAMP")
-    private LocalDateTime displayStartDate;
+    @Column(name = "display_start_date", nullable = false)
+    private LocalDate displayStartDate;
 
-    @Column(name = "display_end_date", nullable = false, columnDefinition = "TIMESTAMP")
-    private LocalDateTime displayEndDate;
+    @Column(name = "display_end_date", nullable = false)
+    private LocalDate displayEndDate;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false, columnDefinition = "TIMESTAMP")
@@ -94,8 +94,8 @@ public class Expo {
     public Expo(Member member, String title, String thumbnailUrl, String description,
                 String location, String locationDetail, Integer maxReserverCount,
                 BigDecimal latitude, BigDecimal longitude, LocalDate startDate,
-                LocalDate endDate, ExpoStatus status, LocalDateTime displayStartDate,
-                LocalDateTime displayEndDate, LocalTime startTime, LocalTime endTime, Boolean isPremium) {
+                LocalDate endDate, ExpoStatus status, LocalDate displayStartDate,
+                LocalDate displayEndDate, LocalTime startTime, LocalTime endTime, Boolean isPremium) {
         this.member = member;
         this.title = title;
         this.thumbnailUrl = thumbnailUrl;
