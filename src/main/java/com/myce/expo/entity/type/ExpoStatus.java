@@ -8,6 +8,7 @@ import java.util.List;
 @Getter
 @RequiredArgsConstructor
 public enum ExpoStatus {
+  
     PENDING_APPROVAL("승인 대기"),
     PENDING_PAYMENT("결제 대기"),
     PENDING_PUBLISH("게시 대기"),

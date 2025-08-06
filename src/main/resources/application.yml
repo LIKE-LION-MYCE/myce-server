@@ -80,23 +80,30 @@ spring:
       s3:
         bucket:
           media: ${S3_MEDIA_BUCKET_NAME}
-  #mail:
-  #host: smtp.gmail.com
-  #port: 587
-  #username: "@gmail.com"
-  #password: ${MAIL_PASSWORD}
-  #properties:
-  #mail:
-  #smtp:
-  #auth: true
-  #starttls:
-  #enable: true
-
+          cloudfront-domain: ${CLOUDFRONT_DOMAIN}
+            #mail:
+            #host: smtp.gmail.com
+            #port: 587
+            #username: "@gmail.com"
+            #password: ${MAIL_PASSWORD}
+            #properties:
+            #mail:
+            #smtp:
+          #auth: true
+          #starttls:
+          #enable: true
 jwt:
   secret: ${JWT_SECRET}
   access-token-validity: 18000000 # 5 hour in milliseconds
   refresh-token-validity: 1209600000 # 2 weeks in milliseconds
 
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    persistAuthorization: true
+  api-docs:
+    path: /v3/api-docs
     #management:
     #endpoints:
     #web:

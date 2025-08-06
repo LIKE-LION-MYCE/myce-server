@@ -54,7 +54,7 @@ public class Settlement {
     @Column(name = "bank_name", nullable = false, length = 10)
     private String bankName;
 
-    @Column(name = "bank_account", nullable = false, length = 50)
+    @Column(name = "bank_account", nullable = false, length = 200)
     private String bankAccount;
 
     @CreationTimestamp
