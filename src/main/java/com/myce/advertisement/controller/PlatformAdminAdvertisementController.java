@@ -6,6 +6,10 @@ import com.myce.advertisement.service.PlatformAdminAdvertisementService;
 import com.myce.common.dto.PageResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
@@ -18,7 +22,7 @@ public class PlatformAdminAdvertisementController {
 
     @GetMapping
     public PageResponse<SimpleApplyAdvertisement> getApplyList(@RequestParam int page,
-           @RequestParam(defaultValue = "true") boolean latestFirst) {
+          @RequestParam(defaultValue = "true") boolean latestFirst) {
         return service.getAllApplyList(page, PAGE_SIZE, latestFirst);
     }
 
@@ -26,8 +30,7 @@ public class PlatformAdminAdvertisementController {
     public PageResponse<SimpleApplyAdvertisement> filterApplyList(@RequestParam(defaultValue = "0") int page,
           @RequestParam(required = false) String status,
           @RequestParam(required = false) String keyword,
-          @RequestParam(defaultValue = "true")
-          boolean latestFirst) {
+          @RequestParam(defaultValue = "true") boolean latestFirst) {
         return service.getFilteredApplyListByKeyword(keyword, status,
                 page, PAGE_SIZE, latestFirst);
     }
