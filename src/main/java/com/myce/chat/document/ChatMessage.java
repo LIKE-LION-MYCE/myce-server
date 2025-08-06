@@ -7,8 +7,6 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-import com.myce.chat.type.MessageSenderType;
-import com.myce.chat.service.ChatRoomService;
 
 import java.time.LocalDateTime;
 
@@ -67,16 +65,7 @@ public class ChatMessage {
     private Boolean isDeleted;
 
     /**
-     * 메시지 생성 시 기본값 설정 (기존 Builder 확장)
-     *
-     * @param roomCode 채팅방 코드 (기존 chatRoomId 대신)
-     * @param senderType 발송자 타입
-     * @param senderId 발송자 ID
-     * @param senderName 발송자 이름
-     * @param content 메시지 내용
-     * @param isSystemMessage 시스템 메시지 여부
-     * @param messageType 메시지 타입 (추가)
-     * @param fileInfoJson 파일 정보 (추가)
+     * 메시지 생성 시 기본값 설정
      */
     @Builder
     public ChatMessage(String roomCode, String senderType, Long senderId, String senderName,
@@ -91,14 +80,12 @@ public class ChatMessage {
         this.fileInfoJson = fileInfoJson;
         this.isEdited = false;
         this.isDeleted = false;
-        this.readStatusJson = "{}";  // 빈 JSON 객체로 초기화
+        this.readStatusJson = "{}";
         this.sentAt = LocalDateTime.now();
     }
 
     /**
      * 메시지 내용 수정
-     *
-     * @param newContent 새로운 메시지 내용
      */
     public void editMessage(String newContent) {
         this.content = newContent;
@@ -113,34 +100,4 @@ public class ChatMessage {
         this.content = "삭제된 메시지입니다.";
     }
 
-    /**
-     * 시스템 메시지 생성을 위한 정적 팩토리 메서드
-     */
-    public static ChatMessage createSystemMessage(String roomCode, String messageType, String content) {
-        return ChatMessage.builder()
-                .roomCode(roomCode)
-                .senderId(0L)  // 시스템 메시지는 senderId = 0
-                .senderName(MessageSenderType.SYSTEM.getDescription())
-                .senderType(MessageSenderType.SYSTEM.name())
-                .messageType(messageType)
-                .content(content)
-                .isSystemMessage(true)
-                .build();
-    }
-
-    /**
-     * 입장 알림 시스템 메시지 생성
-     */
-    public static ChatMessage createEnterMessage(String roomCode, String memberName) {
-        return createSystemMessage(roomCode, "SYSTEM_ENTER", 
-                String.format(ChatRoomService.ENTER_MESSAGE_FORMAT, memberName));
-    }
-
-    /**
-     * 퇴장 알림 시스템 메시지 생성
-     */
-    public static ChatMessage createLeaveMessage(String roomCode, String memberName) {
-        return createSystemMessage(roomCode, "SYSTEM_LEAVE",
-                String.format(ChatRoomService.LEAVE_MESSAGE_FORMAT, memberName));
-    }
 }
