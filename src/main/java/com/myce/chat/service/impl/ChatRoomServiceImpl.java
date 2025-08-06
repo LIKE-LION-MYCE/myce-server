@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.myce.chat.mapper.ChatRoomMapper;
 
 import java.util.List;
 import java.util.Optional;
@@ -178,18 +179,13 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         Integer unreadCount = 0; //
 
         // 4. ChatRoomInfo DTO 생성 및 반환
-        return ChatRoomListResponse.ChatRoomInfo.builder()
-            .id(chatRoom.getId())
-            .roomCode(chatRoom.getRoomCode())
-            .expoId(chatRoom.getExpoId())
-            .expoTitle(expo.getTitle())
-            .otherMemberId(otherMember.getId())
-            .otherMemberName(otherMember.getName()) // Member 엔티티에 name 필드 가정
-            .otherMemberRole(otherMemberRole)
-            .lastMessage(chatRoom.getLastMessage()) // 마지막 메시지 내용
-            .lastMessageAt(chatRoom.getLastMessageAt())
-            .unreadCount(unreadCount)
-            .isActive(chatRoom.getIsActive())
-            .build();
+        return ChatRoomMapper.toDto(
+                chatRoom,
+                otherMember.getId(),
+                otherMember.getName(),
+                otherMemberRole,
+                expo.getTitle(),
+                unreadCount
+        );
     }
 }

@@ -12,10 +12,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Document(collection = "chat_rooms")
 @CompoundIndexes({
     @CompoundIndex(name = "member_active_idx", def = "{'memberId': 1, 'isActive': 1, 'lastMessageAt': -1}"),
