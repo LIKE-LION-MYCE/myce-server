@@ -28,6 +28,9 @@ public class MemberGrade {
     @Column(name = "mileage_rate", precision = 5, scale = 2, nullable = false)
     private BigDecimal mileageRate;
 
+    @Column(name = "base_amount")
+    private Integer baseAmount;
+
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
@@ -47,10 +50,11 @@ public class MemberGrade {
 
 
     @Builder
-    public MemberGrade(GradeCode gradeCode, BigDecimal mileageRate,
+    public MemberGrade(GradeCode gradeCode, BigDecimal mileageRate, Integer baseAmount,
                        String description, String gradeImageUrl, Boolean isActive) {
         this.gradeCode = gradeCode;
         this.mileageRate = mileageRate;
+        this.baseAmount = baseAmount;
         this.description = description;
         this.gradeImageUrl = gradeImageUrl;
         this.isActive = isActive;

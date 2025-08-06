@@ -33,13 +33,13 @@ public class Settlement {
     private Member adminMember;
 
     @Column(name = "total_amount")
-    private Long totalAmount;
+    private Integer totalAmount;
 
     @Column(name = "supply_amount")
-    private Long supplyAmount;
+    private Integer supplyAmount;
 
     @Column(name = "settle_amount")
-    private Long settleAmount;
+    private Integer settleAmount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "settlement_status", nullable = false, columnDefinition = "VARCHAR(50)")
@@ -54,7 +54,7 @@ public class Settlement {
     @Column(name = "bank_name", nullable = false, length = 10)
     private String bankName;
 
-    @Column(name = "bank_account", nullable = false, length = 50)
+    @Column(name = "bank_account", nullable = false, length = 200)
     private String bankAccount;
 
     @CreationTimestamp
@@ -65,7 +65,7 @@ public class Settlement {
     @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
-    public Settlement(Expo expo, Member adminMember, Long totalAmount, Long supplyAmount, Long settleAmount,
+    public Settlement(Expo expo, Member adminMember, Integer totalAmount, Integer supplyAmount, Integer settleAmount,
                       SettlementStatus settlementStatus, LocalDateTime settlementAt, String receiverName,
                       String bankName, String bankAccount) {
         this.expo = expo;
