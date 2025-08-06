@@ -28,7 +28,7 @@ public class ImageController {
     private String bucketName;
 
 
-    @Value("${cloudfront.domain:https://media.myce.live}"/)
+    @Value("${cloudfront.domain:https://media.myce.live}")
 
     private String cloudfrontDomain;
 

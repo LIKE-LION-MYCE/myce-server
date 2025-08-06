@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-import com.myce.chat.enums.MessageSenderType;
+import com.myce.chat.type.MessageSenderType;
 
 import java.time.LocalDateTime;
 
