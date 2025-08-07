@@ -2,6 +2,7 @@ package com.myce.member.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.member.dto.*;
+import com.myce.member.dto.ExpoPaymentDetailResponse;
 import com.myce.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -161,5 +162,49 @@ public class MemberController {
         MemberExpoDetailResponse expoDetail = memberService.getMemberExpoDetail(memberId, expoId);
         
         return ResponseEntity.ok(expoDetail);
+    }
+    
+    @DeleteMapping("/my-page/expos/{expoId}")
+    public ResponseEntity<Void> cancelExpo(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberService.cancelExpo(memberId, expoId);
+        
+        return ResponseEntity.noContent().build();
+    }
+    
+    @GetMapping("/my-page/expos/{expoId}/payment")
+    public ResponseEntity<ExpoPaymentDetailResponse> getExpoPaymentDetail(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        ExpoPaymentDetailResponse paymentDetail = memberService.getExpoPaymentDetail(memberId, expoId);
+        
+        return ResponseEntity.ok(paymentDetail);
+    }
+    
+    @GetMapping("/my-page/expos/{expoId}/admin-codes")
+    public ResponseEntity<List<ExpoAdminCodeResponse>> getExpoAdminCodes(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        List<ExpoAdminCodeResponse> adminCodes = memberService.getExpoAdminCodes(memberId, expoId);
+        
+        return ResponseEntity.ok(adminCodes);
+    }
+    
+    @GetMapping("/my-page/expos/{expoId}/settlement-receipt")
+    public ResponseEntity<ExpoSettlementReceiptResponse> getExpoSettlementReceipt(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        ExpoSettlementReceiptResponse settlementReceipt = memberService.getExpoSettlementReceipt(memberId, expoId);
+        
+        return ResponseEntity.ok(settlementReceipt);
     }
 }
