@@ -3,7 +3,9 @@ package com.myce.reservation.entity;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
 import com.myce.member.entity.Member;
+import com.myce.member.entity.type.Gender;
 import com.myce.reservation.entity.code.ReservationStatus;
+import com.myce.reservation.entity.code.UserType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,7 +19,14 @@ import java.time.LocalDateTime;
 
 @Entity @Getter
 @NoArgsConstructor
-@Table(name = "reservation")
+@Table(
+        name = "reservation",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "UniqueUserTypeUserId",
+                        columnNames = {"user_type", "user_id"})
+        }
+)
 @EntityListeners(AuditingEntityListener.class)
 public class Reservation {
 
@@ -34,15 +43,15 @@ public class Reservation {
     @JoinColumn(name = "ticket_id", nullable = false)
     private Ticket ticket;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
-
     @Column(name = "reservation_code", length = 30, nullable = false)
     private String reservationCode;
 
-    @Column(name = "is_member", nullable = false, columnDefinition = "TINYINT(1)")
-    private Boolean isMember;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_type", nullable = false, columnDefinition = "VARCHAR(10)")
+    private UserType userType;
+
+    @Column(name = "user_id", nullable = false)
+    private Integer userId;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
@@ -60,13 +69,13 @@ public class Reservation {
     private LocalDateTime updatedAt;
 
     @Builder
-    public Reservation(Expo expo, Ticket ticket, Member member, String reservationCode,
-                       Boolean isMember, Integer quantity, ReservationStatus status) {
+    public Reservation(Expo expo, Ticket ticket, String reservationCode,
+                       UserType userType, Integer userId, Integer quantity, ReservationStatus status) {
         this.expo = expo;
         this.ticket = ticket;
-        this.member = member;
         this.reservationCode = reservationCode;
-        this.isMember = isMember;
+        this.userType = userType;
+        this.userId = userId;
         this.quantity = quantity;
         this.status = status;
     }

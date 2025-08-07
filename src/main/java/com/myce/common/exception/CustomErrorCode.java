@@ -14,8 +14,9 @@ public enum CustomErrorCode {
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "U003", "이미 만료된 토큰입니다."),
 
     // 회원 M
-    MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "M001", "회원 정보가 존재하지 않습니다."),
-    MEMBER_SETTING_NOT_EXIST(HttpStatus.NOT_FOUND, "M002" , "회원의 시스템 설정이 존재하지 않습니다."),
+    MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "M001", "회원정보가 존재하지 않습니다."),
+    MEMBER_TYPE_INVALID(HttpStatus.NOT_FOUND, "M002", "존재하지 않는 회원 타입입니다."),
+    MEMBER_SETTING_NOT_EXIST(HttpStatus.NOT_FOUND, "M003" , "회원의 시스템 설정이 존재하지 않습니다."),
 
     // 관계자 정보 I
     BUSINESS_NOT_EXIST(HttpStatus.NOT_FOUND, "I001", "관계자 정보를 찾지 못했습니다"),

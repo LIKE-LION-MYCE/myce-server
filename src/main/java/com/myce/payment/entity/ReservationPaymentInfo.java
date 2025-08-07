@@ -2,6 +2,7 @@ package com.myce.payment.entity;
 
 import com.myce.payment.entity.type.PaymentStatus;
 import com.myce.reservation.entity.Reservation;
+import com.myce.reservation.entity.code.UserType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -47,8 +48,8 @@ public class ReservationPaymentInfo {
     private LocalDateTime updatedAt;
 
     @Builder
-    public ReservationPaymentInfo(Reservation reservation, Integer usedMileage, Integer savedMileage,
-                                  Integer totalAmount, PaymentStatus status) {
+    public ReservationPaymentInfo(Reservation reservation, Integer usedMileage,
+                                  Integer savedMileage, Integer totalAmount, PaymentStatus status) {
         this.reservation = reservation;
         this.usedMileage = usedMileage;
         this.savedMileage = savedMileage;
