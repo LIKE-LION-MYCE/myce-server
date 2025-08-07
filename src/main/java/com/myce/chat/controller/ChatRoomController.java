@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -41,7 +42,7 @@ public class ChatRoomController {
         log.info("=== 채팅방 목록 조회 API 호출 시작 ===");
         if (customUserDetails == null) {
             log.error("CustomUserDetails가 null입니다. 인증되지 않은 사용자");
-            return ResponseEntity.status(403).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         
         log.info("채팅방 목록 조회 API 호출 - 회원ID: {}, 역할: {}", 

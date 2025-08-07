@@ -8,6 +8,7 @@ import com.myce.chat.repository.ChatMessageRepository;
 import com.myce.chat.repository.ChatRoomRepository;
 import com.myce.chat.service.ChatMessageService;
 import com.myce.chat.service.ChatWebSocketService;
+import com.myce.chat.service.mapper.ChatMessageMapper;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.expo.repository.ExpoRepository;
@@ -127,14 +128,8 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
         // 채팅방 마지막 메시지 업데이트
         updateChatRoomLastMessage(roomId, savedMessage.getId(), content);
         
-        // 응답 DTO 생성
-        MessageResponse response = MessageResponse.builder()
-            .roomId(roomId)
-            .messageId(savedMessage.getId())
-            .senderId(userId)
-            .content(content)
-            .sentAt(savedMessage.getSentAt())
-            .build();
+        // 응답 DTO 생성 (Mapper 사용)
+        MessageResponse response = ChatMessageMapper.toSendResponse(savedMessage, roomId);
         
         log.info("메시지 전송 완료 - userId: {}, roomId: {}", userId, roomId);
         return response;
