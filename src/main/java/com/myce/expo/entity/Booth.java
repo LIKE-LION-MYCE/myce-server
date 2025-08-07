@@ -1,5 +1,6 @@
 package com.myce.expo.entity;
 
+import com.myce.expo.dto.BoothRequest;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -72,5 +73,17 @@ public class Booth {
         this.contactEmail = contactEmail;
         this.isPremium = isPremium;
         this.displayRank = displayRank;
+    }
+
+    public void update(BoothRequest request) {
+        this.boothNumber = request.getBoothNumber();
+        this.name = request.getName();
+        this.description = request.getDescription();
+        this.mainImageUrl = request.getMainImageUrl();
+        this.contactName = request.getContactName();
+        this.contactPhone = request.getContactPhone();
+        this.contactEmail = request.getContactEmail();
+        this.isPremium = request.getIsPremium();
+        this.displayRank = request.getIsPremium() ? request.getDisplayRank() : 0;
     }
 }
