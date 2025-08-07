@@ -51,7 +51,7 @@ public class Reservation {
     private UserType userType;
 
     @Column(name = "user_id", nullable = false)
-    private Integer userId;
+    private Long userId;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
@@ -70,7 +70,7 @@ public class Reservation {
 
     @Builder
     public Reservation(Expo expo, Ticket ticket, String reservationCode,
-                       UserType userType, Integer userId, Integer quantity, ReservationStatus status) {
+                       UserType userType, Long userId, Integer quantity, ReservationStatus status) {
         this.expo = expo;
         this.ticket = ticket;
         this.reservationCode = reservationCode;

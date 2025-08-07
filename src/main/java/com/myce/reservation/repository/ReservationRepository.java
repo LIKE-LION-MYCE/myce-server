@@ -1,6 +1,7 @@
 package com.myce.reservation.repository;
 
 import com.myce.reservation.entity.Reservation;
+import com.myce.reservation.entity.code.UserType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,8 +16,9 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("SELECT r FROM Reservation r " +
            "JOIN FETCH r.expo e " +
            "JOIN FETCH r.ticket t " +
-           "WHERE r.member.id = :memberId")
-    List<Reservation> findReservationsByMemberIdWithExpoAndTicket(@Param("memberId") Long memberId);
+           "WHERE r.userType = :userType AND r.userId = :userId")
+    List<Reservation> findReservationsByUserTypeAndUserIdWithExpoAndTicket(@Param("userType") UserType userType, 
+                                                                           @Param("userId") Long userId);
     
     @Query("SELECT r FROM Reservation r " +
            "JOIN FETCH r.expo e " +
