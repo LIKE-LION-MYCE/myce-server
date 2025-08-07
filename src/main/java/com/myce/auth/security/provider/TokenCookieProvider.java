@@ -1,4 +1,4 @@
-package com.myce.auth.security;
+package com.myce.auth.security.provider;
 
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;

@@ -2,7 +2,9 @@ package com.myce.auth.security.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.auth.dto.type.LoginType;
 import com.myce.auth.security.util.JwtUtil;
+import com.myce.auth.service.AdminCodeDetailService;
 import com.myce.auth.service.impl.UserDetailsServiceImpl;
 import com.myce.common.exception.CustomException;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -16,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Slf4j
@@ -28,6 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final AdminCodeDetailService adminCodeDetailService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -51,15 +55,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         // 사용자 정보 확인
+        String loginTypeStr = jwtUtil.getLoginTypeFromToken(accessToken);
+        LoginType loginType = LoginType.fromString(loginTypeStr);
         String loginId = jwtUtil.getLoginIdFromToken(accessToken);
-        log.info("JWT find userDetails by loginId: {}", loginId);
+        log.info("[AuthenticationFilter] JWT find userDetails by loginId: {}, loginType: {}", loginId, loginTypeStr);
         CustomUserDetails userDetails;
         try {
-            userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(loginId);
-        } catch (CustomException ce) {
+            userDetails = loginType.equals(LoginType.MEMBER) ?
+                    (CustomUserDetails) userDetailsService.loadUserByUsername(loginId) :
+                    (CustomUserDetails) adminCodeDetailService.loadCode(loginId);
+        } catch (UsernameNotFoundException e) {
+            log.error("[AuthenticationFilter] failed to find user details by loginId: {}", loginId, e);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
+
+        log.debug("[AuthenticationFilter] Success to find userDetail: {}", userDetails);
 
         UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

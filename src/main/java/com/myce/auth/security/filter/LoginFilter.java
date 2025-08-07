@@ -3,22 +3,22 @@ package com.myce.auth.security.filter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.auth.dto.LoginRequest;
-import com.myce.auth.security.TokenCookieProvider;
+import com.myce.auth.dto.type.LoginType;
+import com.myce.auth.security.CustomAuthenticationToken;
+import com.myce.auth.security.provider.TokenCookieProvider;
 import com.myce.auth.security.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-import java.io.IOException;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -31,16 +31,16 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     @Override
     public Authentication attemptAuthentication
             (HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-        log.info("AttemptAuthentication. URL: {}", request.getRequestURI());
+        log.info("[LoginFilter] AttemptAuthentication. URL: {}", request.getRequestURI());
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             LoginRequest loginRequest = objectMapper.readValue(request.getInputStream(), LoginRequest.class);
+            LoginType loginType = loginRequest.getLoginType();
             String loginId = loginRequest.getLoginId();
             String password = loginRequest.getPassword();
-            log.info("Get loginId: {}, password: {}", loginId, password);
+            log.info("[{}-LOGIN] Received login request. loginId: {}", loginType.name(), loginId);
 
-            UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(loginId,
-                    password);
+            CustomAuthenticationToken authRequest = new CustomAuthenticationToken(loginId, password, loginType);
             return authenticationManager.authenticate(authRequest);
         } catch (IOException e) {
             throw new AuthenticationServiceException("Failed to parse login request", e);
@@ -52,19 +52,19 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
             (HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) {
         CustomUserDetails userDetails = (CustomUserDetails) authResult.getPrincipal();
 
+        String loginType = userDetails.getLoginType().name();
         Long memberId = userDetails.getMemberId();
         String loginId = userDetails.getLoginId();
-        String name = userDetails.getUsername();
         String role = userDetails.getRole();
 
-        String accessToken = jwtUtil.createToken(JwtUtil.ACCESS_TOKEN, memberId, loginId, name, role);
-        String refreshToken = jwtUtil.createToken(JwtUtil.REFRESH_TOKEN, memberId, loginId, name, role);
+        String accessToken = jwtUtil.createToken(JwtUtil.ACCESS_TOKEN, loginType, memberId, loginId, role);
+        String refreshToken = jwtUtil.createToken(JwtUtil.REFRESH_TOKEN, loginType, memberId, loginId, role);
 
         response.addHeader(JwtUtil.AUTHORIZATION_HEADER, accessToken);
         ResponseCookie cookie = tokenCookieProvider.getCookie(JwtUtil.REFRESH_TOKEN, refreshToken);
         response.addHeader("Set-Cookie", cookie.toString());
         response.setStatus(HttpServletResponse.SC_OK);
-        log.info("Successfully login. loginId: {}", loginId);
+        log.info("[LoginFilter] Successfully login. loginId: {}", loginId);
     }
 
     @Override
