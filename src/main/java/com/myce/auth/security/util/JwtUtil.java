@@ -1,4 +1,4 @@
-package com.myce.auth.security.filter;
+package com.myce.auth.security.util;
 
 import io.jsonwebtoken.*;
 import lombok.extern.slf4j.Slf4j;
@@ -50,8 +50,6 @@ public class JwtUtil {
             return true;
         } catch (SecurityException | MalformedJwtException e) {
             log.error("Invalid JWT signature.", e);
-        } catch (ExpiredJwtException e) {
-            log.error("Expired JWT token.", e);
         } catch (UnsupportedJwtException e) {
             log.error("Unsupported JWT token.", e);
         } catch (IllegalArgumentException e) {
@@ -92,5 +90,21 @@ public class JwtUtil {
         return jwtParser.parseSignedClaims(token)
                 .getPayload()
                 .get("loginId", String.class);
+    }
+
+    public Long getMemberIdFromToken(String token) {
+        return jwtParser.parseSignedClaims(token)
+                .getPayload()
+                .get("memberId", Long.class);
+    }
+
+    public boolean isRefreshToken(String token) {
+        return getCategoryFromToken(token).equals(REFRESH_TOKEN);
+    }
+
+    private String getCategoryFromToken(String token) {
+        return jwtParser.parseSignedClaims(token)
+                .getPayload()
+                .get("category", String.class);
     }
 }
