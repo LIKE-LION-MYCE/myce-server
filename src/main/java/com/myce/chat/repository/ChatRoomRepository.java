@@ -27,13 +27,13 @@ public interface ChatRoomRepository extends MongoRepository<ChatRoom, String> {
     /**
      * 특정 회원이 참여한 활성화된 채팅방 목록 조회 (사용자용)
      */
-    @Query("{ 'memberId': ?0, 'isActive': true }")
+    @Query(value = "{ 'memberId': ?0, 'isActive': true }", sort = "{ 'lastMessageAt': -1 }")
     List<ChatRoom> findByMemberIdAndIsActiveTrueOrderByLastMessageAtDesc(Long memberId);
 
     /**
      * 특정 박람회의 모든 활성화된 채팅방 조회 (관리자용)
      */
-    @Query("{ 'expoId': ?0, 'isActive': true }")
+    @Query(value = "{ 'expoId': ?0, 'isActive': true }", sort = "{ 'lastMessageAt': -1 }")
     List<ChatRoom> findByExpoIdAndIsActiveTrueOrderByLastMessageAtDesc(Long expoId);
 
     /**
