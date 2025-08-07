@@ -57,6 +57,12 @@ public enum CustomErrorCode {
     BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다."),
     BANNER_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
 
+    // 부스 B
+    BOOTH_PREMIUM_RANK_REQUIRED(HttpStatus.BAD_REQUEST, "B001", "프리미엄 부스는 노출 순위가 필수입니다."),
+    BOOTH_PREMIUM_RANK_INVALID(HttpStatus.BAD_REQUEST, "B002", "프리미엄 부스 노출 순위는 1에서 3 사이여야 합니다."),
+    BOOTH_PREMIUM_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "B003", "프리미엄 부스는 최대 3개까지만 등록할 수 있습니다."),
+    BOOTH_PREMIUM_RANK_DUPLICATED(HttpStatus.CONFLICT, "B004", "이미 사용중인 프리미엄 부스 노출 순위입니다."),
+
     // 광고 위치 AP
     BANNER_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "AP001", "배너 위치 정보가 존재하지 않습니다."),
 
