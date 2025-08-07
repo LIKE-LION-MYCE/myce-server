@@ -1,7 +1,7 @@
 package com.myce.payment.entity;
 
-import com.myce.member.entity.Member;
 import com.myce.payment.entity.type.PaymentStatus;
+import com.myce.reservation.entity.Reservation;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -22,8 +22,8 @@ public class ReservationPaymentInfo {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @JoinColumn(name = "reservation_id", nullable = false)
+    private Reservation reservation;
 
     @Column(name = "used_mileage", nullable = false)
     private Integer usedMileage;
@@ -47,9 +47,9 @@ public class ReservationPaymentInfo {
     private LocalDateTime updatedAt;
 
     @Builder
-    public ReservationPaymentInfo(Member member, Integer usedMileage, Integer savedMileage,
+    public ReservationPaymentInfo(Reservation reservation, Integer usedMileage, Integer savedMileage,
                                   Integer totalAmount, PaymentStatus status) {
-        this.member = member;
+        this.reservation = reservation;
         this.usedMileage = usedMileage;
         this.savedMileage = savedMileage;
         this.totalAmount = totalAmount;
