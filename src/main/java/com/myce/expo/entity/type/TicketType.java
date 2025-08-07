@@ -13,7 +13,7 @@ public enum TicketType {
 
     private final String label;
 
-    public static TicketType fromString(String type) {
+    public static TicketType fromValue(String type) {
         for (TicketType t : TicketType.values()) {
             if (t.name().equalsIgnoreCase(type)) return t;
         }
