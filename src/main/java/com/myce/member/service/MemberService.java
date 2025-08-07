@@ -23,4 +23,10 @@ public interface MemberService {
     List<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId);
     
     AdvertisementDetailResponse getAdvertisementDetail(Long memberId, Long advertisementId);
+    
+    void cancelAdvertisement(Long memberId, Long advertisementId);
+    
+    AdvertisementPaymentDetailResponse getAdvertisementPaymentDetail(Long memberId, Long advertisementId);
+    
+    AdvertisementRefundReceiptResponse getAdvertisementRefundReceipt(Long memberId, Long advertisementId);
 }

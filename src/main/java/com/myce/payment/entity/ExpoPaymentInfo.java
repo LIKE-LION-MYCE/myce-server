@@ -1,6 +1,7 @@
 package com.myce.payment.entity;
 
 import com.myce.expo.entity.Expo;
+import com.myce.payment.entity.type.PaymentMethod;
 import com.myce.payment.entity.type.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -26,7 +27,8 @@ public class ExpoPaymentInfo {
     @JoinColumn(name = "expo_id", nullable = false)
     private Expo expo;
 
-    @Column(name = "status", length = 100, nullable = false, columnDefinition = "VARCHAR(30)")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(100)")
     private PaymentStatus status;
 
     @Column(name = "deposit", nullable = false)

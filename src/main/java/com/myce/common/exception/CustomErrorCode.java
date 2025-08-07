@@ -59,6 +59,7 @@ public enum CustomErrorCode {
     BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다."),
     BANNER_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
     ADVERTISEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "A003" ,  "광고가 존재 하지 않습니다" ),
+    INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A004", "환불할 수 없는 광고 상태입니다."),
     
     // 부스 B
     BOOTH_PREMIUM_RANK_REQUIRED(HttpStatus.BAD_REQUEST, "B001", "프리미엄 부스는 노출 순위가 필수입니다."),
@@ -73,6 +74,7 @@ public enum CustomErrorCode {
 
     // 결제 P
     PAYMENT_STATUS_INVALID(HttpStatus.BAD_REQUEST, "P001", "유효하지 않은 결제 상태값입니다."),
+    PAYMENT_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "P002", "결제 정보를 찾을 수 없습니다."),
 
     // 예약 R
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "해당 예약 정보를 조회 할수 없습니다."),

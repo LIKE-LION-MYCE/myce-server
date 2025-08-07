@@ -108,4 +108,37 @@ public class MemberController {
         
         return ResponseEntity.ok(advertisementDetail);
     }
+    
+    @DeleteMapping("/my-page/advertisements/{advertisementId}")
+    public ResponseEntity<Void> cancelAdvertisement(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberService.cancelAdvertisement(memberId, advertisementId);
+        
+        return ResponseEntity.noContent().build();
+    }
+    
+    @GetMapping("/my-page/advertisements/{advertisementId}/payment")
+    public ResponseEntity<AdvertisementPaymentDetailResponse> getAdvertisementPaymentDetail(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        AdvertisementPaymentDetailResponse paymentDetail = memberService.getAdvertisementPaymentDetail(memberId, advertisementId);
+        
+        return ResponseEntity.ok(paymentDetail);
+    }
+    
+    @GetMapping("/my-page/advertisements/{advertisementId}/refund-receipt")
+    public ResponseEntity<AdvertisementRefundReceiptResponse> getAdvertisementRefundReceipt(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        AdvertisementRefundReceiptResponse refundReceipt = memberService.getAdvertisementRefundReceipt(memberId, advertisementId);
+        
+        return ResponseEntity.ok(refundReceipt);
+    }
 }
