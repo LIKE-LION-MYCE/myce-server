@@ -87,4 +87,14 @@ public class MemberController {
         
         return ResponseEntity.ok().build();
     }
+    
+    @GetMapping("/my-page/advertisements")
+    public ResponseEntity<List<MemberAdvertisementResponse>> getMemberAdvertisements(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        List<MemberAdvertisementResponse> advertisements = memberService.getMemberAdvertisements(memberId);
+        
+        return ResponseEntity.ok(advertisements);
+    }
 }

@@ -2,6 +2,8 @@ package com.myce.member.service.impl;
 
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.advertisement.entity.Advertisement;
+import com.myce.advertisement.repository.AdvertisementRepository;
 import com.myce.member.dto.*;
 import com.myce.member.entity.Favorite;
 import com.myce.member.entity.Member;
@@ -35,6 +37,8 @@ public class MemberServiceImpl implements MemberService {
     private final MemberSettingMapper memberSettingMapper;
     private final FavoriteExpoMapper favoriteExpoMapper;
     private final FavoriteRepository favoriteRepository;
+    private final AdvertisementRepository advertisementRepository;
+    private final MemberAdvertisementMapper memberAdvertisementMapper;
 
     @Override
     public List<ReservedExpoResponse> getReservedExpos(Long memberId) {
@@ -88,5 +92,11 @@ public class MemberServiceImpl implements MemberService {
                 request.getIsReceiveEmail(),
                 request.getIsReceivePush()
         );
+    }
+    
+    @Override
+    public List<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId) {
+        List<Advertisement> advertisements = advertisementRepository.findByMemberIdWithAdPosition(memberId);
+        return memberAdvertisementMapper.toResponseDtoList(advertisements);
     }
 }
