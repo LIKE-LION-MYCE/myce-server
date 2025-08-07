@@ -2,8 +2,8 @@ package com.myce.expo.service.impl;
 
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
-import com.myce.expo.dto.BoothRegistrationRequest;
-import com.myce.expo.dto.BoothRegistrationResponse;
+import com.myce.expo.dto.BoothRequest;
+import com.myce.expo.dto.BoothResponse;
 import com.myce.expo.entity.Booth;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.repository.BoothRepository;
@@ -13,6 +13,9 @@ import com.myce.expo.service.mapper.BoothMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +28,7 @@ public class BoothServiceImpl implements BoothService {
 
     // 부스 등록
     @Override
-    public BoothRegistrationResponse saveBooth(Long expoId, BoothRegistrationRequest request, Long memberId) {
+    public BoothResponse saveBooth(Long expoId, BoothRequest request, Long memberId) {
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
 
@@ -36,27 +39,91 @@ public class BoothServiceImpl implements BoothService {
         }
 
         // 프리미엄 부스 검증
-        if (request.getIsPremium()) { // 프리미엄 부스가 참일 경우
-            // 널 처리
-            if (request.getDisplayRank() == null) {
-                throw new CustomException(CustomErrorCode.BOOTH_PREMIUM_RANK_REQUIRED);
-            }
-            // 순위는 3위까지 부여 가능
-            if (request.getDisplayRank() < 1 || request.getDisplayRank() > 3) {
-                throw new CustomException(CustomErrorCode.BOOTH_PREMIUM_RANK_INVALID);
-            }
-            // 전체 부스 중 3개만 순위 부여 가능
-            if (boothRepository.countByExpoIdAndIsPremiumTrue(expoId) >= 3) {
-                throw new CustomException(CustomErrorCode.BOOTH_PREMIUM_MAX_CAPACITY_REACHED);
-            }
-            // 중복으로 순위 값을 입력했을 경우
-            if (boothRepository.existsByExpoIdAndIsPremiumTrueAndDisplayRank(expoId, request.getDisplayRank())) {
-                throw new CustomException(CustomErrorCode.BOOTH_PREMIUM_RANK_DUPLICATED);
-            }
-        }
+        validatePremiumBooth(request, expoId);
 
         Booth booth = boothMapper.toEntity(request, expo);
         Booth savedBooth = boothRepository.save(booth);
         return boothMapper.toResponse(savedBooth);
+    }
+
+    // 해당 박람회의 부스 목록 조회
+    @Override
+    @Transactional(readOnly = true)
+    public List<BoothResponse> getMyBooths(Long expoId, Long memberId) {
+        // 박람회 존재 여부 및 소유권 확인
+        if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+
+        List<Booth> booths = boothRepository.findAllByExpoId(expoId);
+
+        return booths.stream()
+                .map(boothMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public BoothResponse updateBooth(Long expoId, Long boothId, BoothRequest request, Long memberId) {
+        // 박람회 존재 여부 및 소유권 확인
+        if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+
+        // 부스 존재 여부 확인
+        Booth booth = boothRepository.findById(boothId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BOOTH_NOT_FOUND));
+
+        // 부스가 해당 박람회에 속해 있는지 확인
+        if (!booth.getExpo().getId().equals(expoId)) {
+            throw new CustomException(CustomErrorCode.BOOTH_NOT_BELONG_TO_EXPO);
+        }
+
+        // 프리미엄 부스 정책 검증 (수정 시)
+        validatePremiumBoothForUpdate(request, booth);
+
+        // 부스 정보 업데이트
+        booth.update(request);
+
+        return boothMapper.toResponse(booth);
+    }
+
+    private void validatePremiumBooth(BoothRequest request, Long expoId) {
+        if (request.getIsPremium()) {
+            if (request.getDisplayRank() == null) {
+                throw new CustomException(CustomErrorCode.BOOTH_PREMIUM_RANK_REQUIRED);
+            }
+            if (request.getDisplayRank() < 1 || request.getDisplayRank() > 3) {
+                throw new CustomException(CustomErrorCode.BOOTH_PREMIUM_RANK_INVALID);
+            }
+            if (boothRepository.countByExpoIdAndIsPremiumTrue(expoId) >= 3) {
+                throw new CustomException(CustomErrorCode.BOOTH_PREMIUM_MAX_CAPACITY_REACHED);
+            }
+            if (boothRepository.existsByExpoIdAndIsPremiumTrueAndDisplayRank(expoId, request.getDisplayRank())) {
+                throw new CustomException(CustomErrorCode.BOOTH_PREMIUM_RANK_DUPLICATED);
+            }
+        }
+    }
+
+    private void validatePremiumBoothForUpdate(BoothRequest request, Booth booth) {
+        if (request.getIsPremium()) {
+            if (request.getDisplayRank() == null) {
+                throw new CustomException(CustomErrorCode.BOOTH_PREMIUM_RANK_REQUIRED);
+            }
+            if (request.getDisplayRank() < 1 || request.getDisplayRank() > 3) {
+                throw new CustomException(CustomErrorCode.BOOTH_PREMIUM_RANK_INVALID);
+            }
+            // 현재 부스가 프리미엄이 아니었다가 프리미엄으로 변경되는 경우, 개수 제한 확인
+            if (!booth.getIsPremium() && boothRepository.countByExpoIdAndIsPremiumTrue(booth.getExpo().getId()) >= 3) {
+                throw new CustomException(CustomErrorCode.BOOTH_PREMIUM_MAX_CAPACITY_REACHED);
+            }
+            // 다른 부스가 이미 해당 순위를 사용하고 있는지 확인
+            boothRepository.findAllByExpoId(booth.getExpo().getId()).stream()
+                    .filter(b -> !b.getId().equals(booth.getId()) && b.getIsPremium() && request.getDisplayRank().equals(b.getDisplayRank()))
+                    .findAny()
+                    .ifPresent(b -> {
+                        throw new CustomException(CustomErrorCode.BOOTH_PREMIUM_RANK_DUPLICATED);
+                    });
+        }
     }
 }

@@ -62,6 +62,8 @@ public enum CustomErrorCode {
     BOOTH_PREMIUM_RANK_INVALID(HttpStatus.BAD_REQUEST, "B002", "프리미엄 부스 노출 순위는 1에서 3 사이여야 합니다."),
     BOOTH_PREMIUM_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "B003", "프리미엄 부스는 최대 3개까지만 등록할 수 있습니다."),
     BOOTH_PREMIUM_RANK_DUPLICATED(HttpStatus.CONFLICT, "B004", "이미 사용중인 프리미엄 부스 노출 순위입니다."),
+    BOOTH_NOT_FOUND(HttpStatus.NOT_FOUND, "B005", "부스를 찾을 수 없습니다."),
+    BOOTH_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "B006", "해당 박람회에 속한 부스가 아닙니다."),
 
     // 광고 위치 AP
     BANNER_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "AP001", "배너 위치 정보가 존재하지 않습니다."),
