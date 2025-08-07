@@ -32,7 +32,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             "r.userType, " +
             "r.userId, " +
             "r.quantity, " +
-            "(r.quantity * (p.totalAmount + p.usedMileage)), " +
+            "(p.totalAmount + p.usedMileage), " +
             "r.createdAt, " +
             "r.status) " +
             "FROM ReservationPaymentInfo p " +
