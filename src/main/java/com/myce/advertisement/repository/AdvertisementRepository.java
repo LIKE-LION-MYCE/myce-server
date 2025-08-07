@@ -16,9 +16,11 @@ import java.util.List;
 public interface AdvertisementRepository extends JpaRepository<Advertisement, Long> {
     Page<Advertisement> findByStatusIn(List<AdvertisementStatus> statuses, Pageable pageable);
 
-    Page<Advertisement> findByTitleContainingAndStatusIn(String title, Collection<AdvertisementStatus> status, Pageable pageable);
+    Page<Advertisement> findByTitleContainingAndStatusIn(String title,
+            Collection<AdvertisementStatus> status, Pageable pageable);
 
-    Page<Advertisement> findByTitleContainingAndStatus(String title, AdvertisementStatus status, Pageable pageable);
+    Page<Advertisement> findByTitleContainingAndStatus(String title,
+            AdvertisementStatus status, Pageable pageable);
 
     @Query("SELECT a FROM Advertisement a" +
             " WHERE a.displayStartDate <= :displayEndDate" +
@@ -30,4 +32,11 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
             @Param("displayEndDate") LocalDate displayEndDate,
             @Param("status") List<AdvertisementStatus> status,
             @Param("adPositionId") Long adPositionId);
+
+    @Query("SELECT a FROM Advertisement a" +
+            " WHERE a.status IN :status" +
+            " AND a.displayStartDate >= CURRENT_DATE" +
+            " AND a.displayEndDate <= CURRENT_DATE")
+    List<Advertisement> findAllPublishedAdvertisements(
+            @Param("status") List<AdvertisementStatus> status);
 }
