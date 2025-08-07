@@ -52,4 +52,15 @@ public class BoothController {
         BoothResponse response = boothService.updateBooth(expoId, boothId, request, userDetails.getMemberId());
         return ResponseEntity.ok(response);
     }
+
+    // 부스 삭제
+    @DeleteMapping("/{boothId}")
+    public ResponseEntity<Void> deleteBooth(
+            @PathVariable Long expoId,
+            @PathVariable Long boothId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        boothService.deleteBooth(expoId, boothId, userDetails.getMemberId());
+        return ResponseEntity.noContent().build();
+    }
 }
