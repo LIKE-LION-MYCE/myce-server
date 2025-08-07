@@ -97,4 +97,15 @@ public class MemberController {
         
         return ResponseEntity.ok(advertisements);
     }
+    
+    @GetMapping("/my-page/advertisements/{advertisementId}")
+    public ResponseEntity<AdvertisementDetailResponse> getAdvertisementDetail(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        AdvertisementDetailResponse advertisementDetail = memberService.getAdvertisementDetail(memberId, advertisementId);
+        
+        return ResponseEntity.ok(advertisementDetail);
+    }
 }
