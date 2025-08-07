@@ -13,14 +13,7 @@ import java.time.LocalDateTime;
 
 @Entity @Getter
 @NoArgsConstructor
-@Table(
-        name = "reservation_payment_info",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "UniqueUserTypeUserId",
-                        columnNames = {"user_type", "user_id"})
-        }
-)
+@Table(name = "reservation_payment_info")
 @EntityListeners(AuditingEntityListener.class)
 public class ReservationPaymentInfo {
 
@@ -32,13 +25,6 @@ public class ReservationPaymentInfo {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reservation_id", nullable = false)
     private Reservation reservation;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "user_type", nullable = false, columnDefinition = "VARCHAR(10)")
-    private UserType userType;
-
-    @Column(name = "user_id", nullable = false)
-    private Integer userId;
 
     @Column(name = "used_mileage", nullable = false)
     private Integer usedMileage;
@@ -62,12 +48,10 @@ public class ReservationPaymentInfo {
     private LocalDateTime updatedAt;
 
     @Builder
-    public ReservationPaymentInfo(Reservation reservation, Integer usedMileage, UserType userType, Integer userId,
+    public ReservationPaymentInfo(Reservation reservation, Integer usedMileage,
                                   Integer savedMileage, Integer totalAmount, PaymentStatus status) {
         this.reservation = reservation;
         this.usedMileage = usedMileage;
-        this.userType = userType;
-        this.userId = userId;
         this.savedMileage = savedMileage;
         this.totalAmount = totalAmount;
         this.status = status;
