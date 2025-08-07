@@ -48,8 +48,9 @@ public enum CustomErrorCode {
     CHAT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "C005", "채팅 참여자 정보를 찾을 수 없습니다."),
     CHAT_SENDER_TYPE_INVALID(HttpStatus.BAD_REQUEST, "C006", "유효하지 않은 메시지 발송자 타입입니다."),
 
-    // 광고 A  
-    BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다.");
+    // 광고 A
+    BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다."),
+    BANNER_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "A002", "배너 위치가 존재하지 않습니다.");
     // 결제 P
 
     // 예약 R
