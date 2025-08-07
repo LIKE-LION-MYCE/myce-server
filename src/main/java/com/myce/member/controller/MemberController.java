@@ -2,6 +2,7 @@ package com.myce.member.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.member.dto.MemberInfoResponse;
+import com.myce.member.dto.PaymentHistoryResponse;
 import com.myce.member.dto.ReservedExpoResponse;
 import com.myce.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
@@ -49,5 +50,15 @@ public class MemberController {
         memberService.withdrawMember(memberId);
         
         return ResponseEntity.noContent().build();
+    }
+    
+    @GetMapping("/my-page/payment-history")
+    public ResponseEntity<List<PaymentHistoryResponse>> getPaymentHistory(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        List<PaymentHistoryResponse> paymentHistory = memberService.getPaymentHistory(memberId);
+        
+        return ResponseEntity.ok(paymentHistory);
     }
 }
