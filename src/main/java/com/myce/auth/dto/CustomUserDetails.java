@@ -1,5 +1,6 @@
 package com.myce.auth.dto;
 
+import com.myce.auth.dto.type.LoginType;
 import com.myce.member.entity.type.ProviderType;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,6 +14,7 @@ import java.util.List;
 @Getter
 public class CustomUserDetails implements UserDetails {
 
+    private final LoginType loginType;
     private final Long memberId;
     private final String name;
     private final String loginId;
@@ -21,8 +23,9 @@ public class CustomUserDetails implements UserDetails {
     private final String role;
 
     @Builder
-    public CustomUserDetails(Long memberId, String name, String loginId,
-                             String password, ProviderType providerType, String role) {
+    public CustomUserDetails(LoginType loginType, Long memberId, String name, String loginId,
+            String password, ProviderType providerType, String role) {
+        this.loginType = loginType;
         this.memberId = memberId;
         this.providerType = providerType;
         this.loginId = loginId;

@@ -12,11 +12,12 @@ public enum CustomErrorCode {
     REFRESH_TOKEN_NOT_EXIST(HttpStatus.UNAUTHORIZED, "U001", "토큰 정보가 존재하지 않습니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "U002", "유효하지 않은 토큰입니다."),
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "U003", "이미 만료된 토큰입니다."),
+    INVALID_LOGIN_TYPE(HttpStatus.BAD_REQUEST, "U004", "잘못된 로그인 방식입니다."),
 
     // 회원 M
     MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "M001", "회원정보가 존재하지 않습니다."),
     MEMBER_TYPE_INVALID(HttpStatus.NOT_FOUND, "M002", "존재하지 않는 회원 타입입니다."),
-    MEMBER_SETTING_NOT_EXIST(HttpStatus.NOT_FOUND, "M003" , "회원의 시스템 설정이 존재하지 않습니다."),
+    MEMBER_SETTING_NOT_EXIST(HttpStatus.NOT_FOUND, "M003", "회원의 시스템 설정이 존재하지 않습니다."),
 
     // 관계자 정보 I
     BUSINESS_NOT_EXIST(HttpStatus.NOT_FOUND, "I001", "관계자 정보를 찾지 못했습니다"),
@@ -61,7 +62,7 @@ public enum CustomErrorCode {
     BANNER_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
     ADVERTISEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "A003" ,  "광고가 존재 하지 않습니다" ),
     INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A004", "환불할 수 없는 광고 상태입니다."),
-    
+
     // 부스 B
     BOOTH_PREMIUM_RANK_REQUIRED(HttpStatus.BAD_REQUEST, "B001", "프리미엄 부스는 노출 순위가 필수입니다."),
     BOOTH_PREMIUM_RANK_INVALID(HttpStatus.BAD_REQUEST, "B002", "프리미엄 부스 노출 순위는 1에서 3 사이여야 합니다."),
