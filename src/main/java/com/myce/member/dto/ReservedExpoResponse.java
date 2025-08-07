@@ -16,4 +16,5 @@ public class ReservedExpoResponse {
     private String thumbnailUrl;
     private Integer ticketPrice;
     private Integer ticketCount;
+    private String reservationCode;
 }

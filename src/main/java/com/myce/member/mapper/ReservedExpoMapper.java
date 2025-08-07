@@ -18,6 +18,7 @@ public class ReservedExpoMapper {
                         .thumbnailUrl(reservation.getExpo().getThumbnailUrl())
                         .ticketPrice(reservation.getTicket().getPrice())
                         .ticketCount(reservation.getQuantity())
+                        .reservationCode(reservation.getReservationCode())
                         .build())
                 .collect(Collectors.toList());
     }
