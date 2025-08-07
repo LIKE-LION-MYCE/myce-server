@@ -1,17 +1,12 @@
 package com.myce.member.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
-import com.myce.member.dto.MemberInfoResponse;
-import com.myce.member.dto.PaymentHistoryResponse;
-import com.myce.member.dto.ReservedExpoResponse;
+import com.myce.member.dto.*;
 import com.myce.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -30,6 +25,16 @@ public class MemberController {
         List<ReservedExpoResponse> reservedExpos = memberService.getReservedExpos(memberId);
         
         return ResponseEntity.ok(reservedExpos);
+    }
+
+    @GetMapping("/my-page/favorite_expos")
+    public ResponseEntity<List<FavoriteExpoResponse>> getFavoriteExpos(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+
+        Long memberId = customUserDetails.getMemberId();
+        List<FavoriteExpoResponse> favoriteExpos = memberService.getFavoriteExpos(memberId);
+
+        return ResponseEntity.ok(favoriteExpos);
     }
     
     @GetMapping("/my-page/info")
@@ -60,5 +65,26 @@ public class MemberController {
         List<PaymentHistoryResponse> paymentHistory = memberService.getPaymentHistory(memberId);
         
         return ResponseEntity.ok(paymentHistory);
+    }
+    
+    @GetMapping("/my-page/settings")
+    public ResponseEntity<MemberSettingResponse> getMemberSetting(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        MemberSettingResponse memberSetting = memberService.getMemberSetting(memberId);
+        
+        return ResponseEntity.ok(memberSetting);
+    }
+    
+    @PutMapping("/my-page/settings")
+    public ResponseEntity<Void> updateMemberSetting(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @RequestBody MemberSettingUpdateRequest request) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberService.updateMemberSetting(memberId, request);
+        
+        return ResponseEntity.ok().build();
     }
 }

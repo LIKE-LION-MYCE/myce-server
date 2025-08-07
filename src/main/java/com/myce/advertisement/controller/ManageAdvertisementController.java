@@ -1,5 +1,6 @@
 package com.myce.advertisement.controller;
 
+import com.myce.advertisement.dto.MainPageAdInfo;
 import com.myce.advertisement.service.ManageAdvertisementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -9,9 +10,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
-@RequestMapping("/api/manage/ads")
+@RequestMapping("/api/ads")
 @RequiredArgsConstructor
 public class ManageAdvertisementController {
     private final ManageAdvertisementService service;
@@ -23,5 +25,10 @@ public class ManageAdvertisementController {
             @RequestParam Long adPositionId){
         service.checkAvailablePeriod(adPositionId, displayStartDate, displayEndDate);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/get")
+    public ResponseEntity<List<MainPageAdInfo>> getAds(){
+        return ResponseEntity.ok(service.getActiveBanners());
     }
 }
