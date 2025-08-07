@@ -35,8 +35,8 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
 
     @Query("SELECT a FROM Advertisement a" +
             " WHERE a.status IN :status" +
-            " AND a.displayStartDate >= CURRENT_DATE" +
-            " AND a.displayEndDate <= CURRENT_DATE")
+            " AND a.displayStartDate <= CURRENT_DATE" +
+            " AND a.displayEndDate >= CURRENT_DATE")
     List<Advertisement> findAllPublishedAdvertisements(
             @Param("status") List<AdvertisementStatus> status);
 }
