@@ -1,6 +1,7 @@
 package com.myce.expo.service.impl;
 
 import com.myce.common.entity.BusinessProfile;
+import com.myce.common.entity.type.TargetType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
@@ -57,7 +58,7 @@ public class ExpoServiceImpl implements ExpoService {
     // 등록 신청한 회사 정보 저장
     RegistrationCompanyRequest company = request.getRegistrationCompanyRequest();
 
-    BusinessProfile businessProfile = BusinessProfileMapper.toEntity(company, savedExpo.getId());
+    BusinessProfile businessProfile = BusinessProfileMapper.toEntity(company, TargetType.EXPO, savedExpo.getId());
 
     businessProfileRepository.save(businessProfile);
   }

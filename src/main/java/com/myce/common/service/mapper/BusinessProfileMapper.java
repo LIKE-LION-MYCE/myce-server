@@ -5,10 +5,10 @@ import com.myce.common.entity.type.TargetType;
 import com.myce.common.dto.RegistrationCompanyRequest;
 
 public class BusinessProfileMapper {
-  public static BusinessProfile toEntity(RegistrationCompanyRequest company, Long expoId){
+  public static BusinessProfile toEntity(RegistrationCompanyRequest company, TargetType targetType ,Long targetId){
     return BusinessProfile.builder()
-          .targetType(TargetType.EXPO)
-          .targetId(expoId)
+          .targetType(targetType)
+          .targetId(targetId)
           .companyName(company.getCompanyName())
           .address(company.getAddress())
           .ceoName(company.getCeoName())
