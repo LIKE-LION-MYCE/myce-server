@@ -25,7 +25,7 @@ public class PlatformAdminAdvertisementController {
             @RequestParam int page,
             @RequestParam(defaultValue = "true") boolean latestFirst,
             @RequestParam(defaultValue = "true") boolean isApply) {
-        return service.getAllAdvertisementList(page, PAGE_SIZE, latestFirst, isApply);
+        return service.getAllAdList(page, PAGE_SIZE, latestFirst, isApply);
     }
 
     @GetMapping("/filter")
@@ -35,7 +35,7 @@ public class PlatformAdminAdvertisementController {
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "true") boolean latestFirst,
             @RequestParam(defaultValue = "true") boolean isApply) {
-        return service.getFilteredAdvertisementListByKeyword(keyword, status,
+        return service.getFilteredAdListByKeyword(keyword, status,
                 page, PAGE_SIZE, latestFirst, isApply);
     }
 

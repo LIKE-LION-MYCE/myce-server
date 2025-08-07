@@ -8,11 +8,16 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum CustomErrorCode {
 
+    // auth U
+    REFRESH_TOKEN_NOT_EXIST(HttpStatus.UNAUTHORIZED, "U001", "토큰 정보가 존재하지 않습니다."),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "U002", "유효하지 않은 토큰입니다."),
+    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "U003", "이미 만료된 토큰입니다."),
+
     // 회원 M
     MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "M001", "회원정보가 존재하지 않습니다."),
 
     // 관계자 정보 I
-    BUSINESS_NOT_EXIST(HttpStatus.NOT_FOUND,"I001", "관계자 정보를 찾지 못했습니다"),
+    BUSINESS_NOT_EXIST(HttpStatus.NOT_FOUND, "I001", "관계자 정보를 찾지 못했습니다"),
     BUSINESS_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "I002", "해당 박람회의 관계자 정보가 아닙니다."),
 
     // QR 코드 Q
@@ -48,9 +53,13 @@ public enum CustomErrorCode {
     CHAT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "C005", "채팅 참여자 정보를 찾을 수 없습니다."),
     CHAT_SENDER_TYPE_INVALID(HttpStatus.BAD_REQUEST, "C006", "유효하지 않은 메시지 발송자 타입입니다."),
 
-    // 광고 A
+    // 광고 A  
     BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다."),
     BANNER_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "A002", "배너 위치가 존재하지 않습니다."),
+    BANNER_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
+
+    // 광고 위치 AP
+    BANNER_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "AP001", "배너 위치 정보가 존재하지 않습니다.");
     // 결제 P
 
     // 예약 R
