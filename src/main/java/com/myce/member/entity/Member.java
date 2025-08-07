@@ -40,6 +40,9 @@ public class Member {
     @Column(name = "email", length = 100, unique = true, nullable = false)
     private String email;
 
+    @Column(name = "phone", length = 13, nullable = false)
+    private String phone;
+
     @Column(name = "birth", nullable = false)
     private LocalDate birth;
 
@@ -74,13 +77,14 @@ public class Member {
 
     @Builder
     public Member(MemberGrade memberGrade, String name, String loginId, String password,
-                  String email, LocalDate birth, Role role, Gender gender,
+                  String email, LocalDate birth, String phone, Role role, Gender gender,
                   ProviderType providerType, String providerId) {
         this.memberGrade = memberGrade;
         this.name = name;
         this.loginId = loginId;
         this.password = password;
         this.email = email;
+        this.phone = phone;
         this.birth = birth;
         this.role = role;
         this.gender = gender;
@@ -88,5 +92,9 @@ public class Member {
         this.providerId = providerId;
         this.mileage = 0;
         this.isDeleted = false;
+    }
+    
+    public void withdraw() {
+        this.isDeleted = true;
     }
 }
