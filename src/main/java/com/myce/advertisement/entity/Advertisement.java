@@ -80,4 +80,12 @@ public class Advertisement {
         this.displayEndDate = displayEndDate;
         this.status = status;
     }
+    
+    public void cancel() {
+        if (this.status != AdvertisementStatus.PENDING_APPROVAL && 
+            this.status != AdvertisementStatus.PENDING_PAYMENT) {
+            throw new IllegalStateException("취소할 수 없는 광고 상태입니다: " + this.status);
+        }
+        this.status = AdvertisementStatus.CANCELLED;
+    }
 }

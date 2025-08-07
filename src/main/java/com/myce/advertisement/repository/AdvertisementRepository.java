@@ -44,6 +44,7 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
     Optional<Advertisement> findByIdAndMemberIdWithAdPosition(@Param("advertisementId") Long advertisementId,
                                                               @Param("memberId") Long memberId);
 
+
     @Query("SELECT a FROM Advertisement a" +
             " WHERE a.status IN :status" +
             " AND a.displayStartDate <= CURRENT_DATE" +

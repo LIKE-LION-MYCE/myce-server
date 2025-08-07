@@ -35,7 +35,8 @@ public class AdPaymentInfo {
     @Column(name = "total_amount", nullable = false)
     private Integer totalAmount;
 
-    @Column(name = "status", length = 100, nullable = false, columnDefinition = "VARCHAR(30)")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(100)")
     private PaymentStatus status;
 
     @CreationTimestamp
