@@ -6,7 +6,6 @@ import com.myce.expo.dto.ExpoAdminTicketRequestDto;
 import com.myce.expo.dto.ExpoAdminTicketResponseDto;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
-import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.entity.type.TicketType;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
@@ -27,10 +26,9 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
     private final ExpoAdminTicketMapper mapper;
 
     @Override//TODO:하위 관리자
-    public List<ExpoAdminTicketResponseDto> getMyExpoTickets(Long memberId) {
-        Expo expo =  getActiveExpo(memberId);
-        List<Ticket> tickets = ticketRepository.findByExpoId(expo.getId());
-
+    public List<ExpoAdminTicketResponseDto> getMyExpoTickets(Long expoId, Long memberId) {
+        validateMyExpoAccess(expoId, memberId);
+        List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
         return tickets.stream()
                 .map(mapper::toDto)
                 .toList();
@@ -38,13 +36,13 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
 
     @Override//TODO:하위 관리자
     @Transactional
-    public void deleteMyExpoTicket(Long memberId, Long ticketId) {
-        Expo expo =  getActiveExpo(memberId);
+    public void deleteMyExpoTicket(Long expoId, Long memberId, Long ticketId) {
+        validateMyExpoAccess(expoId, memberId);
 
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(()-> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
 
-        if(!ticket.getExpo().getId().equals(expo.getId())){
+        if(!ticket.getExpo().getId().equals(expoId)){
             throw new CustomException(CustomErrorCode.TICKET_NOT_BELONG_TO_EXPO);
         }
 
@@ -53,8 +51,8 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
 
     @Override//TODO:하위 관리자
     @Transactional
-    public ExpoAdminTicketResponseDto saveMyExpoTicket(Long memberId, ExpoAdminTicketRequestDto dto) {
-        Expo expo =  getActiveExpo(memberId);
+    public ExpoAdminTicketResponseDto saveMyExpoTicket(Long expoId, Long memberId, ExpoAdminTicketRequestDto dto) {
+        Expo expo =  getMyExpo(expoId,memberId);
         Ticket ticket = mapper.toEntity(dto,expo);
         Ticket saved = ticketRepository.save(ticket);
 
@@ -63,13 +61,16 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
 
     @Override//TODO:하위 관리자
     @Transactional
-    public ExpoAdminTicketResponseDto updateMyExpoTicket(Long memberId, Long ticketId, ExpoAdminTicketRequestDto dto) {
-        Expo expo =  getActiveExpo(memberId);
+    public ExpoAdminTicketResponseDto updateMyExpoTicket(Long expoId,
+                                                         Long memberId,
+                                                         Long ticketId,
+                                                         ExpoAdminTicketRequestDto dto) {
+        validateMyExpoAccess(expoId, memberId);
 
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(()-> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
 
-        if(!ticket.getExpo().getId().equals(expo.getId())){
+        if(!ticket.getExpo().getId().equals(expoId)){
             throw new CustomException(CustomErrorCode.TICKET_NOT_BELONG_TO_EXPO);
         }
 
@@ -89,8 +90,20 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
        return mapper.toDto(saved);
     }
 
-    private Expo getActiveExpo(Long memberId){
-        return expoRepository.findFirstByMemberIdAndStatusInOrderByCreatedAtDesc(memberId, ExpoStatus.ACTIVE_STATUSES)
+    private Expo getMyExpo(Long expoId, Long memberId) {
+        Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
+
+        if (!expo.getMember().getId().equals(memberId)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+
+        return expo;
+    }
+
+    private void validateMyExpoAccess(Long expoId, Long memberId) {
+        if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
     }
 }

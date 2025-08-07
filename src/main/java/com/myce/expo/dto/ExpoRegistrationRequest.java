@@ -1,5 +1,6 @@
 package com.myce.expo.dto;
 
+import com.myce.common.dto.RegistrationCompanyRequest;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -69,5 +70,5 @@ public class ExpoRegistrationRequest {
   private Boolean isPremium;
 
   @NotNull(message = "회사 정보는 필수입니다.")
-  private ExpoRegistrationCompanyRequest expoRegistrationCompanyRequest;
+  private RegistrationCompanyRequest registrationCompanyRequest;
 }

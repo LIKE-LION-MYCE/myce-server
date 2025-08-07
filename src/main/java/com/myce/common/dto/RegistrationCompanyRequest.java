@@ -1,4 +1,4 @@
-package com.myce.expo.dto;
+package com.myce.common.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class ExpoRegistrationCompanyRequest {
+public class RegistrationCompanyRequest {
   @NotBlank(message = "회사명은 필수입니다.")
   @Size(max = 100, message = "회사명은 100자 이하여야 합니다.")
   private String companyName;

@@ -12,12 +12,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/expos/my")
 public class MyExpoController {
 
     private final MyExpoService expoService;
+
+    // 관리자 페이지로 이동 가능한 박람회 리스트 조회
+    @GetMapping
+    public ResponseEntity<List<Long>> getMyExpos(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long memberId = customUserDetails.getMemberId();
+        return ResponseEntity.ok(expoService.getMyExpos(memberId));
+    }
 
     // 나의 박람회 상세 정보 조회
     @GetMapping("/{expoId}")

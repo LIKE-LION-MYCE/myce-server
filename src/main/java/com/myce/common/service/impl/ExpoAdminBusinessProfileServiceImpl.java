@@ -9,8 +9,6 @@ import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.common.service.ExpoAdminBusinessProfileService;
 import com.myce.common.service.mapper.ExpoAdminBusinessProfileMapper;
-import com.myce.expo.entity.Expo;
-import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,26 +23,17 @@ public class ExpoAdminBusinessProfileServiceImpl implements ExpoAdminBusinessPro
     private final ExpoAdminBusinessProfileMapper mapper;
 
     @Override//TODO:하위관리자
-    public ExpoAdminBusinessProfileResponseDto getMyBusinessProfile(Long memberId) {
-        Expo expo = getActiveExpo(memberId);
-
-        BusinessProfile profile = businessProfileRepository.findByTargetIdAndTargetType(expo.getId(), TargetType.EXPO)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
-
+    public ExpoAdminBusinessProfileResponseDto getMyBusinessProfile(Long expoId, Long memberId) {
+        BusinessProfile profile = validateMyBusinessProfileAccess(expoId, memberId);
         return mapper.toDto(profile);
     }
 
     @Override//TODO:하위관리자
     @Transactional
-    public void updateMyBusinessProfile(Long memberId, Long profileId, ExpoAdminBusinessProfileRequestDto dto) {
-        Expo expo = getActiveExpo(memberId);
-
-        BusinessProfile profile = businessProfileRepository.findById(profileId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
-
-        if(!expo.getId().equals(profile.getTargetId()) || !profile.getTargetType().equals(TargetType.EXPO)){
-            throw new CustomException(CustomErrorCode.BUSINESS_NOT_BELONG_TO_EXPO);
-        }
+    public ExpoAdminBusinessProfileResponseDto updateMyBusinessProfile(Long expoId,
+                                        Long memberId,
+                                        ExpoAdminBusinessProfileRequestDto dto) {
+        BusinessProfile profile = validateMyBusinessProfileAccess(expoId, memberId);
 
         profile.updateProfileInfo(
                 dto.getLogoUrl(),
@@ -55,10 +44,15 @@ public class ExpoAdminBusinessProfileServiceImpl implements ExpoAdminBusinessPro
                 dto.getContactPhone(),
                 dto.getBusinessRegistrationNumber()
         );
+
+        return mapper.toDto(profile);
     }
 
-    private Expo getActiveExpo(Long memberId) {
-        return expoRepository.findFirstByMemberIdAndStatusInOrderByCreatedAtDesc(memberId, ExpoStatus.ACTIVE_STATUSES)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
+    private BusinessProfile validateMyBusinessProfileAccess(Long expoId, Long memberId){
+        if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+        return businessProfileRepository.findByTargetIdAndTargetType(expoId,TargetType.EXPO)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
     }
 }
