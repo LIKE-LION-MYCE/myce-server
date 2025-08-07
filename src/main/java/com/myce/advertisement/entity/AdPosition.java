@@ -19,9 +19,6 @@ public class AdPosition {
     @Column(name = "ad_position_id")
     private Long id;
 
-    @Column(name = "code", nullable = false, unique = true, columnDefinition = "VARCHAR(50)")
-    private String code;
-
     @Column(name = "name", nullable = false, unique = true, columnDefinition = "VARCHAR(50)")
     private String name;
 
@@ -46,9 +43,8 @@ public class AdPosition {
     private LocalDateTime updatedAt;
 
     @Builder
-    public AdPosition(String code, String name, Integer imageWidth, Integer imageHeight,
+    public AdPosition(String name, Integer imageWidth, Integer imageHeight,
                      Integer maxCount, Boolean isActive) {
-        this.code = code;
         this.name = name;
         this.imageWidth = imageWidth;
         this.imageHeight = imageHeight;
