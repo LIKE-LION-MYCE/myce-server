@@ -171,3 +171,8 @@ gradle/
 !gradle/wrapper/gradle-wrapper.properties
 gradle.lockfile
 *.gradle.local
+
+# Gemini files
+GEMINI.md
+.prompt
+.prMessage

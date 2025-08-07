@@ -47,7 +47,7 @@ public class Booth {
     @Column(name = "is_premium", columnDefinition = "TINYINT(1)", nullable = false)
     private Boolean isPremium;
 
-    @Column(name = "display_rank", nullable = false)
+    @Column(name = "display_rank", nullable = false, columnDefinition = "INT DEFAULT 0")
     private Integer displayRank;
 
     @CreationTimestamp
