@@ -1,0 +1,31 @@
+package com.myce.chat.repository;
+
+import com.myce.chat.document.ChatMessage;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+/**
+ * ChatMessage MongoDB Repository
+ */
+@Repository
+public interface ChatMessageRepository extends MongoRepository<ChatMessage, String> {
+    
+    /**
+     * 채팅방별 메시지 조회 (페이징)
+     */
+    Page<ChatMessage> findByRoomCodeOrderBySentAtDesc(String roomCode, Pageable pageable);
+    
+    /**
+     * 채팅방별 최근 메시지 조회
+     */
+    List<ChatMessage> findTop50ByRoomCodeOrderBySentAtDesc(String roomCode);
+    
+    /**
+     * 채팅방별 메시지 개수
+     */
+    long countByRoomCode(String roomCode);
+}

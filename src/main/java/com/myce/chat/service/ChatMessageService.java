@@ -1,6 +1,10 @@
 package com.myce.chat.service;
 
 import com.myce.chat.document.ChatMessage;
+import com.myce.chat.dto.MessageResponse;
+import com.myce.common.dto.PageResponse;
+
+import org.springframework.data.domain.Pageable;
 
 /**
  * 채팅 메시지 생성 서비스
@@ -36,5 +40,8 @@ public interface ChatMessageService {
      */
     ChatMessage createLeaveMessage(String roomCode, String memberName);
 
-
+    /**
+     * 채팅방의 메시지 히스토리 조회 (페이징)
+     */
+    PageResponse<MessageResponse> getMessages(String roomCode, Pageable pageable);
 }

@@ -72,7 +72,16 @@ public class ChatRoomServiceImpl implements ChatRoomService {
 
         // 4. MongoDB Document를 DTO로 변환 (복수형 네이밍 적용)
         List<ChatRoomListResponse.ChatRoomInfo> chatRoomInfos = chatRooms.stream()
-            .map(chatRoom -> convertToChatRoomInfo(chatRoom, memberId, memberRole))
+            .map(chatRoom -> {
+                try {
+                    return convertToChatRoomInfo(chatRoom, memberId, memberRole);
+                } catch (Exception e) {
+                    log.error("채팅방 정보 변환 중 오류 - chatRoom ID: {}, error: {}", 
+                        chatRoom.getId(), e.getMessage(), e);
+                    return null;
+                }
+            })
+            .filter(info -> info != null)
             .collect(Collectors.toList());
 
         // 5. 응답 객체 생성 및 로깅
@@ -82,6 +91,11 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             .build();
 
         log.info("채팅방 목록 조회 완료 - 회원ID: {}, 조회된 채팅방 개수: {}", memberId, response.getTotalCount());
+        
+        // 빈 목록일 때도 정상 응답
+        if (chatRoomInfos.isEmpty()) {
+            log.info("채팅방이 없는 사용자 - 회원ID: {}, 역할: {}", memberId, memberRole);
+        }
         
         return response;
     }

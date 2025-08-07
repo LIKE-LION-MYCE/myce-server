@@ -1,12 +1,20 @@
 package com.myce.chat.service.impl;
 
 import com.myce.chat.document.ChatMessage;
+import com.myce.chat.dto.MessageResponse;
+import com.myce.chat.repository.ChatMessageRepository;
 import com.myce.chat.service.ChatMessageService;
 import com.myce.chat.service.ChatRoomService;
+import com.myce.chat.service.mapper.ChatMessageMapper;
 import com.myce.chat.type.MessageSenderType;
+import com.myce.common.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * 채팅 메시지 생성 서비스 구현체
@@ -17,6 +25,8 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class ChatMessageServiceImpl implements ChatMessageService {
+
+    private final ChatMessageRepository chatMessageRepository;
 
     /**
      * 기본 메시지 타입
@@ -76,6 +86,30 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         return createSystemMessage(roomCode, SYSTEM_LEAVE_TYPE, content);
     }
 
+    @Override
+    public PageResponse<MessageResponse> getMessages(String roomCode, Pageable pageable) {
+        log.debug("메시지 히스토리 조회 - roomCode: {}, page: {}, size: {}", 
+                  roomCode, pageable.getPageNumber(), pageable.getPageSize());
+        
+        // MongoDB에서 페이징된 메시지 조회 (최신 순)
+        Page<ChatMessage> messagePage = chatMessageRepository.findByRoomCodeOrderBySentAtDesc(roomCode, pageable);
+        
+        // ChatMessage -> MessageResponse 변환 (Mapper 사용)
+        List<MessageResponse> messageResponses = messagePage.getContent().stream()
+            .map(ChatMessageMapper::toDto)
+            .toList();
+        
+        log.info("메시지 히스토리 조회 완료 - roomCode: {}, 조회된 메시지 수: {}", 
+                 roomCode, messageResponses.size());
+        
+        return new PageResponse<>(
+            messageResponses,
+            messagePage.getNumber(),
+            messagePage.getSize(),
+            messagePage.getTotalElements(),
+            messagePage.getTotalPages()
+        );
+    }
 
     /**
      * 메시지 생성 핵심 로직

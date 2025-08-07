@@ -69,7 +69,8 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/auth-docs/login",
                                 "/actuator/health",
-                                "/actuator/info"
+                                "/actuator/info",
+                                "/ws/**"  // WebSocket 엔드포인트 허용
                         ).permitAll()
                         .anyRequest()
                         .authenticated());
