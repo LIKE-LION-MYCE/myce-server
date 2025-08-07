@@ -53,4 +53,11 @@ public class MemberSetting {
         this.isReceiveEmail = isReceiveEmail;
         this.isReceivePush = isReceivePush;
     }
+
+    public void updateSettings(Language language, FontSize fontSize, Boolean isReceiveEmail, Boolean isReceivePush) {
+        this.language = language;
+        this.fontSize = fontSize;
+        this.isReceiveEmail = isReceiveEmail;
+        this.isReceivePush = isReceivePush;
+    }
 }
