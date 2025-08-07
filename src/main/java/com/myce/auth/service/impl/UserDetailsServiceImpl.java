@@ -21,7 +21,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String loginId) throws UsernameNotFoundException {
         Member member = memberRepository.findByProviderTypeAndLoginId(ProviderType.LOCAL, loginId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+                .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 사용자 토큰입니다."));
 
         return CustomUserDetails.builder()
                 .memberId(member.getId())
