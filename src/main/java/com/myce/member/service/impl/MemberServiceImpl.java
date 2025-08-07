@@ -40,6 +40,7 @@ public class MemberServiceImpl implements MemberService {
     private final AdvertisementRepository advertisementRepository;
     private final MemberAdvertisementMapper memberAdvertisementMapper;
 
+
     @Override
     public List<ReservedExpoResponse> getReservedExpos(Long memberId) {
         List<Reservation> reservations = reservationRepository.findReservationsByMemberIdWithExpoAndTicket(memberId);

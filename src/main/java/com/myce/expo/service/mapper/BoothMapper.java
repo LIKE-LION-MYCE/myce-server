@@ -1,7 +1,7 @@
 package com.myce.expo.service.mapper;
 
-import com.myce.expo.dto.BoothRegistrationRequest;
-import com.myce.expo.dto.BoothRegistrationResponse;
+import com.myce.expo.dto.BoothRequest;
+import com.myce.expo.dto.BoothResponse;
 import com.myce.expo.entity.Booth;
 import com.myce.expo.entity.Expo;
 import org.springframework.stereotype.Component;
@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class BoothMapper {
 
-    public Booth toEntity(BoothRegistrationRequest request, Expo expo) {
+    public Booth toEntity(BoothRequest request, Expo expo) {
         return Booth.builder()
                 .expo(expo)
                 .boothNumber(request.getBoothNumber())
@@ -24,8 +24,8 @@ public class BoothMapper {
                 .build();
     }
 
-    public BoothRegistrationResponse toResponse(Booth booth) {
-        return BoothRegistrationResponse.builder()
+    public BoothResponse toResponse(Booth booth) {
+        return BoothResponse.builder()
                 .id(booth.getId())
                 .boothNumber(booth.getBoothNumber())
                 .name(booth.getName())

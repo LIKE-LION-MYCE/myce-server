@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class BoothRegistrationRequest {
+public class BoothRequest {
 
     @NotBlank(message = "부스 번호는 필수입니다.")
     @Size(max = 30, message = "부스 번호는 30자 이하여야 합니다.")
