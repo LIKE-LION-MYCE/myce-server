@@ -5,11 +5,11 @@ import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.common.dto.PageResponse;
 
 public interface PlatformAdminAdvertisementService {
-    PageResponse<SimpleApplyAdvertisement> getAllAdvertisementList(
+    PageResponse<SimpleApplyAdvertisement> getAllAdList(
             int page, int pageSize,
             boolean latestFirst, boolean isApply);
 
-    PageResponse<SimpleApplyAdvertisement> getFilteredAdvertisementListByKeyword(
+    PageResponse<SimpleApplyAdvertisement> getFilteredAdListByKeyword(
             String keyword, String status,
             int page, int pageSize, boolean latestFirst, boolean isApply);
 

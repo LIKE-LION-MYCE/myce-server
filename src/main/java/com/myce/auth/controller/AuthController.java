@@ -2,6 +2,8 @@ package com.myce.auth.controller;
 
 import com.myce.auth.dto.SignupRequest;
 import com.myce.auth.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,12 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<Void> signup(@RequestBody @Valid SignupRequest signupRequest) {
         authService.signup(signupRequest);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reissue")
+    public ResponseEntity<Void> reissue(HttpServletRequest request, HttpServletResponse response) {
+        authService.reissueToken(request, response);
         return ResponseEntity.ok().build();
     }
 }

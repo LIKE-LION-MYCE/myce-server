@@ -3,12 +3,11 @@ package com.myce.auth.security.filter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.auth.dto.LoginRequest;
+import com.myce.auth.security.TokenCookieProvider;
+import com.myce.auth.security.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
-import java.time.Duration;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseCookie;
@@ -26,13 +25,12 @@ import java.io.IOException;
 public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     private final JwtUtil jwtUtil;
+    private final TokenCookieProvider tokenCookieProvider;
     private final AuthenticationManager authenticationManager;
-    private final String profile;
-    private static final String PRODUCT_PROFILE = "product";
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
-            throws AuthenticationException {
+    public Authentication attemptAuthentication
+            (HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
         log.info("AttemptAuthentication. URL: {}", request.getRequestURI());
         ObjectMapper objectMapper = new ObjectMapper();
         try {
@@ -63,7 +61,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         String refreshToken = jwtUtil.createToken(JwtUtil.REFRESH_TOKEN, memberId, loginId, name, role);
 
         response.addHeader(JwtUtil.AUTHORIZATION_HEADER, accessToken);
-        ResponseCookie cookie = getCookie(JwtUtil.REFRESH_TOKEN, refreshToken);
+        ResponseCookie cookie = tokenCookieProvider.getCookie(JwtUtil.REFRESH_TOKEN, refreshToken);
         response.addHeader("Set-Cookie", cookie.toString());
         response.setStatus(HttpServletResponse.SC_OK);
         log.info("Successfully login. loginId: {}", loginId);
@@ -73,17 +71,5 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     protected void unsuccessfulAuthentication
             (HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-    }
-
-    private ResponseCookie getCookie(String key, String token) {
-        boolean isProd = this.profile.equals(PRODUCT_PROFILE);
-        return ResponseCookie.from(key, token)
-                .httpOnly(true)
-                .sameSite(isProd ? "None" : "Lax")
-                .secure(isProd)
-                .maxAge(Duration.ofDays(14))
-                .path("/")
-                .domain(".myce.live")  // Allow cookie to be shared across subdomains
-                .build();
     }
 }
