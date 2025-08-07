@@ -1,6 +1,7 @@
 package com.myce.auth.service.impl;
 
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.member.entity.Member;
@@ -24,6 +25,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 사용자 토큰입니다."));
 
         return CustomUserDetails.builder()
+                .loginType(LoginType.MEMBER)
                 .memberId(member.getId())
                 .name(member.getName())
                 .loginId(loginId)

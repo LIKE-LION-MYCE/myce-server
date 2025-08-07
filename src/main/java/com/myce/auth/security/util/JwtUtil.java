@@ -66,7 +66,7 @@ public class JwtUtil {
                 .before(new Date());
     }
 
-    public String createToken(String category, Long id, String loginId, String name, String role) {
+    public String createToken(String category, String loginType, Long id, String loginId, String role) {
         Date now = new Date(System.currentTimeMillis());
         Date expired = category.equals(ACCESS_TOKEN) ?
                 new Date(now.getTime() + ACCESS_TOKEN_TIME) :
@@ -74,9 +74,9 @@ public class JwtUtil {
 
         String jwt = Jwts.builder()
                 .claim("category", category)
+                .claim("loginType", loginType)
                 .claim("memberId", id)
                 .claim("loginId", loginId)
-                .claim("name", name)
                 .claim("role", role)
                 .signWith(secretKey)
                 .expiration(expired)
@@ -96,6 +96,12 @@ public class JwtUtil {
         return jwtParser.parseSignedClaims(token)
                 .getPayload()
                 .get("memberId", Long.class);
+    }
+
+    public String getLoginTypeFromToken(String token) {
+        return jwtParser.parseSignedClaims(token)
+                .getPayload()
+                .get("loginType", String.class);
     }
 
     public boolean isRefreshToken(String token) {
