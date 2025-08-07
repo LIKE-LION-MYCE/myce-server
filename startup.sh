@@ -13,10 +13,13 @@ export MONGODB_URI=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce
 export REDIS_URL=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/redis-url" --with-decryption --query "Parameter.Value" --output text)
 export JWT_SECRET=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/jwt-secret" --with-decryption --query "Parameter.Value" --output text)
 
-# AWS configuration (using EC2 IAM role, but setting region)
+# AWS configuration - AwsConfig will automatically use EC2 IAM role
 export AWS_REGION="ap-northeast-2"
 export S3_MEDIA_BUCKET_NAME=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/s3-bucket-name" --query "Parameter.Value" --output text)
 export CLOUDFRONT_DOMAIN=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/cloudfront-domain" --query "Parameter.Value" --output text)
+
+# Note: AWS credentials (ACCESS_KEY_ID, SECRET_ACCESS_KEY) are NOT set
+# AwsConfig will automatically detect and use the EC2 IAM role for authentication
 
 # Set profile for production
 export PROFILE="product"
