@@ -2,7 +2,9 @@ package com.myce.expo.service;
 
 import com.myce.expo.dto.ExpoRegistrationRequest;
 
+import java.util.List;
+
 public interface ExpoService {
-  void saveExpo(Long memberId, ExpoRegistrationRequest request);
+    void saveExpo(Long memberId, ExpoRegistrationRequest request);
 }
 

@@ -6,7 +6,6 @@ import lombok.Getter;
 @Getter
 @Builder
 public class ExpoAdminBusinessProfileResponseDto {
-    private Long profileId;
     private String logoUrl;
     private String companyName;
     private String ceoName;

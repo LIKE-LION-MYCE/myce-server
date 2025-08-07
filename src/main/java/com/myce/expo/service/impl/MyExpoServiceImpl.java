@@ -7,6 +7,7 @@ import com.myce.expo.dto.MyExpoUpdateRequest;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.ExpoCategory;
+import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.CategoryRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.ExpoCategoryRepository;
@@ -32,6 +33,16 @@ public class MyExpoServiceImpl implements MyExpoService {
     private final MyExpoMapper expoMapper;
     private final MemberRepository memberRepository;
 
+    // 관리자 페이지로 이동 가능한 박람회 목록 조회
+    @Override
+    public List<Long> getMyExpos(Long memberId) {
+        List<Expo> expos = expoRepository.findByMemberIdAndStatusIn(memberId, ExpoStatus.ACTIVE_STATUSES);
+        return expos.stream()
+                .map(Expo::getId)
+                .toList();
+    }
+
+    // 내 박람회 상세조회
     @Override
     @Transactional(readOnly = true)
     public MyExpoDetailResponse getMyExpoDetail(Long expoId, Long memberId) {
@@ -40,6 +51,7 @@ public class MyExpoServiceImpl implements MyExpoService {
         return expoMapper.toMyExpoDetailResponse(expo, expoCategories);
     }
 
+    // 내 박람회 수정
     @Override
     @Transactional
     public MyExpoDetailResponse updateMyExpoDetail(Long expoId, Long memberId, MyExpoUpdateRequest updateRequest) {
@@ -61,7 +73,7 @@ public class MyExpoServiceImpl implements MyExpoService {
 
 
     /// 유틸 메소드
-    // 박람회 조회 및 박람회 관리자 검증 로직
+    // 박람회 검증 및 박람회 관리자 검증 로직
     private Expo findAndValidateExpo(Long expoId, Long memberId) {
         // 박람회 조회
         Expo expo = expoRepository.findById(expoId).orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));

@@ -11,5 +11,7 @@ import java.util.Optional;
 @Repository
 public interface ExpoRepository extends JpaRepository<Expo, Long> {
     Optional<Expo> findFirstByMemberIdAndStatusInOrderByCreatedAtDesc(Long memberId, List<ExpoStatus> status);
+    List<Expo> findByMemberIdAndStatusIn(Long memberId, List<ExpoStatus> status);
+    Boolean existsByIdAndMemberId(Long id, Long memberId);
 }
 

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/expo-admin/my-expo/tickets")
+@RequestMapping("/api/expos/{expoId}/tickets")
 @RequiredArgsConstructor
 public class ExpoAdminTicketController {
 
@@ -22,34 +22,38 @@ public class ExpoAdminTicketController {
 
     @GetMapping//TODO:하위관리자
     public ResponseEntity<List<ExpoAdminTicketResponseDto>> getMyExpoTickets(
+            @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails){
         Long memberId = customUserDetails.getMemberId();
-        return ResponseEntity.ok(service.getMyExpoTickets(memberId));
+        return ResponseEntity.ok(service.getMyExpoTickets(expoId,memberId));
     }
 
     @DeleteMapping("/{ticketId}")//TODO:하위관리자
     public ResponseEntity<Void> deleteMyExpoTicket(
+            @PathVariable Long expoId,
             @PathVariable Long ticketId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails){
         Long memberId = customUserDetails.getMemberId();
-        service.deleteMyExpoTicket(memberId,ticketId);
+        service.deleteMyExpoTicket(expoId,memberId,ticketId);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping//TODO:하위관리자
     public ResponseEntity<ExpoAdminTicketResponseDto> saveMyExpoTicket(
+            @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody ExpoAdminTicketRequestDto dto){
         Long memberId = customUserDetails.getMemberId();
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.saveMyExpoTicket(memberId,dto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.saveMyExpoTicket(expoId,memberId,dto));
     }
 
     @PutMapping("/{ticketId}")//TODO:하위관리자
     public ResponseEntity<ExpoAdminTicketResponseDto> updateMyExpoTicket(
-            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId,
             @PathVariable Long ticketId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody ExpoAdminTicketRequestDto dto){
         Long memberId = customUserDetails.getMemberId();
-        return ResponseEntity.ok(service.updateMyExpoTicket(memberId,ticketId,dto));
+        return ResponseEntity.ok(service.updateMyExpoTicket(expoId,memberId,ticketId,dto));
     }
 }

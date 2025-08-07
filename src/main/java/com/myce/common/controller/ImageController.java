@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 //import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -26,11 +27,13 @@ public class ImageController {
     @Value("${spring.cloud.aws.s3.bucket.media}")
     private String bucketName;
 
+
     @Value("${cloudfront.domain:https://media.myce.live}")
+
     private String cloudfrontDomain;
 
     @GetMapping("/presign")
-    //@PreAuthorize("permitAll()")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<Map<String, String>> getPresignedUrl(
             @RequestParam String filename) {
         
