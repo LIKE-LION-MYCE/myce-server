@@ -10,7 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/expo-admin/my-expo/profile")
+@RequestMapping("/api/expos/{expoId}/profile")
 @RequiredArgsConstructor
 public class ExpoAdminBusinessProfileController {
 
@@ -18,18 +18,18 @@ public class ExpoAdminBusinessProfileController {
 
     @GetMapping//TODO:하위관리자
     public ResponseEntity<ExpoAdminBusinessProfileResponseDto> getMyBusinessProfile(
+            @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         Long memberId = customUserDetails.getMemberId();
-        return ResponseEntity.ok(service.getMyBusinessProfile(memberId));
+        return ResponseEntity.ok(service.getMyBusinessProfile(expoId,memberId));
     }
 
-    @PutMapping("/{profileId}")//TODO:하위관리자
-    public ResponseEntity<Void> updateMyBusinessProfile(
+    @PutMapping//TODO:하위관리자
+    public ResponseEntity<ExpoAdminBusinessProfileResponseDto> updateMyBusinessProfile(
+            @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-            @PathVariable Long profileId,
             @RequestBody ExpoAdminBusinessProfileRequestDto dto) {
         Long memberId = customUserDetails.getMemberId();
-        service.updateMyBusinessProfile(memberId, profileId, dto);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(service.updateMyBusinessProfile(expoId,memberId, dto));
     }
 }
