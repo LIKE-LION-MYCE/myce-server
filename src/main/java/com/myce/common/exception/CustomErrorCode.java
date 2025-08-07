@@ -38,7 +38,8 @@ public enum CustomErrorCode {
 
     // 엑스포 E
     EXPO_NOT_EXIST(HttpStatus.NOT_FOUND, "E001", "운영중인 박람회가 존재하지 않습니다."),
-    CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E002", "카테고리가 존재하지 않습니다."),
+    EXPO_NOT_FOUND(HttpStatus.NOT_FOUND, "E002", "박람회를 찾을 수 없습니다."),
+    CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E005", "카테고리가 존재하지 않습니다."),
     EXPO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "E003", "해당 박람회에 대한 접근 권한이 없습니다."),
     EXPO_UPDATE_DENIED(HttpStatus.FORBIDDEN, "E004", "해당 박람회에 대한 수정 권한이 없습니다."),
 

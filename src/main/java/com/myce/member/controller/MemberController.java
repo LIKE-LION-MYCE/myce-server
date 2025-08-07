@@ -141,4 +141,25 @@ public class MemberController {
         
         return ResponseEntity.ok(refundReceipt);
     }
+    
+    @GetMapping("/my-page/expos")
+    public ResponseEntity<List<MemberExpoResponse>> getMemberExpos(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        List<MemberExpoResponse> expos = memberService.getMemberExpos(memberId);
+        
+        return ResponseEntity.ok(expos);
+    }
+    
+    @GetMapping("/my-page/expos/{expoId}")
+    public ResponseEntity<MemberExpoDetailResponse> getMemberExpoDetail(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        MemberExpoDetailResponse expoDetail = memberService.getMemberExpoDetail(memberId, expoId);
+        
+        return ResponseEntity.ok(expoDetail);
+    }
 }

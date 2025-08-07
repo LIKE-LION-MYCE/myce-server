@@ -29,4 +29,8 @@ public interface MemberService {
     AdvertisementPaymentDetailResponse getAdvertisementPaymentDetail(Long memberId, Long advertisementId);
     
     AdvertisementRefundReceiptResponse getAdvertisementRefundReceipt(Long memberId, Long advertisementId);
+    
+    List<MemberExpoResponse> getMemberExpos(Long memberId);
+    
+    MemberExpoDetailResponse getMemberExpoDetail(Long memberId, Long expoId);
 }
