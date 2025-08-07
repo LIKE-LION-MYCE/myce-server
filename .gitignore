@@ -157,8 +157,25 @@ Temporary Items
 !src/main/resources/application.yml
 /src/main/resources/static/qr/
 
-# Claude Code configuration
+# AI Assistant configurations - keep out of version control
+# Claude Code
 CLAUDE.md
+.claude/
+.claude-config/
+claude-context.md
+claude-session.md
+
+# Gemini CLI
+.gemini/
+.gemini-config/
+GEMINI.md
+gemini-context.md
+gemini-session.md
+
+# Generic AI assistant files
+AI_CONTEXT.md
+ai-session.md
+.ai-config/
 
 # Gradle
 .gradle/
