@@ -61,7 +61,6 @@ public class ManageAdvertisementServiceImpl implements ManageAdvertisementServic
         ObjectMapper objectMapper = new ObjectMapper();
 
         for (String key : keys) {
-            System.out.println(key);
             List<Object> banners = redisTemplate.opsForList().range(key, 0, -1);
             if(banners != null && !banners.isEmpty()) {
                 totalBanners.addAll(banners);
