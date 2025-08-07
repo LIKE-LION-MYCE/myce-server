@@ -43,7 +43,8 @@ public enum CustomErrorCode {
 
 
     // 광고 A
-    BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다.");
+    BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다."),
+    BANNER_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "A002", "배너 위치가 존재하지 않습니다.");
     // 결제 P
 
     // 예약 R
