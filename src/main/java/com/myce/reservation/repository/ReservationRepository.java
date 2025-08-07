@@ -1,5 +1,6 @@
 package com.myce.reservation.repository;
 
+import com.myce.reservation.dto.ExpoAdminPaymentBasicResponse;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.code.UserType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,4 +26,17 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
            "JOIN FETCH r.ticket t " +
            "WHERE r.reservationCode = :reservationCode")
     Optional<Reservation> findByReservationCodeWithExpoAndTicket(@Param("reservationCode") String reservationCode);
+
+    @Query("SELECT new com.myce.reservation.dto.ExpoAdminPaymentBasicResponse(" +
+            "r.reservationCode, " +
+            "r.userType, " +
+            "r.userId, " +
+            "r.quantity, " +
+            "(r.quantity * (p.totalAmount + p.usedMileage)), " +
+            "r.createdAt, " +
+            "r.status) " +
+            "FROM ReservationPaymentInfo p " +
+            "JOIN p.reservation r " +
+            "WHERE r.expo.id = :expoId")
+    List<ExpoAdminPaymentBasicResponse> findBasicResponsesByExpoId(@Param("expoId") Long expoId);
 }
