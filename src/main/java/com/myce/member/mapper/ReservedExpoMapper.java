@@ -1,6 +1,6 @@
 package com.myce.member.mapper;
 
-import com.myce.member.dto.ReservedExpoResponseDto;
+import com.myce.member.dto.ReservedExpoResponse;
 import com.myce.reservation.entity.Reservation;
 import org.springframework.stereotype.Component;
 
@@ -10,9 +10,9 @@ import java.util.stream.Collectors;
 @Component
 public class ReservedExpoMapper {
     
-    public List<ReservedExpoResponseDto> toResponseDtoList(List<Reservation> reservations) {
+    public List<ReservedExpoResponse> toResponseDtoList(List<Reservation> reservations) {
         return reservations.stream()
-                .map(reservation -> ReservedExpoResponseDto.builder()
+                .map(reservation -> ReservedExpoResponse.builder()
                         .expoId(reservation.getExpo().getId())
                         .title(reservation.getExpo().getTitle())
                         .thumbnailUrl(reservation.getExpo().getThumbnailUrl())

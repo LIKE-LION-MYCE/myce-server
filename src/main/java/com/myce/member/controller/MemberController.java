@@ -1,8 +1,8 @@
 package com.myce.member.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
-import com.myce.member.dto.MemberInfoResponseDto;
-import com.myce.member.dto.ReservedExpoResponseDto;
+import com.myce.member.dto.MemberInfoResponse;
+import com.myce.member.dto.ReservedExpoResponse;
 import com.myce.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,21 +22,21 @@ public class MemberController {
     private final MemberService memberService;
     
     @GetMapping("/my-page/reserved-expos")
-    public ResponseEntity<List<ReservedExpoResponseDto>> getReservedExpos(
+    public ResponseEntity<List<ReservedExpoResponse>> getReservedExpos(
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         
         Long memberId = customUserDetails.getMemberId();
-        List<ReservedExpoResponseDto> reservedExpos = memberService.getReservedExpos(memberId);
+        List<ReservedExpoResponse> reservedExpos = memberService.getReservedExpos(memberId);
         
         return ResponseEntity.ok(reservedExpos);
     }
     
     @GetMapping("/my-page/info")
-    public ResponseEntity<MemberInfoResponseDto> getMemberInfo(
+    public ResponseEntity<MemberInfoResponse> getMemberInfo(
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         
         Long memberId = customUserDetails.getMemberId();
-        MemberInfoResponseDto memberInfo = memberService.getMemberInfo(memberId);
+        MemberInfoResponse memberInfo = memberService.getMemberInfo(memberId);
         
         return ResponseEntity.ok(memberInfo);
     }

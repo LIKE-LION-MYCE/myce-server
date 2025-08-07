@@ -1,14 +1,14 @@
 package com.myce.member.mapper;
 
-import com.myce.member.dto.MemberInfoResponseDto;
+import com.myce.member.dto.MemberInfoResponse;
 import com.myce.member.entity.Member;
 import org.springframework.stereotype.Component;
 
 @Component
 public class MemberInfoMapper {
     
-    public MemberInfoResponseDto toResponseDto(Member member) {
-        return MemberInfoResponseDto.builder()
+    public MemberInfoResponse toResponseDto(Member member) {
+        return MemberInfoResponse.builder()
                 .name(member.getName())
                 .birth(member.getBirth())
                 .loginId(member.getLoginId())

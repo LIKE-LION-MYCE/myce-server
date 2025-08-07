@@ -2,8 +2,8 @@ package com.myce.member.service.impl;
 
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
-import com.myce.member.dto.MemberInfoResponseDto;
-import com.myce.member.dto.ReservedExpoResponseDto;
+import com.myce.member.dto.MemberInfoResponse;
+import com.myce.member.dto.ReservedExpoResponse;
 import com.myce.member.entity.Member;
 import com.myce.member.mapper.MemberInfoMapper;
 import com.myce.member.mapper.ReservedExpoMapper;
@@ -28,13 +28,13 @@ public class MemberServiceImpl implements MemberService {
     private final MemberInfoMapper memberInfoMapper;
     
     @Override
-    public List<ReservedExpoResponseDto> getReservedExpos(Long memberId) {
+    public List<ReservedExpoResponse> getReservedExpos(Long memberId) {
         List<Reservation> reservations = reservationRepository.findReservationsByMemberIdWithExpoAndTicket(memberId);
         return reservedExpoMapper.toResponseDtoList(reservations);
     }
     
     @Override
-    public MemberInfoResponseDto getMemberInfo(Long memberId) {
+    public MemberInfoResponse getMemberInfo(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
         return memberInfoMapper.toResponseDto(member);

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ReservedExpoResponseDto {
+public class ReservedExpoResponse {
     
     private Long expoId;
     private String title;
