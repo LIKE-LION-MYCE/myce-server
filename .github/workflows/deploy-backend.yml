@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - develop  # Production deployment branch
-  pull_request:
-    branches:
-      - develop  # Deploy on PRs to develop
 
 env:
   DOCKER_IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/myce-backend
