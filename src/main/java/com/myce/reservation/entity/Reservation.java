@@ -35,7 +35,7 @@ public class Reservation {
     private Ticket ticket;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
+    @JoinColumn(name = "member_id")
     private Member member;
 
     @Column(name = "reservation_code", length = 30, nullable = false)
