@@ -19,4 +19,6 @@ public interface MemberService {
     MemberSettingResponse getMemberSetting(Long memberId);
     
     void updateMemberSetting(Long memberId, MemberSettingUpdateRequest request);
+    
+    List<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId);
 }

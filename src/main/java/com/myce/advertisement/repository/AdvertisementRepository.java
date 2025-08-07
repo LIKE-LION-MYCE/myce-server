@@ -32,6 +32,9 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
             @Param("displayEndDate") LocalDate displayEndDate,
             @Param("status") List<AdvertisementStatus> status,
             @Param("adPositionId") Long adPositionId);
+    
+    @Query("SELECT a FROM Advertisement a JOIN FETCH a.adPosition WHERE a.member.id = :memberId ORDER BY a.createdAt DESC")
+    List<Advertisement> findByMemberIdWithAdPosition(@Param("memberId") Long memberId);
 
     @Query("SELECT a FROM Advertisement a" +
             " WHERE a.status IN :status" +
