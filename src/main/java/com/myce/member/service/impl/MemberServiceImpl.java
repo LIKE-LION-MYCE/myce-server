@@ -4,6 +4,9 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.repository.AdvertisementRepository;
+import com.myce.common.entity.BusinessProfile;
+import com.myce.common.entity.type.TargetType;
+import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.member.dto.*;
 import com.myce.member.entity.Favorite;
 import com.myce.member.entity.Member;
@@ -39,7 +42,8 @@ public class MemberServiceImpl implements MemberService {
     private final FavoriteRepository favoriteRepository;
     private final AdvertisementRepository advertisementRepository;
     private final MemberAdvertisementMapper memberAdvertisementMapper;
-
+    private final AdvertisementDetailMapper advertisementDetailMapper;
+    private final BusinessProfileRepository businessProfileRepository;
 
     @Override
     public List<ReservedExpoResponse> getReservedExpos(Long memberId) {
@@ -99,5 +103,17 @@ public class MemberServiceImpl implements MemberService {
     public List<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId) {
         List<Advertisement> advertisements = advertisementRepository.findByMemberIdWithAdPosition(memberId);
         return memberAdvertisementMapper.toResponseDtoList(advertisements);
+    }
+    
+    @Override
+    public AdvertisementDetailResponse getAdvertisementDetail(Long memberId, Long advertisementId) {
+
+        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId, memberId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
+        
+        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(advertisementId, TargetType.ADVERTISEMENT)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
+        
+        return advertisementDetailMapper.toResponseDto(advertisement, businessProfile);
     }
 }
