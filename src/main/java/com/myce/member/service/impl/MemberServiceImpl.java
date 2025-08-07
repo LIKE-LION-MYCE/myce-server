@@ -13,6 +13,7 @@ import com.myce.member.repository.MemberSettingRepository;
 import com.myce.member.service.MemberService;
 import com.myce.payment.repository.PaymentRepository;
 import com.myce.reservation.entity.Reservation;
+import com.myce.reservation.entity.code.UserType;
 import com.myce.reservation.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,8 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public List<ReservedExpoResponse> getReservedExpos(Long memberId) {
-        List<Reservation> reservations = reservationRepository.findReservationsByMemberIdWithExpoAndTicket(memberId);
+        List<Reservation> reservations = reservationRepository.findReservationsByUserTypeAndUserIdWithExpoAndTicket(
+                UserType.MEMBER, memberId);
         return reservedExpoMapper.toResponseDtoList(reservations);
     }
 
@@ -65,7 +67,8 @@ public class MemberServiceImpl implements MemberService {
     
     @Override
     public List<PaymentHistoryResponse> getPaymentHistory(Long memberId) {
-        List<Object[]> paymentHistoryData = paymentRepository.findReservationPaymentHistoryByMemberId(memberId);
+        List<Object[]> paymentHistoryData = paymentRepository.findReservationPaymentHistoryByUserTypeAndUserId(
+                UserType.MEMBER, memberId);
         return paymentHistoryMapper.toResponseDtoList(paymentHistoryData);
     }
     
