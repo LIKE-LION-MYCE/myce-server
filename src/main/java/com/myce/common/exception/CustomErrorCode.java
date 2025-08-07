@@ -58,10 +58,13 @@ public enum CustomErrorCode {
     BANNER_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
 
     // 광고 위치 AP
-    BANNER_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "AP001", "배너 위치 정보가 존재하지 않습니다.");
+    BANNER_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "AP001", "배너 위치 정보가 존재하지 않습니다."),
+
     // 결제 P
+    PAYMENT_STATUS_INVALID(HttpStatus.BAD_REQUEST, "P001", "유효하지 않은 결제 상태값입니다."),
 
     // 예약 R
+    RESERVATION_STATUS_INVALID(HttpStatus.BAD_REQUEST, "R001", "유효하지 않은 예약 상태값입니다.");
 
     // 정산 S
 
