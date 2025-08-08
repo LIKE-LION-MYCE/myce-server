@@ -27,14 +27,15 @@ public class ExpoAdminPaymentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) ReservationStatus status,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String phone,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         Long memberId = customUserDetails.getMemberId();
         Sort.Direction direction = sort.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, "createdAt"));
 
-        Page<ExpoAdminPaymentResponse> result = service.getMyExpoPayments(expoId, memberId, status, pageable);
+        Page<ExpoAdminPaymentResponse> result = service.getMyExpoPayments(expoId, memberId, status, name, phone, pageable);
 
         return ResponseEntity.ok(result);
     }
-    //TODO:Search 구현
 }

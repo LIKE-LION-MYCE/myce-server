@@ -26,15 +26,17 @@ public class ExpoAdminPaymentServiceImpl implements ExpoAdminPaymentService {
     public Page<ExpoAdminPaymentResponse> getMyExpoPayments(Long expoId,
                                                             Long memberId,
                                                             ReservationStatus status,
+                                                            String name,
+                                                            String phone,
                                                             Pageable pageable) {
 
         if(!expoRepository.existsByIdAndMemberId(expoId, memberId)){
             throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
         }
 
-        Page<ExpoAdminPaymentBasicResponse> basicResponses =
-                reservationRepository.findBasicResponsesByExpoId(expoId, status, pageable);
+        Page<ExpoAdminPaymentBasicResponse> responses =
+                reservationRepository.findAllResponsesByExpoId(expoId, status, name, phone, pageable);
 
-        return basicResponses.map(mapper::toDto);
+        return responses.map(mapper::toDto);
     }
 }

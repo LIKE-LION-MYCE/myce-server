@@ -2,19 +2,22 @@ package com.myce.reservation.dto;
 
 import com.myce.reservation.entity.code.ReservationStatus;
 import com.myce.reservation.entity.code.UserType;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
 
 @Getter
-@AllArgsConstructor
+@Builder
 public class ExpoAdminPaymentBasicResponse {
     private String reservationCode;
+    private String name;
     private UserType userType;
-    private Long userId;
+    private String loginId;
+    private String phone;
+    private String email;
     private Integer quantity;
     private Integer totalAmount;
-    private LocalDateTime createdAt;
     private ReservationStatus reservationStatus;
+    private LocalDateTime createdAt;
 }

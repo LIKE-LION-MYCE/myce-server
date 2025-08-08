@@ -9,5 +9,7 @@ public interface ExpoAdminPaymentService {
     Page<ExpoAdminPaymentResponse> getMyExpoPayments(Long expoId,
                                                      Long memberId,
                                                      ReservationStatus status,
+                                                     String name,
+                                                     String phone,
                                                      Pageable pageable);
 }
