@@ -48,7 +48,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class MemberServiceImpl implements MemberService {
-    
+
     private final ReservationRepository reservationRepository;
     private final ReservedExpoMapper reservedExpoMapper;
     private final MemberRepository memberRepository;
@@ -75,7 +75,7 @@ public class MemberServiceImpl implements MemberService {
     private final TicketRepository ticketRepository;
     private final AdminCodeRepository adminCodeRepository;
     private final ExpoFeeSettingRepository expoFeeSettingRepository;
-  
+
     @Override
     public List<ReservedExpoResponse> getReservedExpos(Long memberId) {
         List<Reservation> reservations = reservationRepository.findReservationsByUserTypeAndUserIdWithExpoAndTicket(
@@ -88,14 +88,14 @@ public class MemberServiceImpl implements MemberService {
         List<Favorite> favorites = favoriteRepository.findByMemberId(memberId);
         return favoriteExpoMapper.toResponseDtoList(favorites);
     }
-    
+
     @Override
     public MemberInfoResponse getMemberInfo(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
         return memberInfoMapper.toResponseDto(member);
     }
-    
+
     @Override
     @Transactional
     public void withdrawMember(Long memberId) {
@@ -103,27 +103,27 @@ public class MemberServiceImpl implements MemberService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
         member.withdraw();
     }
-    
+
     @Override
     public List<PaymentHistoryResponse> getPaymentHistory(Long memberId) {
         List<Object[]> paymentHistoryData = paymentRepository.findReservationPaymentHistoryByUserTypeAndUserId(
                 UserType.MEMBER, memberId);
         return paymentHistoryMapper.toResponseDtoList(paymentHistoryData);
     }
-    
+
     @Override
     public MemberSettingResponse getMemberSetting(Long memberId) {
         MemberSetting memberSetting = memberSettingRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_SETTING_NOT_EXIST));
         return memberSettingMapper.toResponseDto(memberSetting);
     }
-    
+
     @Override
     @Transactional
     public void updateMemberSetting(Long memberId, MemberSettingUpdateRequest request) {
         MemberSetting memberSetting = memberSettingRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_SETTING_NOT_EXIST));
-        
+
         memberSetting.updateSettings(
                 request.getLanguage(),
                 request.getFontSize(),
@@ -131,48 +131,53 @@ public class MemberServiceImpl implements MemberService {
                 request.getIsReceivePush()
         );
     }
-    
+
     @Override
     public List<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId) {
         List<Advertisement> advertisements = advertisementRepository.findByMemberIdWithAdPosition(memberId);
         return memberAdvertisementMapper.toResponseDtoList(advertisements);
     }
-    
+
     @Override
     public AdvertisementDetailResponse getAdvertisementDetail(Long memberId, Long advertisementId) {
 
-        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId, memberId)
+        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
+                        memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
-        
-        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(advertisementId, TargetType.ADVERTISEMENT)
+
+        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(advertisementId,
+                        TargetType.ADVERTISEMENT)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
-        
+
         return advertisementDetailMapper.toResponseDto(advertisement, businessProfile);
     }
-    
+
     @Override
     @Transactional
     public void cancelAdvertisement(Long memberId, Long advertisementId) {
-        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId, memberId)
+        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
+                        memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
-        
+
         advertisement.cancel();
     }
-    
+
     @Override
     public AdvertisementPaymentDetailResponse getAdvertisementPaymentDetail(Long memberId, Long advertisementId) {
         // 광고 정보 조회
-        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId, memberId)
+        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
+                        memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
-        
+
         // 사업자 정보 조회
-        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(advertisementId, TargetType.ADVERTISEMENT)
+        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(advertisementId,
+                        TargetType.ADVERTISEMENT)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
-        
+
         // 광고 결제 정보 조회 (AdPaymentInfo 테이블에서)
         AdPaymentInfo adPaymentInfo = adPaymentInfoRepository.findByAdvertisementId(advertisementId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
-        
+
         return AdvertisementPaymentDetailResponse.builder()
                 .advertisementTitle(advertisement.getTitle())
                 .applicantName(businessProfile.getCompanyName())
@@ -184,126 +189,128 @@ public class MemberServiceImpl implements MemberService {
                 .status(advertisement.getStatus())
                 .build();
     }
-    
+
     @Override
     public AdvertisementRefundReceiptResponse getAdvertisementRefundReceipt(Long memberId, Long advertisementId) {
         // 광고 정보 조회
-        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId, memberId)
+        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
+                        memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
-        
+
         // 게시 중인 광고만 환불 가능
         if (advertisement.getStatus() != com.myce.advertisement.entity.type.AdvertisementStatus.PUBLISHED) {
             throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
         }
-        
+
         // 사업자 정보 조회
-        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(advertisementId, TargetType.ADVERTISEMENT)
+        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(advertisementId,
+                        TargetType.ADVERTISEMENT)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
-        
+
         // 광고 결제 정보 조회
         AdPaymentInfo adPaymentInfo = adPaymentInfoRepository.findByAdvertisementId(advertisementId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
-        
+
         return advertisementRefundReceiptMapper.toRefundReceiptDto(advertisement, businessProfile, adPaymentInfo);
     }
-    
+
     @Override
     public List<MemberExpoResponse> getMemberExpos(Long memberId) {
         List<Expo> expos = expoRepository.findByMemberIdOrderByCreatedAtDesc(memberId);
         return memberExpoMapper.toMemberExpoResponseList(expos);
     }
-    
+
     @Override
     public MemberExpoDetailResponse getMemberExpoDetail(Long memberId, Long expoId) {
         // 박람회가 해당 회원의 것인지 확인
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-        
+
         if (!expo.getMember().getId().equals(memberId)) {
             throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
         }
-        
+
         // 결제 정보 조회
         ExpoPaymentInfo paymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
                 .orElse(null);
-        
+
         // 티켓 목록 조회
         List<Ticket> tickets = ticketRepository.findByExpoIdOrderByCreatedAtAsc(expoId);
-        
+
         // 사업자 정보 조회
         BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(expoId, TargetType.EXPO)
                 .orElse(null);
-        
+
         return memberExpoDetailMapper.toMemberExpoDetailResponse(expo, paymentInfo, tickets, businessProfile);
     }
-    
+
     @Override
     @Transactional
     public void cancelExpo(Long memberId, Long expoId) {
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-        
+
         if (!expo.getMember().getId().equals(memberId)) {
             throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
         }
-        
+
         expo.cancel();
     }
-    
+
     @Override
     public ExpoPaymentDetailResponse getExpoPaymentDetail(Long memberId, Long expoId) {
         // 박람회 정보 조회
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-        
+
         if (!expo.getMember().getId().equals(memberId)) {
             throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
         }
-        
+
         // 사업자 정보 조회
         BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(expoId, TargetType.EXPO)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
-        
+
         // 박람회 결제 정보 조회
         ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
-        
+
         return expoPaymentDetailMapper.toExpoPaymentDetailResponse(expo, businessProfile, expoPaymentInfo);
     }
-    
+
     @Override
     public List<ExpoAdminCodeResponse> getExpoAdminCodes(Long memberId, Long expoId) {
         // 박람회가 해당 회원의 것인지 확인
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-        
+
         if (!expo.getMember().getId().equals(memberId)) {
             throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
         }
         
         // 해당 박람회의 관리자 코드 5개 조회
-        List<AdminCode> adminCodes = adminCodeRepository.findTop5ByExpoIdOrderByCreatedAtDesc(expoId);
-        
+        List<AdminCode> adminCodes = adminCodeRepository.findByExpoId(expoId);
+
         return expoAdminCodeMapper.toExpoAdminCodeResponseList(adminCodes);
     }
-    
+
     @Override
     public ExpoSettlementReceiptResponse getExpoSettlementReceipt(Long memberId, Long expoId) {
         // 박람회가 해당 회원의 것인지 확인
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-        
+
         if (!expo.getMember().getId().equals(memberId)) {
             throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
         }
-        
+
         // 해당 박람회의 티켓 목록 조회
         List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
-        
+
         // 현재 활성화된 수수료 설정 조회
         ExpoFeeSetting feeSetting = expoFeeSettingRepository.findActiveFeeSetting()
                 .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
-        
+
         return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, feeSetting);
     }
 }
