@@ -2,6 +2,7 @@ package com.myce.advertisement.service.impl;
 
 import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.advertisement.dto.DetailApplyAdvertisement;
+import com.myce.advertisement.dto.RejectAdRequest;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
@@ -79,13 +80,13 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
     }
 
     @Transactional
-    public void rejectApply(Long bannerId, String reason) {
+    public void rejectApply(Long bannerId, RejectAdRequest request) {
         Advertisement ad = advertisementRepository.findById(bannerId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
         RejectInfo rejectInfo = RejectInfo.builder()
                 .targetType(TargetType.ADVERTISEMENT)
                 .targetId(ad.getId())
-                .description(reason)
+                .description(request.getReason())
                 .build();
 
         rejectInfoRepository.save(rejectInfo);

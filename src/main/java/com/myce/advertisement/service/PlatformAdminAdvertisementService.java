@@ -2,6 +2,7 @@ package com.myce.advertisement.service;
 
 import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.advertisement.dto.DetailApplyAdvertisement;
+import com.myce.advertisement.dto.RejectAdRequest;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.common.dto.PageResponse;
 
@@ -16,7 +17,7 @@ public interface PlatformAdminAdvertisementService {
 
     DetailApplyAdvertisement getDetail(Long bannerId);
 
-    void rejectApply(Long bannerId, String reason);
+    void rejectApply(Long bannerId, RejectAdRequest request);
 
     AdRejectInfoResponse getRejectInfo(Long bannerId);
 }

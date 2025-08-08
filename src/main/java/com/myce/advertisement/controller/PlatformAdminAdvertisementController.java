@@ -2,6 +2,7 @@ package com.myce.advertisement.controller;
 
 import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.advertisement.dto.DetailApplyAdvertisement;
+import com.myce.advertisement.dto.RejectAdRequest;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.service.PlatformAdminAdvertisementService;
 import com.myce.common.dto.PageResponse;
@@ -48,8 +49,8 @@ public class PlatformAdminAdvertisementController {
 
     @PostMapping("/detail/{bannerId}/reject")
     public ResponseEntity<Void> rejectApply(@PathVariable Long bannerId,
-                                            @RequestParam String reason) {
-        service.rejectApply(bannerId, reason);
+                                            @RequestBody RejectAdRequest request) {
+        service.rejectApply(bannerId, request);
         return ResponseEntity.ok().build();
     }
 
