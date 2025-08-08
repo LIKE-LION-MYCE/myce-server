@@ -11,6 +11,5 @@ public interface AdminCodeRepository extends JpaRepository<AdminCode, Long> {
 
     Optional<AdminCode> findByCode(String code);
     
-    @Query("SELECT ac FROM AdminCode ac WHERE ac.expo.id = :expoId ORDER BY ac.createdAt DESC LIMIT 5")
-    List<AdminCode> findTop5ByExpoIdOrderByCreatedAtDesc(@Param("expoId") Long expoId);
+    List<AdminCode> findByExpoId(@Param("expoId") Long expoId);
 }
