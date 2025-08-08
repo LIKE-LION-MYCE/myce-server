@@ -64,6 +64,8 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth ->
                 auth.requestMatchers(HttpMethod.POST, "/api/auth/**")
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/ads")
+                        .permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
@@ -72,7 +74,7 @@ public class SecurityConfig {
                                 "/auth-docs/login",
                                 "/actuator/health",
                                 "/actuator/info",
-                                "/ws/**"  // WebSocket 엔드포인트 허용
+                                "/ws/**" // WebSocket 엔드포인트 허용
                         ).permitAll()
                         .anyRequest()
                         .authenticated());
