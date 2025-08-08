@@ -8,5 +8,13 @@ import lombok.Getter;
 public class ExpoAdminManagerResponse {
     private Long id;
     private String adminCode;
-    private ExpoAdminManagerPermissionResponse permissions;
+    private Boolean isExpoDetailUpdate;
+    private Boolean isBoothInfoUpdate;
+    private Boolean isScheduleUpdate;
+    private Boolean isReserverListView;
+    private Boolean isPaymentView;
+    private Boolean isEmailLogView;
+    private Boolean isOperationsConfigUpdate;
+    private Boolean isSettlementView;
+    private Boolean isInquiryView;
 }

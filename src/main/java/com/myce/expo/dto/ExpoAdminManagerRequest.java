@@ -1,11 +1,13 @@
 package com.myce.expo.dto;
 
-import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@Builder
-public class ExpoAdminManagerPermissionResponse {
+@NoArgsConstructor
+public class ExpoAdminManagerRequest {
+    private Long id;
+    private String adminCode;
     private Boolean isExpoDetailUpdate;
     private Boolean isBoothInfoUpdate;
     private Boolean isScheduleUpdate;

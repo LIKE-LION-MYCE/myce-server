@@ -15,4 +15,11 @@ public interface AdminCodeRepository extends JpaRepository<AdminCode, Long> {
 
     @Query("SELECT ac FROM AdminCode ac JOIN FETCH ac.adminPermission WHERE ac.expoId = :expoId")
     List<AdminCode> findAllWithAdminPermissionByExpoId(@Param("expoId") Long expoId);
+
+    @Query("""
+        SELECT ac FROM AdminCode ac
+        JOIN FETCH ac.adminPermission
+        WHERE ac.id IN :ids
+    """)
+    List<AdminCode> findAllWithAdminPermissionByIds(@Param("ids") List<Long> ids);
 }
