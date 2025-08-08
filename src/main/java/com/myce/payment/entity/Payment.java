@@ -41,9 +41,6 @@ public class Payment {
     @Column(name = "target_id", nullable = false)
     private Long targetId;
 
-    @Column(name = "amount", nullable = false)
-    private Integer amount;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false, columnDefinition = "VARCHAR(50)")
     private PaymentMethod paymentMethod;
@@ -76,5 +73,6 @@ public class Payment {
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
-
+    @Column(name = "paid_at", columnDefinition = "TIMESTAMP")
+    private LocalDateTime paidAt;
 }

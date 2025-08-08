@@ -10,5 +10,4 @@ import org.springframework.data.repository.query.Param;
 public interface AdminCodeRepository extends JpaRepository<AdminCode, Long> {
 
     Optional<AdminCode> findByCode(String code);
-    
 }

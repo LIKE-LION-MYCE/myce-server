@@ -19,6 +19,9 @@ public enum CustomErrorCode {
     MEMBER_TYPE_INVALID(HttpStatus.NOT_FOUND, "M002", "존재하지 않는 회원 타입입니다."),
     MEMBER_SETTING_NOT_EXIST(HttpStatus.NOT_FOUND, "M003", "회원의 시스템 설정이 존재하지 않습니다."),
 
+    // 비회원 G
+    GUEST_NOT_EXIST(HttpStatus.NOT_FOUND, "G001", "비회원 정보가 존재하지 않습니다."),
+
     // 관계자 정보 I
     BUSINESS_NOT_EXIST(HttpStatus.NOT_FOUND, "I001", "관계자 정보를 찾지 못했습니다"),
     BUSINESS_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "I002", "해당 박람회의 관계자 정보가 아닙니다."),
@@ -39,7 +42,8 @@ public enum CustomErrorCode {
 
     // 엑스포 E
     EXPO_NOT_EXIST(HttpStatus.NOT_FOUND, "E001", "운영중인 박람회가 존재하지 않습니다."),
-    CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E002", "카테고리가 존재하지 않습니다."),
+    EXPO_NOT_FOUND(HttpStatus.NOT_FOUND, "E002", "박람회를 찾을 수 없습니다."),
+    CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E005", "카테고리가 존재하지 않습니다."),
     EXPO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "E003", "해당 박람회에 대한 접근 권한이 없습니다."),
     EXPO_UPDATE_DENIED(HttpStatus.FORBIDDEN, "E004", "해당 박람회에 대한 수정 권한이 없습니다."),
 
@@ -79,9 +83,11 @@ public enum CustomErrorCode {
 
     // 예약 R
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "해당 예약 정보를 조회 할수 없습니다."),
-    RESERVATION_STATUS_INVALID(HttpStatus.BAD_REQUEST, "R002", "유효하지 않은 예약 상태값입니다.");
+    RESERVATION_STATUS_INVALID(HttpStatus.BAD_REQUEST, "R002", "유효하지 않은 예약 상태값입니다."),
 
     // 정산 S
+
+    FEE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F001" , "요금 설정이 없습니다");
 
     // 환경 Y
 

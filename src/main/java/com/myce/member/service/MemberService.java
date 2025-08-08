@@ -29,4 +29,16 @@ public interface MemberService {
     AdvertisementPaymentDetailResponse getAdvertisementPaymentDetail(Long memberId, Long advertisementId);
     
     AdvertisementRefundReceiptResponse getAdvertisementRefundReceipt(Long memberId, Long advertisementId);
+    
+    List<MemberExpoResponse> getMemberExpos(Long memberId);
+    
+    MemberExpoDetailResponse getMemberExpoDetail(Long memberId, Long expoId);
+    
+    void cancelExpo(Long memberId, Long expoId);
+    
+    ExpoPaymentDetailResponse getExpoPaymentDetail(Long memberId, Long expoId);
+    
+    List<ExpoAdminCodeResponse> getExpoAdminCodes(Long memberId, Long expoId);
+    
+    ExpoSettlementReceiptResponse getExpoSettlementReceipt(Long memberId, Long expoId);
 }
