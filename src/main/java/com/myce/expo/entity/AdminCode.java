@@ -1,6 +1,5 @@
 package com.myce.expo.entity;
 
-import com.myce.member.entity.Member;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -36,13 +35,8 @@ public class AdminCode {
     @OneToOne(mappedBy = "adminCode")
     private AdminPermission adminPermission;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "expo_id", nullable = false)
-    private Expo expo;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "super_member_id", nullable = false)
-    private Member superMember;
+    @Column(name = "expo_id", nullable = false)
+    private Long expoId;
 
     @Column(name = "code", length = 20, nullable = false)
     private String code;
@@ -55,9 +49,8 @@ public class AdminCode {
     private LocalDateTime createdAt;
 
     @Builder
-    public AdminCode(Expo expo, Member member, String code, LocalDateTime expiredAt) {
-        this.expo = expo;
-        this.superMember = member;
+    public AdminCode(Long expoId, String code, LocalDateTime expiredAt) {
+        this.expoId = expoId;
         this.code = code;
         this.expiredAt = expiredAt;
     }
