@@ -1,11 +1,11 @@
-package com.myce.reservation.service.impl;
+package com.myce.reservation.service.Impl;
 
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.reservation.dto.ReservationDetailResponse;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.Reserver;
-import com.myce.reservation.mapper.ReservationDetailMapper;
+import com.myce.reservation.service.mapper.ReservationDetailMapper;
 import com.myce.reservation.repository.ReservationRepository;
 import com.myce.reservation.repository.ReserverRepository;
 import com.myce.reservation.service.ReservationService;

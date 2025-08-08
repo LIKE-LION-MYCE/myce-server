@@ -1,4 +1,4 @@
-package com.myce.reservation.mapper;
+package com.myce.reservation.service.mapper;
 
 import com.myce.qrcode.entity.QrCode;
 import com.myce.qrcode.repository.QrCodeRepository;

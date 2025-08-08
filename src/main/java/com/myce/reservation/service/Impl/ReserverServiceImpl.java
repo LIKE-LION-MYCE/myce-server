@@ -1,10 +1,10 @@
-package com.myce.reservation.service.impl;
+package com.myce.reservation.service.Impl;
 
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.reservation.dto.ReserverUpdateRequest;
 import com.myce.reservation.entity.Reserver;
-import com.myce.reservation.mapper.ReserverUpdateMapper;
+import com.myce.reservation.service.mapper.ReserverUpdateMapper;
 import com.myce.reservation.repository.ReserverRepository;
 import com.myce.reservation.service.ReserverService;
 import lombok.RequiredArgsConstructor;

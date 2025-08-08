@@ -19,6 +19,9 @@ public enum CustomErrorCode {
     MEMBER_TYPE_INVALID(HttpStatus.NOT_FOUND, "M002", "존재하지 않는 회원 타입입니다."),
     MEMBER_SETTING_NOT_EXIST(HttpStatus.NOT_FOUND, "M003", "회원의 시스템 설정이 존재하지 않습니다."),
 
+    // 비회원 G
+    GUEST_NOT_EXIST(HttpStatus.NOT_FOUND, "G001", "비회원 정보가 존재하지 않습니다."),
+
     // 관계자 정보 I
     BUSINESS_NOT_EXIST(HttpStatus.NOT_FOUND, "I001", "관계자 정보를 찾지 못했습니다"),
     BUSINESS_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "I002", "해당 박람회의 관계자 정보가 아닙니다."),

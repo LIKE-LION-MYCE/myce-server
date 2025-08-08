@@ -1,4 +1,4 @@
-package com.myce.reservation.mapper;
+package com.myce.reservation.service.mapper;
 
 import com.myce.reservation.dto.ReserverUpdateRequest;
 import com.myce.reservation.entity.Reserver;
