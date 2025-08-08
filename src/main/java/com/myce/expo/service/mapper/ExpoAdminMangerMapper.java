@@ -14,8 +14,14 @@ public class ExpoAdminMangerMapper {
                         ExpoAdminManagerPermissionResponse.builder()
                                 .isExpoDetailUpdate(adminCode.getAdminPermission().getIsExpoDetailUpdate())
                                 .isBoothInfoUpdate(adminCode.getAdminPermission().getIsBoothInfoUpdate())
-                                .
-
-                )
+                                .isScheduleUpdate(adminCode.getAdminPermission().getIsScheduleUpdate())
+                                .isReserverListView(adminCode.getAdminPermission().getIsReserverListView())
+                                .isPaymentView(adminCode.getAdminPermission().getIsPaymentView())
+                                .isEmailLogView(adminCode.getAdminPermission().getIsEmailLogView())
+                                .isOperationsConfigUpdate(adminCode.getAdminPermission().getIsOperationsConfigUpdate())
+                                .isSettlementView(adminCode.getAdminPermission().getIsSettlementView())
+                                .isInquiryView(adminCode.getAdminPermission().getIsInquiryView())
+                                .build())
+                .build();
     }
 }
