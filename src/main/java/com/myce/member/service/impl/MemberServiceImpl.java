@@ -7,17 +7,23 @@ import com.myce.advertisement.repository.AdvertisementRepository;
 import com.myce.common.entity.BusinessProfile;
 import com.myce.common.entity.type.TargetType;
 import com.myce.common.repository.BusinessProfileRepository;
+import com.myce.expo.entity.AdminCode;
+import com.myce.expo.entity.Expo;
+import com.myce.expo.entity.Ticket;
+import com.myce.expo.repository.AdminCodeRepository;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
 import com.myce.member.dto.*;
+import com.myce.member.dto.ExpoPaymentDetailResponse;
 import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
 import com.myce.member.entity.Favorite;
 import com.myce.member.entity.Member;
 import com.myce.member.entity.MemberSetting;
 import com.myce.member.mapper.*;
+import com.myce.member.mapper.ExpoPaymentDetailMapper;
 import com.myce.member.repository.FavoriteRepository;
 import com.myce.member.repository.MemberRepository;
 import com.myce.member.repository.MemberSettingRepository;
@@ -27,6 +33,8 @@ import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.repository.AdPaymentInfoRepository;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
 import com.myce.payment.repository.PaymentRepository;
+import com.myce.system.entity.ExpoFeeSetting;
+import com.myce.system.repository.ExpoFeeSettingRepository;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.code.UserType;
 import com.myce.reservation.repository.ReservationRepository;
@@ -57,12 +65,17 @@ public class MemberServiceImpl implements MemberService {
     private final AdvertisementRefundReceiptMapper advertisementRefundReceiptMapper;
     private final MemberExpoMapper memberExpoMapper;
     private final MemberExpoDetailMapper memberExpoDetailMapper;
+    private final ExpoPaymentDetailMapper expoPaymentDetailMapper;
+    private final ExpoAdminCodeMapper expoAdminCodeMapper;
+    private final ExpoSettlementReceiptMapper expoSettlementReceiptMapper;
     private final BusinessProfileRepository businessProfileRepository;
     private final AdPaymentInfoRepository adPaymentInfoRepository;
     private final ExpoPaymentInfoRepository expoPaymentInfoRepository;
     private final ExpoRepository expoRepository;
     private final TicketRepository ticketRepository;
-
+    private final AdminCodeRepository adminCodeRepository;
+    private final ExpoFeeSettingRepository expoFeeSettingRepository;
+  
     @Override
     public List<ReservedExpoResponse> getReservedExpos(Long memberId) {
         List<Reservation> reservations = reservationRepository.findReservationsByUserTypeAndUserIdWithExpoAndTicket(
@@ -222,5 +235,75 @@ public class MemberServiceImpl implements MemberService {
                 .orElse(null);
         
         return memberExpoDetailMapper.toMemberExpoDetailResponse(expo, paymentInfo, tickets, businessProfile);
+    }
+    
+    @Override
+    @Transactional
+    public void cancelExpo(Long memberId, Long expoId) {
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+        
+        if (!expo.getMember().getId().equals(memberId)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+        
+        expo.cancel();
+    }
+    
+    @Override
+    public ExpoPaymentDetailResponse getExpoPaymentDetail(Long memberId, Long expoId) {
+        // 박람회 정보 조회
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+        
+        if (!expo.getMember().getId().equals(memberId)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+        
+        // 사업자 정보 조회
+        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(expoId, TargetType.EXPO)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
+        
+        // 박람회 결제 정보 조회
+        ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        
+        return expoPaymentDetailMapper.toExpoPaymentDetailResponse(expo, businessProfile, expoPaymentInfo);
+    }
+    
+    @Override
+    public List<ExpoAdminCodeResponse> getExpoAdminCodes(Long memberId, Long expoId) {
+        // 박람회가 해당 회원의 것인지 확인
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+        
+        if (!expo.getMember().getId().equals(memberId)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+        
+        // 해당 박람회의 관리자 코드 5개 조회
+        List<AdminCode> adminCodes = adminCodeRepository.findTop5ByExpoIdOrderByCreatedAtDesc(expoId);
+        
+        return expoAdminCodeMapper.toExpoAdminCodeResponseList(adminCodes);
+    }
+    
+    @Override
+    public ExpoSettlementReceiptResponse getExpoSettlementReceipt(Long memberId, Long expoId) {
+        // 박람회가 해당 회원의 것인지 확인
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+        
+        if (!expo.getMember().getId().equals(memberId)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+        
+        // 해당 박람회의 티켓 목록 조회
+        List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
+        
+        // 현재 활성화된 수수료 설정 조회
+        ExpoFeeSetting feeSetting = expoFeeSettingRepository.findActiveFeeSetting()
+                .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
+        
+        return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, feeSetting);
     }
 }

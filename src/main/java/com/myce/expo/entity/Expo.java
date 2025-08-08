@@ -135,4 +135,12 @@ public class Expo {
         this.endTime = dto.getEndTime();
         this.isPremium = dto.getIsPremium();
     }
+    
+    public void cancel() {
+        if (this.status != ExpoStatus.PENDING_APPROVAL && 
+            this.status != ExpoStatus.PENDING_PAYMENT) {
+            throw new IllegalStateException("취소할 수 없는 박람회 상태입니다: " + this.status);
+        }
+        this.status = ExpoStatus.CANCELLED;
+    }
 }
