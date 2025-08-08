@@ -17,6 +17,7 @@ import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
 import com.myce.member.dto.*;
 import com.myce.member.dto.ExpoPaymentDetailResponse;
+import com.myce.member.mapper.ExpoRefundReceiptMapper;
 import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
 import com.myce.member.entity.Favorite;
@@ -75,6 +76,7 @@ public class MemberServiceImpl implements MemberService {
     private final TicketRepository ticketRepository;
     private final AdminCodeRepository adminCodeRepository;
     private final ExpoFeeSettingRepository expoFeeSettingRepository;
+    private final ExpoRefundReceiptMapper expoRefundReceiptMapper;
 
     @Override
     public List<ReservedExpoResponse> getReservedExpos(Long memberId) {
@@ -312,5 +314,32 @@ public class MemberServiceImpl implements MemberService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
 
         return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, feeSetting);
+    }
+
+    @Override
+    public ExpoRefundReceiptResponse getExpoRefundReceipt(Long memberId, Long expoId) {
+        // 박람회가 해당 회원의 것인지 확인
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+
+        if (!expo.getMember().getId().equals(memberId)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+
+        // 게시 중인 박람회만 환불 가능
+        if (expo.getStatus() != com.myce.expo.entity.type.ExpoStatus.PUBLISHED) {
+            throw new CustomException(CustomErrorCode.INVALID_EXPO_STATUS);
+        }
+
+        // 사업자 정보 조회
+        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(expoId,
+                        TargetType.EXPO)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
+
+        // 박람회 결제 정보 조회
+        ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        return expoRefundReceiptMapper.toRefundReceiptDto(expo, businessProfile, expoPaymentInfo);
     }
 }

@@ -41,4 +41,6 @@ public interface MemberService {
     List<ExpoAdminCodeResponse> getExpoAdminCodes(Long memberId, Long expoId);
     
     ExpoSettlementReceiptResponse getExpoSettlementReceipt(Long memberId, Long expoId);
+    
+    ExpoRefundReceiptResponse getExpoRefundReceipt(Long memberId, Long expoId);
 }
