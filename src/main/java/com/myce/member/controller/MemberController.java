@@ -207,4 +207,15 @@ public class MemberController {
         
         return ResponseEntity.ok(settlementReceipt);
     }
+    
+    @GetMapping("/my-page/expos/{expoId}/refund-receipt")
+    public ResponseEntity<ExpoRefundReceiptResponse> getExpoRefundReceipt(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        ExpoRefundReceiptResponse refundReceipt = memberService.getExpoRefundReceipt(memberId, expoId);
+        
+        return ResponseEntity.ok(refundReceipt);
+    }
 }

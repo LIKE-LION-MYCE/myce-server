@@ -46,6 +46,7 @@ public enum CustomErrorCode {
     CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E005", "카테고리가 존재하지 않습니다."),
     EXPO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "E003", "해당 박람회에 대한 접근 권한이 없습니다."),
     EXPO_UPDATE_DENIED(HttpStatus.FORBIDDEN, "E004", "해당 박람회에 대한 수정 권한이 없습니다."),
+    INVALID_EXPO_STATUS(HttpStatus.NOT_FOUND, "E005" , "영수증을 조회 할 수 없습니다."),
 
     // 티켓 T
     TICKET_NOT_EXIST(HttpStatus.NOT_FOUND, "T001", "티켓이 존재하지 않습니다."),
