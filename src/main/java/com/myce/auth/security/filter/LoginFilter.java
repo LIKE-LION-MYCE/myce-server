@@ -36,10 +36,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         try {
             LoginRequest loginRequest = objectMapper.readValue(request.getInputStream(), LoginRequest.class);
 
-            LoginType loginType = loginRequest.getLoginType() != null
-                    ? loginRequest.getLoginType()
-                    : LoginType.MEMBER;
-
+            LoginType loginType = loginRequest.getLoginType();
             String loginId = loginRequest.getLoginId();
             String password = loginRequest.getPassword();
             log.info("[{}-LOGIN] Received login request. loginId: {}", loginType.name(), loginId);

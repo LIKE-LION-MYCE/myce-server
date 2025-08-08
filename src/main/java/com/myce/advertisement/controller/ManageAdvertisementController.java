@@ -27,7 +27,7 @@ public class ManageAdvertisementController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/get")
+    @GetMapping
     public ResponseEntity<List<MainPageAdInfo>> getAds(){
         return ResponseEntity.ok(service.getActiveBanners());
     }
