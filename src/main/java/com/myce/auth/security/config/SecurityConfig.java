@@ -72,7 +72,8 @@ public class SecurityConfig {
                                 "/auth-docs/login",
                                 "/actuator/health",
                                 "/actuator/info",
-                                "/ws/**"  // WebSocket 엔드포인트 허용
+                                "/ws/**",  // WebSocket 엔드포인트 허용
+                                "/api/ads/get" // 메인페이지 배너 조회
                         ).permitAll()
                         .anyRequest()
                         .authenticated());
