@@ -11,6 +11,8 @@ import com.myce.expo.entity.AdminCode;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
 import com.myce.expo.repository.AdminCodeRepository;
+import com.myce.expo.entity.Expo;
+import com.myce.expo.entity.Ticket;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
 import com.myce.member.dto.*;
@@ -73,7 +75,7 @@ public class MemberServiceImpl implements MemberService {
     private final TicketRepository ticketRepository;
     private final AdminCodeRepository adminCodeRepository;
     private final ExpoFeeSettingRepository expoFeeSettingRepository;
-
+  
     @Override
     public List<ReservedExpoResponse> getReservedExpos(Long memberId) {
         List<Reservation> reservations = reservationRepository.findReservationsByUserTypeAndUserIdWithExpoAndTicket(
