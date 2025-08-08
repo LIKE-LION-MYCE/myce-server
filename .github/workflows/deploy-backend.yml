@@ -104,7 +104,7 @@ jobs:
       - name: 🏥 Health Check
         run: |
           echo "🏥 Performing health check..."
-          sleep 30
+          sleep 45
           
           # Primary: Test production ALB endpoint (end-to-end)
           if curl -f https://api.myce.live/actuator/health; then
