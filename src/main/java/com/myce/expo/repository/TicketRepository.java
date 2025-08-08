@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket,Long> {
     List<Ticket> findByExpoId(Long id);
+    List<Ticket> findByExpoIdOrderByCreatedAtAsc(Long expoId);
 }
