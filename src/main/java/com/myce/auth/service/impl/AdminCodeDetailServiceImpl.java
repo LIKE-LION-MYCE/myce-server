@@ -7,23 +7,28 @@ import com.myce.expo.entity.AdminCode;
 import com.myce.expo.repository.AdminCodeRepository;
 import com.myce.member.entity.Member;
 import com.myce.member.entity.type.Role;
+import com.myce.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminCodeDetailServiceImpl implements AdminCodeDetailService {
 
     private final AdminCodeRepository adminCodeRepository;
+    private final MemberRepository memberRepository;
 
     @Override
     public UserDetails loadLoginIdAndCode(String loginId, String code) {
         AdminCode adminCode = adminCodeRepository.findByCode(code)
                 .orElseThrow(() -> new UsernameNotFoundException("Invalid code."));
 
-        Member superMember = adminCode.getSuperMember();
+        Member superMember = memberRepository.findByExpoId(adminCode.getExpoId())
+                .orElseThrow(() -> new UsernameNotFoundException("Invalid code."));
         if (!superMember.getLoginId().equals(loginId)) {
             throw new UsernameNotFoundException("Invalid super admin login id.");
         }
