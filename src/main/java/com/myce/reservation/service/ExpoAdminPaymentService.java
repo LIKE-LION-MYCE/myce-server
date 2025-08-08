@@ -1,9 +1,13 @@
 package com.myce.reservation.service;
 
 import com.myce.reservation.dto.ExpoAdminPaymentResponse;
-
-import java.util.List;
+import com.myce.reservation.entity.code.ReservationStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ExpoAdminPaymentService {
-    List<ExpoAdminPaymentResponse> getMyExpoPayments(Long expoId, Long memberId);
+    Page<ExpoAdminPaymentResponse> getMyExpoPayments(Long expoId,
+                                                     Long memberId,
+                                                     ReservationStatus status,
+                                                     Pageable pageable);
 }

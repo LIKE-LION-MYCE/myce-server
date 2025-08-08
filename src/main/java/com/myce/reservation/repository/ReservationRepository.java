@@ -2,7 +2,10 @@ package com.myce.reservation.repository;
 
 import com.myce.reservation.dto.ExpoAdminPaymentBasicResponse;
 import com.myce.reservation.entity.Reservation;
+import com.myce.reservation.entity.code.ReservationStatus;
 import com.myce.reservation.entity.code.UserType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -37,6 +40,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             "r.status) " +
             "FROM ReservationPaymentInfo p " +
             "JOIN p.reservation r " +
-            "WHERE r.expo.id = :expoId")
-    List<ExpoAdminPaymentBasicResponse> findBasicResponsesByExpoId(@Param("expoId") Long expoId);
+            "WHERE r.expo.id = :expoId " +
+            "AND (:status IS NULL OR r.status = :status)")
+    Page<ExpoAdminPaymentBasicResponse> findBasicResponsesByExpoId(
+            @Param("expoId") Long expoId,
+            @Param("status") ReservationStatus status,
+            Pageable pageable);
 }

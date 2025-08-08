@@ -2,16 +2,16 @@ package com.myce.reservation.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.reservation.dto.ExpoAdminPaymentResponse;
+import com.myce.reservation.entity.code.ReservationStatus;
 import com.myce.reservation.service.ExpoAdminPaymentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/expos/{expoId}/payments")
@@ -21,10 +21,20 @@ public class ExpoAdminPaymentController {
     private final ExpoAdminPaymentService service;
 
     @GetMapping//TODO:하위관리자
-    public ResponseEntity<List<ExpoAdminPaymentResponse>> getExpoAdminPayment(
+    public ResponseEntity<Page<ExpoAdminPaymentResponse>> getExpoAdminPayment(
             @PathVariable Long expoId,
+            @RequestParam(defaultValue = "desc") String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) ReservationStatus status,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         Long memberId = customUserDetails.getMemberId();
-        return ResponseEntity.ok(service.getMyExpoPayments(expoId,memberId));
+        Sort.Direction direction = sort.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, "createdAt"));
+
+        Page<ExpoAdminPaymentResponse> result = service.getMyExpoPayments(expoId, memberId, status, pageable);
+
+        return ResponseEntity.ok(result);
     }
+    //TODO:Search 구현
 }
