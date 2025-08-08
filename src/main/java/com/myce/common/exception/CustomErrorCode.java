@@ -65,6 +65,8 @@ public enum CustomErrorCode {
     BANNER_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
     ADVERTISEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "A003" ,  "광고가 존재 하지 않습니다" ),
     INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A004", "환불할 수 없는 광고 상태입니다."),
+    INVALID_ADVERTISEMENT_REJECT_STATUS(HttpStatus.BAD_REQUEST, "A005", "이 광고는 거부할 수 없습니다."),
+    INVALID_ADVERTISEMENT_CANCEL_STATUS(HttpStatus.BAD_REQUEST, "A006", "이 광고는 취소할 수 없습니다."),
 
     // 부스 B
     BOOTH_PREMIUM_RANK_REQUIRED(HttpStatus.BAD_REQUEST, "B001", "프리미엄 부스는 노출 순위가 필수입니다."),
@@ -87,9 +89,12 @@ public enum CustomErrorCode {
 
     // 정산 S
 
-    FEE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F001" , "요금 설정이 없습니다");
+    FEE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F001" , "요금 설정이 없습니다"),
 
     // 환경 Y
+
+    // 거부사유 RJ
+    REJECT_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "RJ001", "거부 사유가 존재하지 않습니다.");
 
     private final HttpStatus status;
     private final String errorCode;

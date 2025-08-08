@@ -1,10 +1,12 @@
 package com.myce.advertisement.controller;
 
+import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.service.PlatformAdminAdvertisementService;
 import com.myce.common.dto.PageResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,6 +44,18 @@ public class PlatformAdminAdvertisementController {
     @GetMapping("/detail/{bannerId}")
     public DetailApplyAdvertisement getApplyDetail(@PathVariable Long bannerId) {
         return service.getDetail(bannerId);
+    }
+
+    @PostMapping("/detail/{bannerId}/reject")
+    public ResponseEntity<Void> rejectApply(@PathVariable Long bannerId,
+                                            @RequestParam String reason) {
+        service.rejectApply(bannerId, reason);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/detail/{bannerId}/reject")
+    public AdRejectInfoResponse getRejectInfo(@PathVariable Long bannerId) {
+        return service.getRejectInfo(bannerId);
     }
 
 }
