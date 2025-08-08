@@ -106,13 +106,14 @@ jobs:
           echo "🏥 Performing health check..."
           sleep 30
           
-          # Try health check endpoint
-          if curl -f http://${{ env.EC2_HOST }}:8080/actuator/health; then
-            echo "✅ Health check passed!"
+          # Primary: Test production ALB endpoint (end-to-end)
+          if curl -f https://api.myce.live/actuator/health; then
+            echo "✅ Health check passed via ALB!"
           else
-            echo "❌ Health check failed, trying root endpoint..."
-            curl -f http://${{ env.EC2_HOST }}:8080/ || {
-              echo "❌ Both health check and root endpoint failed"
+            echo "❌ ALB health check failed, trying direct EC2 endpoint..."
+            # Fallback: Test direct container health
+            curl -f http://${{ env.EC2_HOST }}:8080/actuator/health || {
+              echo "❌ Both ALB and direct container health checks failed"
               exit 1
             }
           fi
