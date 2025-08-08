@@ -6,6 +6,7 @@ import lombok.Getter;
 @Getter
 @Builder
 public class ExpoAdminManagerResponse {
+    private Long id;
     private String adminCode;
     private ExpoAdminManagerPermissionResponse permissions;
 }

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 public class ExpoAdminMangerMapper {
     public ExpoAdminManagerResponse toDto(AdminCode adminCode){
         return ExpoAdminManagerResponse.builder()
+                .id(adminCode.getId())
                 .adminCode(adminCode.getCode())
                 .permissions(
                         ExpoAdminManagerPermissionResponse.builder()
