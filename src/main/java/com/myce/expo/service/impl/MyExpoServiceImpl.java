@@ -52,7 +52,7 @@ public class MyExpoServiceImpl implements MyExpoService {
                 return expoAdminPermissionMapper.toDto(expoIds, null);
             }
             case ADMIN_CODE -> {
-                AdminCode adminCode = adminCodeRepository.findAllWithAdminPermissionById(memberId)
+                AdminCode adminCode = adminCodeRepository.findWithAdminPermissionById(memberId)
                         .orElseThrow(() -> new CustomException(CustomErrorCode.ADMIN_CODE_NOT_FOUND));
 
                 return expoAdminPermissionMapper.toDto(List.of(adminCode.getExpoId()), adminCode.getAdminPermission());
