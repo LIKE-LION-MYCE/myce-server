@@ -48,12 +48,9 @@ public class MyExpoServiceImpl implements MyExpoService {
 
         switch (loginType) {
             case MEMBER -> {
-                List<Expo> expos = expoRepository.findByMemberIdAndStatusIn(memberId, ExpoStatus.ACTIVE_STATUSES);
-                List<Long> expoIds = expos.stream().map(Expo::getId).toList();
-
+                List<Long> expoIds = expoRepository.findIdsByMemberIdAndStatusIn(memberId, ExpoStatus.ACTIVE_STATUSES);
                 return expoAdminPermissionMapper.toDto(expoIds, null);
             }
-
             case ADMIN_CODE -> {
                 AdminCode adminCode = adminCodeRepository.findAllWithAdminPermissionById(memberId)
                         .orElseThrow(() -> new CustomException(CustomErrorCode.ADMIN_CODE_NOT_FOUND));
