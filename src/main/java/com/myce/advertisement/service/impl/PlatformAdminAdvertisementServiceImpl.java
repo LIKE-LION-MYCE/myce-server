@@ -1,5 +1,6 @@
 package com.myce.advertisement.service.impl;
 
+import com.myce.advertisement.dto.AdPaymentHistoryResponse;
 import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.RejectAdRequest;
@@ -17,6 +18,8 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.common.repository.RejectInfoRepository;
+import com.myce.payment.entity.AdPaymentInfo;
+import com.myce.payment.repository.AdPaymentInfoRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -36,6 +39,8 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
     private BusinessProfileRepository businessProfileRepository;
     @Autowired
     private RejectInfoRepository rejectInfoRepository;
+    @Autowired
+    private AdPaymentInfoRepository adPaymentInfoRepository;
 
     public PageResponse<SimpleApplyAdvertisement> getAllAdList(
             int page, int pageSize,
@@ -98,11 +103,16 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
                 .findByTargetIdAndTargetType(bannerId, TargetType.ADVERTISEMENT)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.REJECT_INFO_NOT_FOUND));
 
-        return AdRejectInfoResponse.builder()
-                .description(rejectInfo.getDescription())
-                .build();
+        return AdvertisementMapper.getAdRejectInfoResponse(rejectInfo);
     }
 
+    public AdPaymentHistoryResponse getPaymentHistory(Long bannerId) {
+        AdPaymentInfo targetHistory = adPaymentInfoRepository
+                .findByAdvertisementId(bannerId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        return AdvertisementMapper.getPaymentHistoryRequest(targetHistory);
+    }
 
     private List<AdvertisementStatus> getApplyStatusList(boolean isApply) {
         if (isApply) {

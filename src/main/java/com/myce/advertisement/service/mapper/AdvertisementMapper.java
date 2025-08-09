@@ -1,11 +1,15 @@
 package com.myce.advertisement.service.mapper;
 
+import com.myce.advertisement.dto.AdPaymentHistoryResponse;
+import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.entity.AdPosition;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.common.entity.BusinessProfile;
+import com.myce.common.entity.RejectInfo;
 import com.myce.member.entity.Member;
+import com.myce.payment.entity.AdPaymentInfo;
 
 public class AdvertisementMapper {
     public static SimpleApplyAdvertisement getSimpleAdvertisement(Advertisement advertisement,
@@ -45,6 +49,25 @@ public class AdvertisementMapper {
                 .businessPhone(businessProfile.getContactPhone())
                 .address(businessProfile.getAddress())
                 .businessNumber(businessProfile.getBusinessRegistrationNumber())
+                .build();
+    }
+
+    public static AdRejectInfoResponse getAdRejectInfoResponse(RejectInfo rejectInfo) {
+        return AdRejectInfoResponse.builder()
+                .description(rejectInfo.getDescription())
+                .build();
+    }
+
+    public static AdPaymentHistoryResponse getPaymentHistoryRequest(AdPaymentInfo adPaymentInfo){
+        Advertisement advertisement = adPaymentInfo.getAdvertisement();
+
+        return AdPaymentHistoryResponse.builder()
+                .title(advertisement.getTitle())
+                .requesterName(advertisement.getMember().getName())
+                .startAt(advertisement.getDisplayStartDate())
+                .endAt(advertisement.getDisplayEndDate())
+                .totalPrice(adPaymentInfo.getFeePerDay() * adPaymentInfo.getTotalDay())
+                .totalPayment(adPaymentInfo.getTotalAmount())
                 .build();
     }
 
