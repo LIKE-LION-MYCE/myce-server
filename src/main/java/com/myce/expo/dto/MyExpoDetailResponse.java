@@ -1,15 +1,13 @@
 package com.myce.expo.dto;
 
 import com.myce.expo.entity.type.ExpoStatus;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime; // LocalTime import 추가
-import java.util.List;
 
 // 나의 박람회 상세 조회 응답 DTO
 @Getter

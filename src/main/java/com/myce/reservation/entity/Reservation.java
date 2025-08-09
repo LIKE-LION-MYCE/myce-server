@@ -2,22 +2,31 @@ package com.myce.reservation.entity;
 
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
-import com.myce.member.entity.Member;
-import com.myce.member.entity.type.Gender;
 import com.myce.reservation.entity.code.ReservationStatus;
 import com.myce.reservation.entity.code.UserType;
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
-
-@Entity @Getter
+@Entity
+@Getter
 @NoArgsConstructor
 @Table(
         name = "reservation",
@@ -70,7 +79,7 @@ public class Reservation {
 
     @Builder
     public Reservation(Expo expo, Ticket ticket, String reservationCode,
-                       UserType userType, Long userId, Integer quantity, ReservationStatus status) {
+            UserType userType, Long userId, Integer quantity, ReservationStatus status) {
         this.expo = expo;
         this.ticket = ticket;
         this.reservationCode = reservationCode;
