@@ -1,9 +1,13 @@
 package com.myce.advertisement.entity;
 
-import com.myce.member.entity.Member;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
+import com.myce.common.exception.CustomErrorCode;
+import com.myce.common.exception.CustomException;
+import com.myce.member.entity.Member;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -82,10 +86,18 @@ public class Advertisement {
     }
     
     public void cancel() {
-        if (this.status != AdvertisementStatus.PENDING_APPROVAL && 
-            this.status != AdvertisementStatus.PENDING_PAYMENT) {
-            throw new IllegalStateException("취소할 수 없는 광고 상태입니다: " + this.status);
+        if (this.status != AdvertisementStatus.PUBLISHED &&
+            this.status != AdvertisementStatus.PENDING_CANCEL) {
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_CANCEL_STATUS);
         }
         this.status = AdvertisementStatus.CANCELLED;
+    }
+
+    public void reject() {
+        if (this.status != AdvertisementStatus.PENDING_APPROVAL &&
+                this.status != AdvertisementStatus.PENDING_PAYMENT) {
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_REJECT_STATUS);
+        }
+        this.status = AdvertisementStatus.REJECTED;
     }
 }

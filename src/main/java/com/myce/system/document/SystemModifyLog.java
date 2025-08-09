@@ -1,11 +1,11 @@
 package com.myce.system.document;
 
-import lombok.*;
-import org.springframework.cglib.core.Local;
+import java.time.LocalDateTime;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import java.time.LocalDateTime;
 
 
 @Getter

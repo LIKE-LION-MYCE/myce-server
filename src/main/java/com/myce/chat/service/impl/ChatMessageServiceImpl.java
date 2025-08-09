@@ -4,21 +4,19 @@ import com.myce.chat.document.ChatMessage;
 import com.myce.chat.dto.MessageResponse;
 import com.myce.chat.repository.ChatMessageRepository;
 import com.myce.chat.service.ChatMessageService;
-import com.myce.chat.service.ChatRoomService;
 import com.myce.chat.service.mapper.ChatMessageMapper;
 import com.myce.chat.type.MessageSenderType;
 import com.myce.common.dto.PageResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 /**
  * 채팅 메시지 생성 서비스 구현체
- * 
+ * <p>
  * 메시지 생성 로직을 중앙화하여 일관성 보장
  */
 @Slf4j
@@ -34,13 +32,13 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     private static final String DEFAULT_MESSAGE_TYPE = "TEXT";
     private static final String EMPTY_JSON = "{}";
     private static final Long SYSTEM_SENDER_ID = 0L;
-    
+
     /**
      * 시스템 메시지 타입
      */
     private static final String SYSTEM_ENTER_TYPE = "SYSTEM_ENTER";
     private static final String SYSTEM_LEAVE_TYPE = "SYSTEM_LEAVE";
-    
+
     /**
      * 시스템 메시지 포맷
      */
@@ -48,28 +46,28 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     private static final String LEAVE_MESSAGE_FORMAT = "%s님이 채팅방을 나가셨습니다.";
 
     @Override
-    public ChatMessage createMessage(String roomCode, String senderType, Long senderId, 
-                                   String senderName, String content) {
+    public ChatMessage createMessage(String roomCode, String senderType, Long senderId,
+            String senderName, String content) {
         log.debug("일반 메시지 생성 - roomCode: {}, senderId: {}", roomCode, senderId);
-        return createMessage(roomCode, senderType, senderId, senderName, content, 
-                           false, DEFAULT_MESSAGE_TYPE, null);
+        return createMessage(roomCode, senderType, senderId, senderName, content,
+                false, DEFAULT_MESSAGE_TYPE, null);
     }
 
     @Override
     public ChatMessage createFileMessage(String roomCode, String senderType, Long senderId,
-                                       String senderName, String content, String messageType, 
-                                       String fileInfoJson) {
-        log.debug("파일 메시지 생성 - roomCode: {}, senderId: {}, messageType: {}", 
-                  roomCode, senderId, messageType);
+            String senderName, String content, String messageType,
+            String fileInfoJson) {
+        log.debug("파일 메시지 생성 - roomCode: {}, senderId: {}, messageType: {}",
+                roomCode, senderId, messageType);
         return createMessage(roomCode, senderType, senderId, senderName, content,
-                           false, messageType, fileInfoJson);
+                false, messageType, fileInfoJson);
     }
 
     @Override
     public ChatMessage createSystemMessage(String roomCode, String messageType, String content) {
         log.debug("시스템 메시지 생성 - roomCode: {}, messageType: {}", roomCode, messageType);
         return createMessage(roomCode, MessageSenderType.SYSTEM.name(), SYSTEM_SENDER_ID,
-                           MessageSenderType.SYSTEM.getDescription(), content, true, messageType, null);
+                MessageSenderType.SYSTEM.getDescription(), content, true, messageType, null);
     }
 
     @Override
@@ -88,26 +86,26 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     @Override
     public PageResponse<MessageResponse> getMessages(String roomCode, Pageable pageable) {
-        log.debug("메시지 히스토리 조회 - roomCode: {}, page: {}, size: {}", 
-                  roomCode, pageable.getPageNumber(), pageable.getPageSize());
-        
+        log.debug("메시지 히스토리 조회 - roomCode: {}, page: {}, size: {}",
+                roomCode, pageable.getPageNumber(), pageable.getPageSize());
+
         // MongoDB에서 페이징된 메시지 조회 (최신 순)
         Page<ChatMessage> messagePage = chatMessageRepository.findByRoomCodeOrderBySentAtDesc(roomCode, pageable);
-        
+
         // ChatMessage -> MessageResponse 변환 (Mapper 사용)
         List<MessageResponse> messageResponses = messagePage.getContent().stream()
-            .map(ChatMessageMapper::toDto)
-            .toList();
-        
-        log.info("메시지 히스토리 조회 완료 - roomCode: {}, 조회된 메시지 수: {}", 
-                 roomCode, messageResponses.size());
-        
+                .map(ChatMessageMapper::toDto)
+                .toList();
+
+        log.info("메시지 히스토리 조회 완료 - roomCode: {}, 조회된 메시지 수: {}",
+                roomCode, messageResponses.size());
+
         return new PageResponse<>(
-            messageResponses,
-            messagePage.getNumber(),
-            messagePage.getSize(),
-            messagePage.getTotalElements(),
-            messagePage.getTotalPages()
+                messageResponses,
+                messagePage.getNumber(),
+                messagePage.getSize(),
+                messagePage.getTotalElements(),
+                messagePage.getTotalPages()
         );
     }
 
@@ -115,8 +113,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
      * 메시지 생성 핵심 로직
      */
     private ChatMessage createMessage(String roomCode, String senderType, Long senderId,
-                                    String senderName, String content, Boolean isSystemMessage,
-                                    String messageType, String fileInfoJson) {
+            String senderName, String content, Boolean isSystemMessage,
+            String messageType, String fileInfoJson) {
         return ChatMessage.builder()
                 .roomCode(roomCode)
                 .senderType(senderType)

@@ -2,8 +2,6 @@ package com.myce.auth.service.impl;
 
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.auth.dto.type.LoginType;
-import com.myce.common.exception.CustomErrorCode;
-import com.myce.common.exception.CustomException;
 import com.myce.member.entity.Member;
 import com.myce.member.entity.type.ProviderType;
 import com.myce.member.repository.MemberRepository;
