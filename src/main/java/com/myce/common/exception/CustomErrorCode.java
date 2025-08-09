@@ -13,6 +13,8 @@ public enum CustomErrorCode {
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "U002", "유효하지 않은 토큰입니다."),
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "U003", "이미 만료된 토큰입니다."),
     INVALID_LOGIN_TYPE(HttpStatus.BAD_REQUEST, "U004", "잘못된 로그인 방식입니다."),
+    EXPIRED_VERIFICATION_TIME(HttpStatus.BAD_REQUEST, "U005", "인증 시간이 초과되었습니다."),
+    INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "U006", "인증 코드가 유효하지 않습니다."),
 
     // 회원 M
     MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "M001", "회원정보가 존재하지 않습니다."),
@@ -95,7 +97,10 @@ public enum CustomErrorCode {
     // 환경 Y
 
     // 거부사유 RJ
-    REJECT_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "RJ001", "거부 사유가 존재하지 않습니다.");
+    REJECT_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "RJ001", "거부 사유가 존재하지 않습니다."),
+
+    // 시스템 설정 에러
+    NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다.");
 
     private final HttpStatus status;
     private final String errorCode;
