@@ -1,18 +1,20 @@
 package com.myce.expo.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
-import com.myce.common.exception.CustomErrorCode;
-import com.myce.common.exception.CustomException;
 import com.myce.expo.dto.MyExpoDetailResponse;
 import com.myce.expo.dto.MyExpoUpdateRequest;
 import com.myce.expo.service.MyExpoService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
@@ -45,7 +47,8 @@ public class MyExpoController {
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody MyExpoUpdateRequest updateRequest) {
         Long memberId = customUserDetails.getMemberId();
-        MyExpoDetailResponse updatedExpo = expoService.updateMyExpoDetail(expoId, memberId, updateRequest); // 서비스에서 DTO 반환
+        MyExpoDetailResponse updatedExpo = expoService.updateMyExpoDetail(expoId, memberId,
+                updateRequest); // 서비스에서 DTO 반환
         return ResponseEntity.ok(updatedExpo); // 업데이트된 DTO 반환
     }
 }

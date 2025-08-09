@@ -1,33 +1,31 @@
 package com.myce.expo.service.impl;
 
+import com.myce.common.dto.RegistrationCompanyRequest;
 import com.myce.common.entity.BusinessProfile;
 import com.myce.common.entity.type.TargetType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
-import com.myce.common.dto.RegistrationCompanyRequest;
+import com.myce.common.service.mapper.BusinessProfileMapper;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.ExpoCategory;
-import com.myce.expo.entity.type.ExpoStatus;
-import com.myce.expo.service.ExpoService;
-import com.myce.common.service.mapper.BusinessProfileMapper;
-import com.myce.expo.service.mapper.ExpoMapper;
 import com.myce.expo.repository.CategoryRepository;
 import com.myce.expo.repository.ExpoRepository;
+import com.myce.expo.service.ExpoService;
+import com.myce.expo.service.mapper.ExpoMapper;
 import com.myce.member.entity.Member;
 import com.myce.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class ExpoServiceImpl implements ExpoService {
+
     private final MemberRepository memberRepository;
     private final ExpoRepository expoRepository;
     private final CategoryRepository categoryRepository;

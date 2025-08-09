@@ -1,7 +1,5 @@
 package com.myce.qrcode.service;
 
-import java.util.Optional;
-
 public interface QrCodeService {
 
     void issueQr(Long reserverId);
