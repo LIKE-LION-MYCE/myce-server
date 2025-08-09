@@ -2,21 +2,18 @@ package com.myce.advertisement.repository;
 
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
-import com.myce.common.entity.BusinessProfile;
-import com.myce.common.entity.type.TargetType;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface AdvertisementRepository extends JpaRepository<Advertisement, Long> {
+
     Page<Advertisement> findByStatusIn(List<AdvertisementStatus> statuses, Pageable pageable);
 
     Page<Advertisement> findByTitleContainingAndStatusIn(String title,
@@ -35,14 +32,14 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
             @Param("displayEndDate") LocalDate displayEndDate,
             @Param("status") List<AdvertisementStatus> status,
             @Param("adPositionId") Long adPositionId);
-    
+
     @Query("SELECT a FROM Advertisement a JOIN FETCH a.adPosition" +
             " WHERE a.member.id = :memberId ORDER BY a.createdAt DESC")
     List<Advertisement> findByMemberIdWithAdPosition(@Param("memberId") Long memberId);
-    
+
     @Query("SELECT a FROM Advertisement a JOIN FETCH a.adPosition WHERE a.id = :advertisementId AND a.member.id = :memberId")
     Optional<Advertisement> findByIdAndMemberIdWithAdPosition(@Param("advertisementId") Long advertisementId,
-                                                              @Param("memberId") Long memberId);
+            @Param("memberId") Long memberId);
 
 
     @Query("SELECT a FROM Advertisement a" +

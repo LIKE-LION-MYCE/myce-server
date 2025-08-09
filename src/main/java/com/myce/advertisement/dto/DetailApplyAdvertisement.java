@@ -1,14 +1,13 @@
 package com.myce.advertisement.dto;
 
+import java.time.LocalDate;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Builder
 @Getter
 public class DetailApplyAdvertisement {
+
     private Long id;
     private String statusMessage;
     private String bannerImageUrl;
