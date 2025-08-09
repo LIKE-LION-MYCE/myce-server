@@ -86,6 +86,7 @@ public enum CustomErrorCode {
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "P005", "결제 금액이 다릅니다."),
     PAYMENT_MERCHANT_UID_MISMATCH(HttpStatus.BAD_REQUEST, "P006", "주문번호가 일치하지 않습니다."),
     PORTONE_AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "P007", "포트원 인증에 실패했습니다."),
+    INVALID_PAYMENT_TARGET_TYPE(HttpStatus.BAD_REQUEST, "P008", "유효하지 않은 결제 타겟입니다."),
 
     // 예약 R
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "해당 예약 정보를 조회 할수 없습니다."),

@@ -43,4 +43,8 @@ public class CustomUserDetails implements UserDetails {
     public String getUsername() {
         return this.name;
     }
+
+    public Long getUserId(){
+        return this.memberId;
+    }
 }

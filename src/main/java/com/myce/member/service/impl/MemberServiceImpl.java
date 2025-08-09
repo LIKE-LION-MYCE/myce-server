@@ -11,15 +11,11 @@ import com.myce.expo.entity.AdminCode;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
 import com.myce.expo.repository.AdminCodeRepository;
-import com.myce.expo.entity.Expo;
-import com.myce.expo.entity.Ticket;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
 import com.myce.member.dto.*;
 import com.myce.member.dto.ExpoPaymentDetailResponse;
 import com.myce.member.mapper.ExpoRefundReceiptMapper;
-import java.time.temporal.ChronoUnit;
-import java.time.LocalDate;
 import com.myce.member.entity.Favorite;
 import com.myce.member.entity.Member;
 import com.myce.member.entity.MemberSetting;
@@ -310,7 +306,7 @@ public class MemberServiceImpl implements MemberService {
         List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
 
         // 현재 활성화된 수수료 설정 조회
-        ExpoFeeSetting feeSetting = expoFeeSettingRepository.findActiveFeeSetting()
+        ExpoFeeSetting feeSetting = expoFeeSettingRepository.findByIsActiveTrue()
                 .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
 
         return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, feeSetting);
