@@ -12,7 +12,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@Entity @Getter
+@Entity @Getter @Builder @AllArgsConstructor // @Setter 제거, @Builder, @AllArgsConstructor 추가
 @NoArgsConstructor
 @Table(
         name = "Payment",
@@ -29,10 +29,6 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "payment_id")
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "target_type", nullable = false, columnDefinition = "VARCHAR(20)")
