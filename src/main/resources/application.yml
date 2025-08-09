@@ -83,17 +83,17 @@ spring:
         bucket:
           media: ${S3_MEDIA_BUCKET_NAME}
           cloudfront-domain: ${CLOUDFRONT_DOMAIN}
-            #mail:
-            #host: smtp.gmail.com
-            #port: 587
-            #username: "@gmail.com"
-            #password: ${MAIL_PASSWORD}
-            #properties:
-            #mail:
-            #smtp:
-          #auth: true
-          #starttls:
-            #enable: true
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: chldlghk@gmail.com
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+            auth: true
+            starttls: # isActive
+              enable: true
 jwt:
   secret: ${JWT_SECRET}
   access-token-validity: 18000000 # 5 hour in milliseconds

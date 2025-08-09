@@ -13,6 +13,8 @@ public enum CustomErrorCode {
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "U002", "유효하지 않은 토큰입니다."),
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "U003", "이미 만료된 토큰입니다."),
     INVALID_LOGIN_TYPE(HttpStatus.BAD_REQUEST, "U004", "잘못된 로그인 방식입니다."),
+    EXPIRED_VERIFICATION_TIME(HttpStatus.BAD_REQUEST, "U005", "인증 시간이 초과되었습니다."),
+    INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "U006", "인증 코드가 유효하지 않습니다."),
 
     // 회원 M
     MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "M001", "회원정보가 존재하지 않습니다."),
@@ -66,6 +68,8 @@ public enum CustomErrorCode {
     BANNER_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
     ADVERTISEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "A003" ,  "광고가 존재 하지 않습니다" ),
     INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A004", "환불할 수 없는 광고 상태입니다."),
+    INVALID_ADVERTISEMENT_REJECT_STATUS(HttpStatus.BAD_REQUEST, "A005", "이 광고는 거부할 수 없습니다."),
+    INVALID_ADVERTISEMENT_CANCEL_STATUS(HttpStatus.BAD_REQUEST, "A006", "이 광고는 취소할 수 없습니다."),
 
     // 부스 B
     BOOTH_PREMIUM_RANK_REQUIRED(HttpStatus.BAD_REQUEST, "B001", "프리미엄 부스는 노출 순위가 필수입니다."),
@@ -94,9 +98,15 @@ public enum CustomErrorCode {
 
     // 정산 S
 
-    FEE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F001" , "요금 설정이 없습니다");
+    FEE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F001" , "요금 설정이 없습니다"),
 
     // 환경 Y
+
+    // 거부사유 RJ
+    REJECT_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "RJ001", "거부 사유가 존재하지 않습니다."),
+
+    // 시스템 설정 에러
+    NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다.");
 
     private final HttpStatus status;
     private final String errorCode;

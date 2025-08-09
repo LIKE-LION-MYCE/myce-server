@@ -25,6 +25,7 @@ public class RejectInfo {
     @Column(name = "reject_info_id")
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "target_type", columnDefinition = "VARCHAR(20)", nullable = false)
     private TargetType targetType;
 
