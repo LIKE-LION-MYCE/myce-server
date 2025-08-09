@@ -35,7 +35,7 @@ public class PaymentMapper {
     }
 
     // Payment 엔티티와 PaymentInfo 엔티티를 기반으로 PaymentVerifyResponse 생성
-    public static PaymentVerifyResponse toPaymentVerifyResponse(Payment payment, Object paymentInfo) {
+    public PaymentVerifyResponse toPaymentVerifyResponse(Payment payment, Object paymentInfo) {
         String status = null;
         Integer amount = null;
 

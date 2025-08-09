@@ -17,6 +17,7 @@ import com.myce.member.repository.MemberRepository;
 import com.myce.payment.config.PortOneConfig;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
+import com.myce.payment.dto.UserIdentifier;
 import com.myce.payment.entity.AdPaymentInfo;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.entity.Payment;
@@ -75,8 +76,7 @@ public class PaymentServiceImpl implements PaymentService {
 
 
   // 액세스 토큰 받아오기
-  @Override
-  public String getAccessToken() {
+  private String getAccessToken() {
     String url = "https://api.iamport.kr/users/getToken";
 
     log.info("[포트원 토큰 요청] imp_key={}, imp_secret={}",
@@ -126,6 +126,62 @@ public class PaymentServiceImpl implements PaymentService {
     Map<String, Object> portOnePayment = getPaymentInfo(request.getImpUid(), accessToken);
 
     // 3. 결제 정보 검증
+        Integer paidAmount = verifyPaymentDetails(request, portOnePayment);
+
+    // 4. 결제 주체 식별 (Member 또는 Guest) - 현재 Payment 엔티티에 직접 저장하지 않음
+    UserIdentifier userIdentifier = identifyUser(request);
+    Member member = null;
+    Guest guest = null;
+
+    if (userIdentifier.getUserType() == UserType.MEMBER) {
+      member = memberRepository.findById(userIdentifier.getUserId())
+          .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+    } else if (userIdentifier.getUserType() == UserType.GUEST) {
+      guest = guestRepository.findById(userIdentifier.getUserId())
+          .orElseThrow(() -> new CustomException(CustomErrorCode.GUEST_NOT_EXIST));
+    }
+
+    // 5. 검증 성공 시, Payment 엔티티 저장
+    Payment payment = paymentMapper.toEntity(request, portOnePayment);
+    paymentRepository.save(payment);
+
+    // 6. target_type에 따라 해당 PaymentInfo 엔티티 저장
+    Object paymentInfo = savePaymentInfoDetails(request, paidAmount, payment);
+
+    // 7. PaymentVerifyResponse 생성 및 반환
+    return paymentMapper.toPaymentVerifyResponse(payment, paymentInfo);
+  }
+
+  private UserIdentifier identifyUser(PaymentVerifyRequest request) {
+    UserType userType = null;
+    Long userId = null;
+
+    switch (request.getTargetType()) {
+      case RESERVATION:
+        Reservation reservation = reservationRepository.findById(request.getTargetId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+        userType = reservation.getUserType();
+        userId = reservation.getUserId();
+        break;
+      case AD:
+      case EXPO:
+        // AD와 EXPO는 회원만 결제 가능하므로, 현재 로그인된 회원 정보를 가져옵니다.
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
+          throw new CustomException(CustomErrorCode.REFRESH_TOKEN_NOT_EXIST);
+        }
+        // CustomUserDetails에서 memberId를 직접 가져옵니다.
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        userType = UserType.MEMBER; // AD/EXPO는 회원만 가능
+        userId = userDetails.getMemberId();
+        break;
+      default:
+        throw new CustomException(CustomErrorCode.INVALID_PAYMENT_TARGET_TYPE);
+    }
+    return UserIdentifier.builder().userType(userType).userId(userId).build();
+  }
+
+  private Integer verifyPaymentDetails(PaymentVerifyRequest request, Map<String, Object> portOnePayment) {
     String status = (String) portOnePayment.get("status");
     Integer paidAmount = (Integer) portOnePayment.get("amount");
     String merchantUid = (String) portOnePayment.get("merchant_uid");
@@ -139,49 +195,7 @@ public class PaymentServiceImpl implements PaymentService {
     if (!merchantUid.equals(request.getMerchantUid())) {
       throw new CustomException(CustomErrorCode.PAYMENT_MERCHANT_UID_MISMATCH);
     }
-
-    // 4. 결제 주체 식별 (Member 또는 Guest) - 현재 Payment 엔티티에 직접 저장하지 않음
-    Member member = null;
-    Guest guest = null;
-
-    switch (request.getTargetType()) {
-      case RESERVATION:
-        Reservation reservation = reservationRepository.findById(request.getTargetId())
-            .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
-        if (reservation.getUserType() == UserType.MEMBER) {
-          member = memberRepository.findById(reservation.getUserId())
-              .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
-        } else if (reservation.getUserType() == UserType.GUEST) {
-          guest = guestRepository.findById(reservation.getUserId())
-              .orElseThrow(() -> new CustomException(CustomErrorCode.GUEST_NOT_EXIST));
-        }
-        break;
-      case AD:
-      case EXPO:
-        // AD와 EXPO는 회원만 결제 가능하므로, 현재 로그인된 회원 정보를 가져옵니다.
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
-          throw new CustomException(CustomErrorCode.REFRESH_TOKEN_NOT_EXIST);
-        }
-        // CustomUserDetails에서 memberId를 직접 가져옵니다.
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long memberId = userDetails.getMemberId(); // CustomUserDetails에 getMemberId()가 있다고 가정
-        member = memberRepository.findById(memberId)
-            .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
-        break;
-      default:
-        throw new CustomException(CustomErrorCode.INVALID_PAYMENT_TARGET_TYPE);
-    }
-
-    // 5. 검증 성공 시, Payment 엔티티 저장
-    Payment payment = paymentMapper.toEntity(request, portOnePayment);
-    paymentRepository.save(payment);
-
-    // 6. target_type에 따라 해당 PaymentInfo 엔티티 저장
-    Object paymentInfo = savePaymentInfoDetails(request, paidAmount, payment);
-
-    // 7. PaymentVerifyResponse 생성 및 반환
-    return paymentMapper.toPaymentVerifyResponse(payment, paymentInfo);
+    return paidAmount;
   }
 
   private Object savePaymentInfoDetails(PaymentVerifyRequest request, Integer paidAmount, Payment payment) {
@@ -238,8 +252,7 @@ public class PaymentServiceImpl implements PaymentService {
     return savedPaymentInfo;
   }
 
-  @Override
-  public Map<String, Object> getPaymentInfo(String impUid, String accessToken) {
+  private Map<String, Object> getPaymentInfo(String impUid, String accessToken) {
     String url = "https://api.iamport.kr/payments/" + impUid;
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(accessToken);

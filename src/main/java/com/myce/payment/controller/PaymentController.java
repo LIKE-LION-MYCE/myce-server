@@ -24,17 +24,17 @@ public class PaymentController {
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
-  // getAccessToken() 임시 테스트용 엔드포인트
-  @GetMapping("/test/token")
-  public String testGetToken() {
-    return paymentService.getAccessToken();
-  }
+//  // getAccessToken() 임시 테스트용 엔드포인트
+//  @GetMapping("/test/token")
+//  public String testGetToken() {
+//    return paymentService.getAccessToken();
+//  }
 
-  // getPaymentInfo 임시 테스트용 엔드포인트
-  @GetMapping("/test/payment-info/{imp_uid}")
-  public java.util.Map<String, Object> testGetPaymentInfo(@PathVariable("imp_uid") String impUid) {
-    // 테스트를 위해 Access Token을 직접 발급받습니다.
-    String accessToken = paymentService.getAccessToken();
-    return paymentService.getPaymentInfo(impUid, accessToken);
-  }
+//  // getPaymentInfo 임시 테스트용 엔드포인트
+//  @GetMapping("/test/payment-info/{imp_uid}")
+//  public java.util.Map<String, Object> testGetPaymentInfo(@PathVariable("imp_uid") String impUid) {
+//    // 테스트를 위해 Access Token을 직접 발급받습니다.
+//    String accessToken = paymentService.getAccessToken();
+//    return paymentService.getPaymentInfo(impUid, accessToken);
+//  }
 }
