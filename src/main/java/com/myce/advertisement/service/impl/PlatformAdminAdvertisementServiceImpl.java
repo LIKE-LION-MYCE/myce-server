@@ -1,6 +1,8 @@
 package com.myce.advertisement.service.impl;
 
+import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.advertisement.dto.DetailApplyAdvertisement;
+import com.myce.advertisement.dto.RejectAdRequest;
 import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
@@ -9,10 +11,13 @@ import com.myce.advertisement.service.PlatformAdminAdvertisementService;
 import com.myce.advertisement.service.mapper.AdvertisementMapper;
 import com.myce.common.dto.PageResponse;
 import com.myce.common.entity.BusinessProfile;
+import com.myce.common.entity.RejectInfo;
 import com.myce.common.entity.type.TargetType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
+import com.myce.common.repository.RejectInfoRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,6 +34,8 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
     private AdvertisementRepository advertisementRepository;
     @Autowired
     private BusinessProfileRepository businessProfileRepository;
+    @Autowired
+    private RejectInfoRepository rejectInfoRepository;
 
     public PageResponse<SimpleApplyAdvertisement> getAllAdList(
             int page, int pageSize,
@@ -66,24 +73,49 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
     }
 
     public DetailApplyAdvertisement getDetail(Long bannerId) {
-        Advertisement advertisement = advertisementRepository.findById(bannerId)
+        Advertisement ad = advertisementRepository.findById(bannerId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BANNER_NOT_EXIST));
-        return getDetailApplyAdvertisement(advertisement);
+
+        return getDetailApplyAdvertisement(ad);
+    }
+
+    @Transactional
+    public void rejectApply(Long bannerId, RejectAdRequest request) {
+        Advertisement ad = advertisementRepository.findById(bannerId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
+        RejectInfo rejectInfo = RejectInfo.builder()
+                .targetType(TargetType.ADVERTISEMENT)
+                .targetId(ad.getId())
+                .description(request.getReason())
+                .build();
+
+        rejectInfoRepository.save(rejectInfo);
+        ad.reject();
+    }
+
+    public AdRejectInfoResponse getRejectInfo(Long bannerId) {
+        RejectInfo rejectInfo = rejectInfoRepository
+                .findByTargetIdAndTargetType(bannerId, TargetType.ADVERTISEMENT)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.REJECT_INFO_NOT_FOUND));
+
+        return AdRejectInfoResponse.builder()
+                .description(rejectInfo.getDescription())
+                .build();
     }
 
 
-
     private List<AdvertisementStatus> getApplyStatusList(boolean isApply) {
-        if(isApply){
+        if (isApply) {
             return List.of(AdvertisementStatus.PENDING_APPROVAL,
                     AdvertisementStatus.PENDING_PAYMENT,
                     AdvertisementStatus.REJECTED,
                     AdvertisementStatus.COMPLETED);
-        }else{
+        } else {
             return List.of(AdvertisementStatus.PUBLISHED,
                     AdvertisementStatus.PENDING_CANCEL);
         }
     }
+
     // DTO 변환
     private SimpleApplyAdvertisement getSimpleApplyAdvertisement(Advertisement advertisement) {
         BusinessProfile businessProfile = businessProfileRepository
