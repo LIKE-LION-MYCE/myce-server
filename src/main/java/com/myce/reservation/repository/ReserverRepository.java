@@ -40,6 +40,7 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
           CASE
             WHEN qc.status = com.myce.qrcode.entity.code.QrCodeStatus.USED THEN '입장 완료'
             WHEN qc.status = com.myce.qrcode.entity.code.QrCodeStatus.EXPIRED THEN '티켓 만료'
+            WHEN qc.id IS NULL OR qc.status = com.myce.qrcode.entity.code.QrCodeStatus.APPROVED THEN '입장 전'
             WHEN qc.id IS NULL OR qc.status = com.myce.qrcode.entity.code.QrCodeStatus.ACTIVE THEN '입장 전'
             ELSE '입장 전'
           END
@@ -58,9 +59,10 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
             :entranceStatus IS NULL OR
             (
               (:entranceStatus = '입장 완료' AND qc.status = com.myce.qrcode.entity.code.QrCodeStatus.USED)
-              OR (:entranceStatus = '입장 전' AND (qc.id IS NULL
-                  OR qc.status = com.myce.qrcode.entity.code.QrCodeStatus.ACTIVE))
               OR (:entranceStatus = '티켓 만료' AND qc.status = com.myce.qrcode.entity.code.QrCodeStatus.EXPIRED)
+              OR (:entranceStatus = '입장 전' AND (qc.id IS NULL
+                  OR qc.status IN (com.myce.qrcode.entity.code.QrCodeStatus.ACTIVE,
+                                   com.myce.qrcode.entity.code.QrCodeStatus.APPROVED)))
             )
           )
     """)
