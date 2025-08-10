@@ -67,22 +67,21 @@ public class ExpoQrGenerateScheduler implements TaskScheduler {
 
     private void generateQrCodesForExpo(Expo expo) {
         log.info("박람회 QR코드 생성 시작 - 박람회: {} (ID: {})", expo.getTitle(), expo.getId());
+
+        List<Reserver> reservers = reserverRepository.findReserversByExpo(expo.getId());
         
-        // QR코드가 없는 예약자들만 조회
-        List<Reserver> reserversWithoutQr = reserverRepository.findReserversWithoutQrCodeByExpo(expo.getId());
-        
-        if (reserversWithoutQr.isEmpty()) {
+        if (reservers .isEmpty()) {
             log.info("QR코드 생성 대상이 없습니다 - 박람회: {}", expo.getTitle());
             return;
         }
         
         log.info("QR코드 생성 시작 - 박람회: {}, 대상 예약자 수: {} 명", 
-                expo.getTitle(), reserversWithoutQr.size());
+                expo.getTitle(), reservers .size());
         
         int successCount = 0;
         int failCount = 0;
         
-        for (Reserver reserver : reserversWithoutQr) {
+        for (Reserver reserver : reservers) {
             try {
                 qrCodeService.issueQr(reserver.getId());
                 successCount++;

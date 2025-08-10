@@ -41,6 +41,7 @@ public class QrCodeServiceImpl implements QrCodeService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVER_NOT_FOUND));
 
         if (qrCodeRepository.findByReserver(reserver).isPresent()) {
+            log.debug("[issueQr] 중복 발급 요청 차단 - 이미 QR 존재. reserverId={}", reserverId);
             throw new CustomException(CustomErrorCode.QR_ALREADY_EXISTS);
         }
 

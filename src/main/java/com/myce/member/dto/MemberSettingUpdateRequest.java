@@ -13,6 +13,4 @@ public class MemberSettingUpdateRequest {
     
     private Language language;
     private FontSize fontSize;
-    private Boolean isReceiveEmail;
-    private Boolean isReceivePush;
 }
