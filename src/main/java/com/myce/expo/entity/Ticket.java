@@ -84,7 +84,8 @@ public class Ticket {
 
     public void updateTicketInfo(String name, String description, TicketType type,
                                  Integer price, Integer remainingQuantity, Integer totalQuantity,
-                                 LocalDate saleStartDate, LocalDate saleEndDate) {
+                                 LocalDate saleStartDate, LocalDate saleEndDate,
+                                 LocalDate useStartDate, LocalDate useEndDate) {
         this.name = name;
         this.description = description;
         this.type = type;
@@ -93,5 +94,7 @@ public class Ticket {
         this.totalQuantity = totalQuantity;
         this.saleStartDate = saleStartDate;
         this.saleEndDate = saleEndDate;
+        this.useStartDate = useStartDate;
+        this.useEndDate = useEndDate;
     }
 }

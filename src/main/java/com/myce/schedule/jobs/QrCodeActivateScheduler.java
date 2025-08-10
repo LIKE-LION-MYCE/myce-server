@@ -54,6 +54,7 @@ public class QrCodeActivateScheduler implements TaskScheduler {
         
         if (updatedCount > 0) {
             log.info("QR 코드 활성화 완료 - {} 개", updatedCount);
+          
         } else {
             log.debug("활성화할 QR 코드가 없습니다.");
         }

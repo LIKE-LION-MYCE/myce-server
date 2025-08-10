@@ -4,8 +4,6 @@ import com.myce.chat.dto.ChatRoomListResponse;
 
 /**
  * 채팅방 비즈니스 로직 서비스
- * <p>
- * 역할별 권한 검증 및 채팅방 조회 로직을 제공합니다.
  */
 public interface ChatRoomService {
 
@@ -19,4 +17,9 @@ public interface ChatRoomService {
      * 박람회별 채팅방 목록 조회 (관리자 전용, 권한 검증)
      */
     ChatRoomListResponse getChatRoomsByExpo(Long expoId, Long adminId);
+    
+    /**
+     * 사용자 채팅방 읽음 처리 (USER 타입 사용자 전용)
+     */
+    void markAsRead(String roomCode, String lastReadMessageId, Long memberId);
 }

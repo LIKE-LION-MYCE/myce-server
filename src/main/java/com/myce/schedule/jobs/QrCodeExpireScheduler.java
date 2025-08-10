@@ -53,6 +53,7 @@ public class QrCodeExpireScheduler implements TaskScheduler {
         
         if (updatedCount > 0) {
             log.info("QR 코드 만료 처리 완료 - {} 개", updatedCount);
+          
         } else {
             log.debug("만료 처리할 QR 코드가 없습니다.");
         }

@@ -1,5 +1,6 @@
 package com.myce.chat.service;
 
+import com.myce.chat.document.ChatRoom;
 import com.myce.chat.dto.MessageResponse;
 
 /**
@@ -17,10 +18,20 @@ public interface ChatWebSocketService {
     /**
      * 채팅방 입장 권한 검증 및 처리
      */
-    void joinRoom(Long userId, String roomId);
+    void joinRoom(Long userId, String roomId, String token);
 
     /**
      * 메시지 전송 및 저장
      */
     MessageResponse sendMessage(Long userId, String roomId, String content);
+
+    /**
+     * JWT 기반 관리자 코드 결정
+     */
+    String determineAdminCode(Long memberId, String loginType);
+
+    /**
+     * 관리자 담당자 배정 로직
+     */
+    void assignAdminIfNeeded(ChatRoom chatRoom, String adminCode);
 }

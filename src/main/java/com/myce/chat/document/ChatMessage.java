@@ -65,6 +65,17 @@ public class ChatMessage {
     private Boolean isDeleted;
 
     /**
+     * 실제 발송자 (관리자용)
+     * AdminCode: "CODE123A", Super Admin: "SUPER_ADMIN" 
+     */
+    private String actualSender;
+
+    /**
+     * 로그인 타입 ("MEMBER" | "ADMIN_CODE")
+     */
+    private String loginType;
+
+    /**
      * 메시지 생성 시 기본값 설정
      */
     @Builder
@@ -98,6 +109,34 @@ public class ChatMessage {
     public void deleteMessage() {
         this.isDeleted = true;
         this.content = "삭제된 메시지입니다.";
+    }
+
+    /**
+     * 관리자 메시지 생성 (기존 패턴 유지)
+     */
+    public static ChatMessage createAdminMessage(String roomCode, String content, 
+                                                Long adminId, String adminCode, 
+                                                String loginType, String displayName) {
+        return ChatMessage.builder()
+            .roomCode(roomCode)
+            .senderType("ADMIN")
+            .senderId(adminId)
+            .senderName(displayName)
+            .content(content)
+            .isSystemMessage(false)
+            .messageType("TEXT")
+            .fileInfoJson(null)
+            .build()
+            .setAdminInfo(adminCode, loginType);
+    }
+
+    /**
+     * Admin 정보 설정
+     */
+    private ChatMessage setAdminInfo(String adminCode, String loginType) {
+        this.actualSender = adminCode;
+        this.loginType = loginType;
+        return this;
     }
 
 }
