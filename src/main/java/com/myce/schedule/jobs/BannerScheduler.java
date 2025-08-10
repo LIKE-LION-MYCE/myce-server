@@ -46,7 +46,7 @@ public class BannerScheduler implements TaskScheduler {
     }
 
     @Override
-    @Scheduled(cron = "${scheduler:days}")
+    @Scheduled(cron = "${scheduler.days}")
     public void run() {
         try{
             this.process();

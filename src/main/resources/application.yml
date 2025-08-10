@@ -142,5 +142,5 @@ management:
   #customer-code: ${PORTONE_CUSTOMER_CODE}
   #test-mode: false
 scheduler:
-  test: 0 * * * * * # every minute
-  days: 0 0 0 * * * # every day
+  test: "0 * * * * *" # every minute
+  days: "0 0 0 * * *" # every day
