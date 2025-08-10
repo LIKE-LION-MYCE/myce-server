@@ -1,5 +1,7 @@
 package com.myce.payment.service.mapper;
 
+import com.myce.advertisement.entity.Advertisement;
+import com.myce.expo.entity.Expo;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.entity.AdPaymentInfo;
@@ -7,9 +9,14 @@ import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.entity.Payment;
 import com.myce.payment.entity.ReservationPaymentInfo;
 import com.myce.payment.entity.type.PaymentMethod;
+import com.myce.payment.entity.type.PaymentStatus;
+import com.myce.reservation.entity.Reservation;
+import com.myce.system.entity.AdFeeSetting;
+import com.myce.system.entity.ExpoFeeSetting;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 
@@ -17,7 +24,7 @@ import org.springframework.stereotype.Component;
 public class PaymentMapper {
 
     // PaymentVerifyRequest와 PortOne 응답을 기반으로 Payment 엔티티 생성
-    public static Payment toEntity(PaymentVerifyRequest request, Map<String, Object> portOnePayment) {
+    public Payment toEntity(PaymentVerifyRequest request, Map<String, Object> portOnePayment) {
         return Payment.builder()
                 .targetType(request.getTargetType())
                 .targetId(request.getTargetId())
@@ -61,8 +68,44 @@ public class PaymentMapper {
                 .build();
     }
 
+    public ReservationPaymentInfo toReservationPaymentInfo(PaymentVerifyRequest request,
+        Reservation reservation, Integer paidAmount, PaymentStatus paymentStatus) {
+        return ReservationPaymentInfo.builder()
+            .reservation(reservation)
+            .totalAmount(paidAmount)
+            .status(paymentStatus)
+            .usedMileage(request.getUsedMileage())
+            .savedMileage(request.getSavedMileage())
+            .build();
+    }
+
+    public AdPaymentInfo toAdPaymentInfo(Advertisement advertisement, AdFeeSetting adFeeSetting,
+        Integer paidAmount, PaymentStatus paymentStatus) {
+        return AdPaymentInfo.builder()
+            .advertisement(advertisement)
+            .totalAmount(paidAmount)
+            .status(paymentStatus)
+            .totalDay(advertisement.getTotalDays())
+            .feePerDay(adFeeSetting.getFeePerDay())
+            .build();
+    }
+
+    public ExpoPaymentInfo toExpoPaymentInfo(Expo expo, ExpoFeeSetting expoFeeSetting,
+        Integer paidAmount, PaymentStatus paymentStatus) {
+        long totalDays = ChronoUnit.DAYS.between(expo.getDisplayStartDate(), expo.getDisplayEndDate()) + 1;
+        return ExpoPaymentInfo.builder()
+            .expo(expo)
+            .totalAmount(paidAmount)
+            .status(paymentStatus)
+            .deposit(expoFeeSetting.getDeposit())
+            .premiumDeposit(expoFeeSetting.getPremiumDeposit())
+            .totalDay((int) totalDays)
+            .dailyUsageFee(expoFeeSetting.getDailyUsageFee())
+            .build();
+    }
+    
     // PortOne의 pay_method 값을 PaymentMethod enum으로 변환
-    private static PaymentMethod toPaymentMethod(Map<String, Object> portOnePayment) {
+    private PaymentMethod toPaymentMethod(Map<String, Object> portOnePayment) {
         String payMethod = (String) portOnePayment.get("pay_method");
         if (payMethod == null) return null;
         return switch (payMethod) {
@@ -75,7 +118,7 @@ public class PaymentMapper {
         };
     }
 
-    private static LocalDateTime toPaidAtLocalDateTime(Object paidAtObj) {
+    private LocalDateTime toPaidAtLocalDateTime(Object paidAtObj) {
         if (paidAtObj instanceof Integer) {
             return toLocalDateTime(((Integer) paidAtObj).longValue());
         } else if (paidAtObj instanceof Long) {
@@ -85,7 +128,7 @@ public class PaymentMapper {
     }
 
     // Unix 타임스탬프를 LocalDateTime으로 변환
-    private static LocalDateTime toLocalDateTime(Long unixTimestamp) {
+    private LocalDateTime toLocalDateTime(Long unixTimestamp) {
         if (unixTimestamp == null) return null;
         return LocalDateTime.ofInstant(Instant.ofEpochSecond(unixTimestamp), ZoneId.systemDefault());
     }

@@ -15,12 +15,15 @@ import com.myce.member.entity.Member;
 import com.myce.member.repository.GuestRepository;
 import com.myce.member.repository.MemberRepository;
 import com.myce.payment.config.PortOneConfig;
+import com.myce.payment.dto.PaymentInfoForRefund;
+import com.myce.payment.dto.PaymentRefundRequest;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.UserIdentifier;
 import com.myce.payment.entity.AdPaymentInfo;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.entity.Payment;
+import com.myce.payment.entity.Refund;
 import com.myce.payment.entity.ReservationPaymentInfo;
 import com.myce.payment.entity.type.PaymentStatus;
 import com.myce.payment.entity.type.RefundStatus;
@@ -39,7 +42,6 @@ import com.myce.system.entity.ExpoFeeSetting;
 import com.myce.system.repository.AdFeeSettingRepository;
 import com.myce.system.repository.ExpoFeeSettingRepository;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -57,13 +59,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import com.myce.payment.dto.PaymentRefundRequest;
-import com.myce.payment.entity.Refund;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
+
   private final PortOneConfig portOneConfig;
   private final RestTemplate restTemplate;
   private final ObjectMapper objectMapper;
@@ -81,7 +82,7 @@ public class PaymentServiceImpl implements PaymentService {
   private final ExpoFeeSettingRepository expoFeeSettingRepository;
   private final RefundRepository refundRepository;
 
-  // 액세스 토큰 받아오기
+  // 포트원 API 액세스 토큰을 발급받는 메소드
   private String getAccessToken() {
     String url = "https://api.iamport.kr/users/getToken";
 
@@ -121,92 +122,116 @@ public class PaymentServiceImpl implements PaymentService {
     }
   }
 
-  // 결제 검증 및 저장
+  // 결제 정보를 검증하고 저장하는 메소드
   @Override
   @Transactional
   public PaymentVerifyResponse verifyPayment(PaymentVerifyRequest request) {
-    // 1. 액세스 토큰 발급
     String accessToken = getAccessToken();
-
-    // 2. 포트원 결제 내역 조회
     Map<String, Object> portOnePayment = getPaymentInfo(request.getImpUid(), accessToken);
-
-    // 3. 결제 정보 검증
-        Integer paidAmount = verifyPaymentDetails(request, portOnePayment);
-
-    // 4. 결제 주체 식별 (Member 또는 Guest) - 현재 Payment 엔티티에 직접 저장하지 않음
-    UserIdentifier userIdentifier = identifyUser(request);
-    Member member = null;
-    Guest guest = null;
-
-    if (userIdentifier.getUserType() == UserType.MEMBER) {
-      member = memberRepository.findById(userIdentifier.getUserId())
-          .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
-    } else if (userIdentifier.getUserType() == UserType.GUEST) {
-      guest = guestRepository.findById(userIdentifier.getUserId())
-          .orElseThrow(() -> new CustomException(CustomErrorCode.GUEST_NOT_EXIST));
-    }
-
-    // 5. 검증 성공 시, Payment 엔티티 저장
+    Integer paidAmount = verifyPaymentDetails(request, portOnePayment);
+    identifyUser(request);
     Payment payment = paymentMapper.toEntity(request, portOnePayment);
     paymentRepository.save(payment);
-
-    // 6. target_type에 따라 해당 PaymentInfo 엔티티 저장
     Object paymentInfo = savePaymentInfoDetails(request, paidAmount, payment);
-
-    // 7. PaymentVerifyResponse 생성 및 반환
     return paymentMapper.toPaymentVerifyResponse(payment, paymentInfo);
   }
 
+  // 결제를 환불하는 메소드
   @Override
   @Transactional
   public Map<String, Object> refundPayment(PaymentRefundRequest request) {
-    log.info("[환불 메소드 진입] impUid: {}", request.getImpUid());
-
-    log.info("[환불] 1. 액세스 토큰 발급 시도");
-    // 1. 액세스 토큰 발급
     String accessToken = getAccessToken();
-
-    // 2. 환불할 결제 정보 조회
     Payment payment = paymentRepository.findByImpUid(request.getImpUid())
         .orElseGet(() -> paymentRepository.findByMerchantUid(request.getMerchantUid())
             .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND)));
 
-    // 2.1. PaymentInfo 엔티티 조회 및 금액 확인
-    Integer originalPaidAmount;
-    Object paymentInfoEntity;
+    PaymentInfoForRefund paymentInfoForRefund = getPaymentInfoForRefund(payment);
+    Object paymentInfoEntity = paymentInfoForRefund.getPaymentInfoEntity();
+    Integer originalPaidAmount = paymentInfoForRefund.getOriginalPaidAmount();
 
-    switch (payment.getTargetType()) {
-      case RESERVATION:
-        ReservationPaymentInfo reservationPaymentInfo = reservationPaymentInfoRepository.findById(payment.getTargetId())
-            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
-        originalPaidAmount = reservationPaymentInfo.getTotalAmount();
-        paymentInfoEntity = reservationPaymentInfo;
-        break;
-      case AD:
-        AdPaymentInfo adPaymentInfo = adPaymentInfoRepository.findById(payment.getTargetId())
-            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
-        originalPaidAmount = adPaymentInfo.getTotalAmount();
-        paymentInfoEntity = adPaymentInfo;
-        break;
-      case EXPO:
-        ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findById(payment.getTargetId())
-            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
-        originalPaidAmount = expoPaymentInfo.getTotalAmount();
-        paymentInfoEntity = expoPaymentInfo;
-        break;
-      default:
-        throw new CustomException(CustomErrorCode.INVALID_PAYMENT_TARGET_TYPE);
+    Map<String, Object> responseBody = requestRefundToPortOne(request, originalPaidAmount,
+        accessToken);
+
+    processRefund(request, payment, paymentInfoEntity, originalPaidAmount, responseBody);
+
+    return responseBody;
+  }
+
+  // 환불 처리 후 정보를 저장하는 메소드
+  private void processRefund(PaymentRefundRequest request, Payment payment, Object paymentInfoEntity,
+      Integer originalPaidAmount, Map<String, Object> responseBody) {
+    Integer refundedAmount = (Integer) responseBody.get("cancel_amount");
+    boolean isPartial =
+        request.getCancelAmount() != null && request.getCancelAmount() < originalPaidAmount;
+
+    Refund refund = Refund.builder()
+        .payment(payment)
+        .amount(refundedAmount)
+        .reason(request.getReason())
+        .status(RefundStatus.REFUNDED)
+        .isPartial(isPartial)
+        .refundedAt(LocalDateTime.now())
+        .build();
+    refundRepository.save(refund);
+
+    updatePaymentInfoStatus(paymentInfoEntity, isPartial);
+  }
+
+  // 결제 정보 상태를 업데이트하는 메소드
+  private void updatePaymentInfoStatus(Object paymentInfoEntity, boolean isPartial) {
+    if (paymentInfoEntity instanceof ReservationPaymentInfo) {
+      ReservationPaymentInfo rpi = (ReservationPaymentInfo) paymentInfoEntity;
+      rpi.setStatus(isPartial ? PaymentStatus.PARTIAL_REFUNDED : PaymentStatus.REFUNDED);
+      reservationPaymentInfoRepository.save(rpi);
+    } else if (paymentInfoEntity instanceof AdPaymentInfo) {
+      AdPaymentInfo api = (AdPaymentInfo) paymentInfoEntity;
+      api.setStatus(isPartial ? PaymentStatus.PARTIAL_REFUNDED : PaymentStatus.REFUNDED);
+      adPaymentInfoRepository.save(api);
+    } else if (paymentInfoEntity instanceof ExpoPaymentInfo) {
+      ExpoPaymentInfo epi = (ExpoPaymentInfo) paymentInfoEntity;
+      epi.setStatus(isPartial ? PaymentStatus.PARTIAL_REFUNDED : PaymentStatus.REFUNDED);
+      expoPaymentInfoRepository.save(epi);
     }
+  }
 
-    // 3. 포트원 결제 취소 요청
+  // 포트원 API에 환불을 요청하는 메소드
+  private Map<String, Object> requestRefundToPortOne(PaymentRefundRequest request,
+      Integer originalPaidAmount, String accessToken) {
     String url = "https://api.iamport.kr/payments/cancel";
+    Map<String, Object> body = buildRefundRequestBody(request, originalPaidAmount);
+
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.setBearerAuth(accessToken);
 
-    Map<String, Object> body = new LinkedHashMap<>();
+    String jsonBody;
+    try {
+      jsonBody = objectMapper.writeValueAsString(body);
+    } catch (JsonProcessingException e) {
+      throw new CustomException(CustomErrorCode.PORTONE_REQUEST_SERIALIZATION_FAILED);
+    }
 
+    HttpEntity<String> requestEntity = new HttpEntity<>(jsonBody, headers);
+
+    ResponseEntity<Map> response;
+    try {
+      response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, Map.class);
+    } catch (Exception e) {
+      throw new CustomException(CustomErrorCode.PORTONE_REFUND_FAILED);
+    }
+
+    Map<String, Object> responseBody = (Map<String, Object>) response.getBody().get("response");
+    if (responseBody == null || !("cancelled".equals(responseBody.get("status"))
+        || "paid".equals(responseBody.get("status")))) {
+      throw new CustomException(CustomErrorCode.PORTONE_REFUND_FAILED);
+    }
+    return responseBody;
+  }
+
+  // 포트원 API 환불 요청 본문을 생성하는 메소드
+  private Map<String, Object> buildRefundRequestBody(PaymentRefundRequest request,
+      Integer originalPaidAmount) {
+    Map<String, Object> body = new LinkedHashMap<>();
     if (request.getImpUid() != null) {
       body.put("imp_uid", request.getImpUid());
     } else if (request.getMerchantUid() != null) {
@@ -218,16 +243,13 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     if (request.getCancelAmount() != null) {
-      // 부분 환불
       if (request.getCancelAmount() > originalPaidAmount) {
         throw new CustomException(CustomErrorCode.REFUND_AMOUNT_EXCEEDS_PAID);
       }
       body.put("amount", request.getCancelAmount());
-      body.put("checksum", originalPaidAmount); // 원 결제 금액을 checksum으로 사용
-    } else {
-      // 전액 환불
-      body.put("checksum", originalPaidAmount); // 원 결제 금액을 checksum으로 사용
     }
+    body.put("checksum", originalPaidAmount);
+
     if (request.getRefundHolder() != null) {
       body.put("refund_holder", request.getRefundHolder());
     }
@@ -240,82 +262,41 @@ public class PaymentServiceImpl implements PaymentService {
     if (request.getRefundTel() != null) {
       body.put("refund_tel", request.getRefundTel());
     }
-
-    log.info("[디버그] 포트원 요청 본문 (body) 내용: {}", body);
-
-    log.info("[디버그] 포트원 요청 헤더 (headers) 내용: {}", headers);
-
-    String jsonBody;
-    try {
-        jsonBody = objectMapper.writeValueAsString(body); // Map을 JSON 문자열로 수동 직렬화
-        log.info("[디버그] 수동 직렬화된 JSON 본문: {}", jsonBody); // 추가된 로그
-    } catch (JsonProcessingException e) {
-        log.error("[환불] JSON 직렬화 실패: {}", e.getMessage());
-        throw new CustomException(CustomErrorCode.PORTONE_REQUEST_SERIALIZATION_FAILED); // 적절한 에러 코드로 변경 가능
-    }
-
-    // HttpEntity의 본문 타입을 String으로 변경
-    HttpEntity<String> requestEntity = new HttpEntity<>(jsonBody, headers);
-
-    ResponseEntity<Map> response;
-    try {
-      // restTemplate.exchange의 요청 본문 타입을 String.class로 변경
-      response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, Map.class);
-      log.info("[포트원 환불 응답 전체] {}", response.getBody());
-    } catch (Exception e) {
-      log.error("[포트원 환불 요청 실패] {}", e.getMessage());
-      throw new CustomException(CustomErrorCode.PORTONE_REFUND_FAILED);
-    }
-
-    Map<String, Object> responseBody = (Map<String, Object>) response.getBody().get("response");
-    if (responseBody == null || !("cancelled".equals(responseBody.get("status")) || "paid".equals(responseBody.get("status")))) {
-      throw new CustomException(CustomErrorCode.PORTONE_REFUND_FAILED);
-    }
-
-    // 4. 환불 정보 저장 및 PaymentInfo 상태 업데이트
-    Integer refundedAmount = (Integer) responseBody.get("cancel_amount");
-    Boolean isPartial = request.getCancelAmount() != null && request.getCancelAmount() < originalPaidAmount;
-
-    Refund refund = Refund.builder()
-        .payment(payment)
-        .amount(refundedAmount)
-        .reason(request.getReason())
-        .status(RefundStatus.REFUNDED)
-        .isPartial(isPartial)
-        .refundedAt(LocalDateTime.now())
-        .build();
-    refundRepository.save(refund);
-
-    // Update status of the specific PaymentInfo entity
-    if (paymentInfoEntity instanceof ReservationPaymentInfo) {
-      ReservationPaymentInfo rpi = (ReservationPaymentInfo) paymentInfoEntity;
-      if (!isPartial) {
-        rpi.setStatus(PaymentStatus.REFUNDED);
-      } else {
-        rpi.setStatus(PaymentStatus.PARTIAL_REFUNDED);
-      }
-      reservationPaymentInfoRepository.save(rpi);
-    } else if (paymentInfoEntity instanceof AdPaymentInfo) {
-      AdPaymentInfo api = (AdPaymentInfo) paymentInfoEntity;
-      if (!isPartial) {
-        api.setStatus(PaymentStatus.REFUNDED);
-      } else {
-        api.setStatus(PaymentStatus.PARTIAL_REFUNDED);
-      }
-      adPaymentInfoRepository.save(api);
-    } else if (paymentInfoEntity instanceof ExpoPaymentInfo) {
-      ExpoPaymentInfo epi = (ExpoPaymentInfo) paymentInfoEntity;
-      if (!isPartial) {
-        epi.setStatus(PaymentStatus.REFUNDED);
-      } else {
-        epi.setStatus(PaymentStatus.PARTIAL_REFUNDED);
-      }
-      expoPaymentInfoRepository.save(epi);
-    }
-
-    return responseBody;
+    return body;
   }
 
+  // 환불할 결제 정보를 조회하는 메소드
+  private PaymentInfoForRefund getPaymentInfoForRefund(Payment payment) {
+    Object paymentInfoEntity;
+    Integer originalPaidAmount;
+
+    switch (payment.getTargetType()) {
+      case RESERVATION:
+        ReservationPaymentInfo rpi = reservationPaymentInfoRepository.findById(
+                payment.getTargetId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        paymentInfoEntity = rpi;
+        originalPaidAmount = rpi.getTotalAmount();
+        break;
+      case AD:
+        AdPaymentInfo api = adPaymentInfoRepository.findById(payment.getTargetId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        paymentInfoEntity = api;
+        originalPaidAmount = api.getTotalAmount();
+        break;
+      case EXPO:
+        ExpoPaymentInfo epi = expoPaymentInfoRepository.findById(payment.getTargetId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        paymentInfoEntity = epi;
+        originalPaidAmount = epi.getTotalAmount();
+        break;
+      default:
+        throw new CustomException(CustomErrorCode.INVALID_PAYMENT_TARGET_TYPE);
+    }
+    return new PaymentInfoForRefund(paymentInfoEntity, originalPaidAmount);
+  }
+
+  // 결제 주체를 식별하는 메소드
   private UserIdentifier identifyUser(PaymentVerifyRequest request) {
     UserType userType = null;
     Long userId = null;
@@ -329,14 +310,13 @@ public class PaymentServiceImpl implements PaymentService {
         break;
       case AD:
       case EXPO:
-        // AD와 EXPO는 회원만 결제 가능하므로, 현재 로그인된 회원 정보를 가져옵니다.
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
+        if (authentication == null || !authentication.isAuthenticated()
+            || authentication instanceof AnonymousAuthenticationToken) {
           throw new CustomException(CustomErrorCode.REFRESH_TOKEN_NOT_EXIST);
         }
-        // CustomUserDetails에서 memberId를 직접 가져옵니다.
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        userType = UserType.MEMBER; // AD/EXPO는 회원만 가능
+        userType = UserType.MEMBER;
         userId = userDetails.getMemberId();
         break;
       default:
@@ -345,7 +325,9 @@ public class PaymentServiceImpl implements PaymentService {
     return UserIdentifier.builder().userType(userType).userId(userId).build();
   }
 
-  private Integer verifyPaymentDetails(PaymentVerifyRequest request, Map<String, Object> portOnePayment) {
+  // 포트원 결제 내역과 우리 시스템의 결제 요청 정보를 비교하여 검증하는 메소드
+  private Integer verifyPaymentDetails(PaymentVerifyRequest request,
+      Map<String, Object> portOnePayment) {
     String status = (String) portOnePayment.get("status");
     Integer paidAmount = (Integer) portOnePayment.get("amount");
     String merchantUid = (String) portOnePayment.get("merchant_uid");
@@ -362,35 +344,28 @@ public class PaymentServiceImpl implements PaymentService {
     return paidAmount;
   }
 
-  private Object savePaymentInfoDetails(PaymentVerifyRequest request, Integer paidAmount, Payment payment) {
-    PaymentStatus paymentStatus = PaymentStatus.SUCCESS; // 결제 성공 상태
-    Object savedPaymentInfo = null;
+  // 결제 유형에 따라 상세 정보를 저장하는 메소드
+  private Object savePaymentInfoDetails(PaymentVerifyRequest request, Integer paidAmount,
+      Payment payment) {
+    PaymentStatus paymentStatus = PaymentStatus.SUCCESS;
+    Object savedPaymentInfo;
 
     switch (request.getTargetType()) {
       case RESERVATION:
         Reservation reservation = reservationRepository.findById(request.getTargetId())
             .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
-        ReservationPaymentInfo reservationPaymentInfo = ReservationPaymentInfo.builder()
-            .reservation(reservation)
-            .totalAmount(paidAmount)
-            .status(paymentStatus)
-            .usedMileage(request.getUsedMileage()) // PaymentVerifyRequest에서 가져옴
-            .savedMileage(request.getSavedMileage()) // PaymentVerifyRequest에서 가져옴
-            .build();
+        ReservationPaymentInfo reservationPaymentInfo = paymentMapper.toReservationPaymentInfo(request,
+            reservation, paidAmount, paymentStatus);
         savedPaymentInfo = reservationPaymentInfoRepository.save(reservationPaymentInfo);
         break;
       case AD:
         Advertisement advertisement = advertisementRepository.findById(request.getTargetId())
             .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
-        AdFeeSetting adFeeSetting = adFeeSettingRepository.findByAdPositionIdAndIsActiveTrue(advertisement.getAdPosition().getId())
+        AdFeeSetting adFeeSetting = adFeeSettingRepository.findByAdPositionIdAndIsActiveTrue(
+                advertisement.getAdPosition().getId())
             .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
-        AdPaymentInfo adPaymentInfo = AdPaymentInfo.builder()
-            .advertisement(advertisement)
-            .totalAmount(paidAmount)
-            .status(paymentStatus)
-            .totalDay(advertisement.getTotalDays())
-            .feePerDay(adFeeSetting.getFeePerDay())
-            .build();
+        AdPaymentInfo adPaymentInfo = paymentMapper.toAdPaymentInfo(advertisement, adFeeSetting,
+            paidAmount, paymentStatus);
         savedPaymentInfo = adPaymentInfoRepository.save(adPaymentInfo);
         break;
       case EXPO:
@@ -398,16 +373,8 @@ public class PaymentServiceImpl implements PaymentService {
             .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
         ExpoFeeSetting expoFeeSetting = expoFeeSettingRepository.findByIsActiveTrue()
             .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
-        long totalDays = ChronoUnit.DAYS.between(expo.getDisplayStartDate(), expo.getDisplayEndDate()) + 1;
-        ExpoPaymentInfo expoPaymentInfo = ExpoPaymentInfo.builder()
-            .expo(expo)
-            .totalAmount(paidAmount)
-            .status(paymentStatus)
-            .deposit(expoFeeSetting.getDeposit()) // ExpoFeeSetting에서 가져옴
-            .premiumDeposit(expoFeeSetting.getPremiumDeposit()) // ExpoFeeSetting에서 가져옴
-            .totalDay((int) totalDays) // 계산된 값
-            .dailyUsageFee(expoFeeSetting.getDailyUsageFee()) // ExpoFeeSetting에서 가져옴
-            .build();
+        ExpoPaymentInfo expoPaymentInfo = paymentMapper.toExpoPaymentInfo(expo, expoFeeSetting,
+            paidAmount, paymentStatus);
         savedPaymentInfo = expoPaymentInfoRepository.save(expoPaymentInfo);
         break;
       default:
@@ -416,6 +383,7 @@ public class PaymentServiceImpl implements PaymentService {
     return savedPaymentInfo;
   }
 
+  // 포트원 API에서 결제 정보를 조회하는 메소드
   private Map<String, Object> getPaymentInfo(String impUid, String accessToken) {
     String url = "https://api.iamport.kr/payments/" + impUid;
     HttpHeaders headers = new HttpHeaders();
