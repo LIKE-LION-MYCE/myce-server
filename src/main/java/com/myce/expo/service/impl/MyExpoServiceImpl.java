@@ -1,17 +1,22 @@
 package com.myce.expo.service.impl;
 
+import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.expo.dto.ExpoAdminPermissionResponse;
 import com.myce.expo.dto.MyExpoDetailResponse;
 import com.myce.expo.dto.MyExpoUpdateRequest;
+import com.myce.expo.entity.AdminCode;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.ExpoCategory;
 import com.myce.expo.entity.type.ExpoStatus;
+import com.myce.expo.repository.AdminCodeRepository;
 import com.myce.expo.repository.CategoryRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.ExpoCategoryRepository;
 import com.myce.expo.service.MyExpoService;
+import com.myce.expo.service.mapper.ExpoAdminPermissionMapper;
 import com.myce.expo.service.mapper.MyExpoMapper;
 import com.myce.member.entity.Member;
 import com.myce.member.entity.type.Role;
@@ -30,16 +35,30 @@ public class MyExpoServiceImpl implements MyExpoService {
     private final ExpoRepository expoRepository;
     private final ExpoCategoryRepository expoCategoryRepository;
     private final CategoryRepository categoryRepository;
-    private final MyExpoMapper expoMapper;
     private final MemberRepository memberRepository;
+    private final AdminCodeRepository adminCodeRepository;
+    private final MyExpoMapper expoMapper;
+    private final ExpoAdminPermissionMapper expoAdminPermissionMapper;
 
-    // 관리자 페이지로 이동 가능한 박람회 목록 조회
     @Override
-    public List<Long> getMyExpos(Long memberId) {
-        List<Expo> expos = expoRepository.findByMemberIdAndStatusIn(memberId, ExpoStatus.ACTIVE_STATUSES);
-        return expos.stream()
-                .map(Expo::getId)
-                .toList();
+    public ExpoAdminPermissionResponse getExpoAdminPermission(Long memberId, LoginType loginType) {
+        if(loginType == null || memberId == null) {
+            throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
+        }
+
+        switch (loginType) {
+            case MEMBER -> {
+                List<Long> expoIds = expoRepository.findIdsByMemberIdAndStatusIn(memberId, ExpoStatus.ACTIVE_STATUSES);
+                return expoAdminPermissionMapper.toDto(expoIds, null);
+            }
+            case ADMIN_CODE -> {
+                AdminCode adminCode = adminCodeRepository.findWithAdminPermissionById(memberId)
+                        .orElseThrow(() -> new CustomException(CustomErrorCode.ADMIN_CODE_NOT_FOUND));
+
+                return expoAdminPermissionMapper.toDto(List.of(adminCode.getExpoId()), adminCode.getAdminPermission());
+            }
+            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
+        }
     }
 
     // 내 박람회 상세조회
@@ -70,7 +89,6 @@ public class MyExpoServiceImpl implements MyExpoService {
         List<ExpoCategory> expoCategories = expoCategoryRepository.findByExpoId(expo.getId());
         return expoMapper.toMyExpoDetailResponse(expo, expoCategories);
     }
-
 
     /// 유틸 메소드
     // 박람회 검증 및 박람회 관리자 검증 로직

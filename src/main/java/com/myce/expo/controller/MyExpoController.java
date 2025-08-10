@@ -1,11 +1,12 @@
 package com.myce.expo.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.auth.dto.type.LoginType;
+import com.myce.expo.dto.ExpoAdminPermissionResponse;
 import com.myce.expo.dto.MyExpoDetailResponse;
 import com.myce.expo.dto.MyExpoUpdateRequest;
 import com.myce.expo.service.MyExpoService;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,11 +24,14 @@ public class MyExpoController {
 
     private final MyExpoService expoService;
 
-    // 관리자 페이지로 이동 가능한 박람회 리스트 조회
+    //로그인한 사용자 기반 박람회 및 박람회 세부 접근권한 반환
     @GetMapping
-    public ResponseEntity<List<Long>> getMyExpos(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
+    public ResponseEntity<ExpoAdminPermissionResponse> getExpoAdminPermission(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails){
         Long memberId = customUserDetails.getMemberId();
-        return ResponseEntity.ok(expoService.getMyExpos(memberId));
+        LoginType loginType = customUserDetails.getLoginType();
+        ExpoAdminPermissionResponse response = expoService.getExpoAdminPermission(memberId, loginType);
+        return ResponseEntity.ok(response);
     }
 
     // 나의 박람회 상세 정보 조회
