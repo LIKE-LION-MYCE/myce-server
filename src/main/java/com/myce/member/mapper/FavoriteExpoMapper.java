@@ -1,17 +1,14 @@
 package com.myce.member.mapper;
 
 import com.myce.member.dto.FavoriteExpoResponse;
-import com.myce.member.dto.ReservedExpoResponse;
 import com.myce.member.entity.Favorite;
-import com.myce.reservation.entity.Reservation;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
 
 @Component
 public class FavoriteExpoMapper {
-    
+
     public List<FavoriteExpoResponse> toResponseDtoList(List<Favorite> favorites) {
         return favorites.stream()
                 .map(favorite -> FavoriteExpoResponse.builder()

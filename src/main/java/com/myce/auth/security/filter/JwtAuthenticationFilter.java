@@ -6,7 +6,6 @@ import com.myce.auth.dto.type.LoginType;
 import com.myce.auth.security.util.JwtUtil;
 import com.myce.auth.service.AdminCodeDetailService;
 import com.myce.auth.service.impl.UserDetailsServiceImpl;
-import com.myce.common.exception.CustomException;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

@@ -1,8 +1,8 @@
 package com.myce.expo.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
-import com.myce.common.exception.CustomErrorCode;
-import com.myce.common.exception.CustomException;
+import com.myce.auth.dto.type.LoginType;
+import com.myce.expo.dto.ExpoAdminPermissionResponse;
 import com.myce.expo.dto.MyExpoDetailResponse;
 import com.myce.expo.dto.MyExpoUpdateRequest;
 import com.myce.expo.service.MyExpoService;
@@ -10,9 +10,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,11 +24,14 @@ public class MyExpoController {
 
     private final MyExpoService expoService;
 
-    // 관리자 페이지로 이동 가능한 박람회 리스트 조회
+    //로그인한 사용자 기반 박람회 및 박람회 세부 접근권한 반환
     @GetMapping
-    public ResponseEntity<List<Long>> getMyExpos(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
+    public ResponseEntity<ExpoAdminPermissionResponse> getExpoAdminPermission(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails){
         Long memberId = customUserDetails.getMemberId();
-        return ResponseEntity.ok(expoService.getMyExpos(memberId));
+        LoginType loginType = customUserDetails.getLoginType();
+        ExpoAdminPermissionResponse response = expoService.getExpoAdminPermission(memberId, loginType);
+        return ResponseEntity.ok(response);
     }
 
     // 나의 박람회 상세 정보 조회
@@ -45,7 +51,8 @@ public class MyExpoController {
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody MyExpoUpdateRequest updateRequest) {
         Long memberId = customUserDetails.getMemberId();
-        MyExpoDetailResponse updatedExpo = expoService.updateMyExpoDetail(expoId, memberId, updateRequest); // 서비스에서 DTO 반환
+        MyExpoDetailResponse updatedExpo = expoService.updateMyExpoDetail(expoId, memberId,
+                updateRequest); // 서비스에서 DTO 반환
         return ResponseEntity.ok(updatedExpo); // 업데이트된 DTO 반환
     }
 }

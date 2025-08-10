@@ -75,4 +75,19 @@ public class AdminPermission {
         this.isSettlementView = isSettlementView;
         this.isInquiryView = isInquiryView;
     }
+
+    public void updateAdminPermission(Boolean isExpoDetailUpdate, Boolean isBoothInfoUpdate,
+                                      Boolean isScheduleUpdate, Boolean isReserverListView,
+                                      Boolean isPaymentView, Boolean isEmailLogView,
+                                      Boolean isOperationsConfigUpdate, Boolean isSettlementView,Boolean isInquiryView){
+        this.isExpoDetailUpdate = isExpoDetailUpdate;
+        this.isBoothInfoUpdate = isBoothInfoUpdate;
+        this.isScheduleUpdate = isScheduleUpdate;
+        this.isReserverListView = isReserverListView;
+        this.isPaymentView = isPaymentView;
+        this.isEmailLogView = isEmailLogView;
+        this.isOperationsConfigUpdate = isOperationsConfigUpdate;
+        this.isSettlementView = isSettlementView;
+        this.isInquiryView = isInquiryView;
+    }
 }
