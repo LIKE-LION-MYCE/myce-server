@@ -13,15 +13,27 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/expos/{expoId}/reservations")
+@RequestMapping("/api/expos/{expoId}")
 @RequiredArgsConstructor
 public class ExpoAdminReservationController {
 
     private final ExpoAdminReservationService service;
 
-    @GetMapping
-    public ResponseEntity<Page<ExpoAdminReservationResponse>> getExpoAdminReservation(
+    @GetMapping("/reservations/ticket-name")
+    public ResponseEntity<List<String>> getExpoTicketNames(
+            @PathVariable Long expoId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long memberId = customUserDetails.getMemberId();
+        LoginType loginType = customUserDetails.getLoginType();
+
+        return ResponseEntity.ok(service.getExpoTicketNames(expoId,memberId,loginType));
+    }
+
+    @GetMapping("/reservations")
+    public ResponseEntity<Page<ExpoAdminReservationResponse>> getMyExpoReservations(
             @PathVariable Long expoId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -35,7 +47,7 @@ public class ExpoAdminReservationController {
         LoginType loginType = customUserDetails.getLoginType();
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
-        Page<ExpoAdminReservationResponse> result = service.getMyExpoReservation(
+        Page<ExpoAdminReservationResponse> result = service.getMyExpoReservations(
                 expoId, memberId, loginType,
                 entranceStatus, name, phone, reservationCode, ticketName,
                 pageable);

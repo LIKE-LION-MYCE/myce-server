@@ -22,7 +22,7 @@ public class ExpoAdminPaymentController {
     private final ExpoAdminPaymentService service;
 
     @GetMapping
-    public ResponseEntity<Page<ExpoAdminPaymentResponse>> getExpoAdminPayment(
+    public ResponseEntity<Page<ExpoAdminPaymentResponse>> getMyExpoPayments(
             @PathVariable Long expoId,
             @RequestParam(defaultValue = "desc") String sort,
             @RequestParam(defaultValue = "0") int page,

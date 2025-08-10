@@ -3,8 +3,10 @@ package com.myce.reservation.service.Impl;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.expo.entity.Ticket;
 import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
+import com.myce.expo.repository.TicketRepository;
 import com.myce.reservation.dto.ExpoAdminReservationResponse;
 import com.myce.reservation.repository.ReserverRepository;
 import com.myce.reservation.service.ExpoAdminReservationService;
@@ -13,16 +15,29 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class ExpoAdminReservationServiceImpl implements ExpoAdminReservationService {
 
     private final ExpoRepository expoRepository;
+    private final TicketRepository ticketRepository;
     private final AdminPermissionRepository adminPermissionRepository;
     private final ReserverRepository reserverRepository;
 
     @Override
-    public Page<ExpoAdminReservationResponse> getMyExpoReservation(
+    public List<String> getExpoTicketNames(Long expoId, Long memberId, LoginType loginType) {
+        validateMyAccess(expoId,memberId,loginType);
+        List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
+
+        return tickets.stream().map(Ticket::getName).toList();
+    }
+
+    @Override
+    public Page<ExpoAdminReservationResponse> getMyExpoReservations(
             Long expoId, Long memberId, LoginType loginType,
             String entranceStatus, String name, String phone, String reservationCode, String ticketName,
             Pageable pageable) {
