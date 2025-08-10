@@ -11,6 +11,8 @@ import com.myce.chat.service.ChatWebSocketService;
 import com.myce.chat.service.mapper.ChatMessageMapper;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.expo.entity.AdminCode;
+import com.myce.expo.repository.AdminCodeRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.member.entity.Member;
 import com.myce.member.entity.type.Role;
@@ -33,6 +35,7 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
 
     private final JwtUtil jwtUtil;
     private final MemberRepository memberRepository;
+    private final AdminCodeRepository adminCodeRepository;
     private final ExpoRepository expoRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
@@ -40,21 +43,22 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
 
     @Override
     public Long authenticateUser(String token) {
-        log.debug("WebSocket JWT 토큰 인증 시작");
-        
         try {
             if (token == null || token.trim().isEmpty()) {
                 throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
             }
-            
-            // JWT 토큰에서 사용자 ID 추출
+
             Long userId = jwtUtil.getMemberIdFromToken(token);
+            String loginType = jwtUtil.getLoginTypeFromToken(token);
             
-            // 사용자 존재 여부 확인
-            memberRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+            if ("ADMIN_CODE".equals(loginType)) {
+                adminCodeRepository.findById(userId)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+            } else {
+                memberRepository.findById(userId)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+            }
             
-            log.debug("WebSocket JWT 인증 성공 - userId: {}", userId);
             return userId;
             
         } catch (Exception e) {
@@ -65,74 +69,87 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
 
     @Override
     @Transactional
-    public void joinRoom(Long userId, String roomId) {
-        log.debug("채팅방 입장 처리 시작 - userId: {}, roomId: {}", userId, roomId);
-        
-        // roomId 형식 검증: "admin-{expoId}-{userId}"
+    public void joinRoom(Long userId, String roomId, String token) {
         if (!isValidRoomIdFormat(roomId)) {
             throw new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
         }
         
-        // roomId에서 expoId, participantId 추출
         String[] parts = roomId.split("-");
         Long expoId = Long.parseLong(parts[1]);
         Long participantId = Long.parseLong(parts[2]);
         
-        // 사용자 권한 검증
-        Member user = memberRepository.findById(userId)
-            .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+        String loginType = jwtUtil.getLoginTypeFromToken(token);
         
-        // 관리자인 경우: 해당 박람회의 소유자인지 확인
-        if (Role.EXPO_ADMIN.name().equals(user.getRole().name())) {
-            boolean isExpoOwner = expoRepository.existsByIdAndMemberId(expoId, userId);
-            if (!isExpoOwner) {
+        if ("ADMIN_CODE".equals(loginType)) {
+            AdminCode adminCode = adminCodeRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+            
+            if (!adminCode.getExpoId().equals(expoId)) {
                 throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
             }
-        } 
-        // 일반 사용자인 경우: roomId의 participantId와 일치하는지 확인
-        else if (Role.USER.name().equals(user.getRole().name())) {
-            if (!userId.equals(participantId)) {
-                throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
-            }
+            
         } else {
-            throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+            Member user = memberRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+            
+            if (Role.EXPO_ADMIN.name().equals(user.getRole().name())) {
+                boolean isExpoOwner = expoRepository.existsByIdAndMemberId(expoId, userId);
+                if (!isExpoOwner) {
+                    throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+                }
+            } else if (Role.USER.name().equals(user.getRole().name())) {
+                if (!userId.equals(participantId)) {
+                    throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+                }
+            } else {
+                throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+            }
         }
         
-        // 채팅방 존재 확인 및 생성
         ensureChatRoomExists(roomId, expoId, participantId);
-        
-        log.info("채팅방 입장 성공 - userId: {}, roomId: {}", userId, roomId);
     }
 
     @Override
     @Transactional
     public MessageResponse sendMessage(Long userId, String roomId, String content) {
-        log.debug("메시지 전송 시작 - userId: {}, roomId: {}", userId, roomId);
+        String[] parts = roomId.split("-");
+        Long expoId = Long.parseLong(parts[1]);
         
-        // 사용자 정보 조회
-        Member sender = memberRepository.findById(userId)
-            .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+        String senderRole;
+        String senderName;
         
-        // 메시지 생성 및 저장
+        Optional<AdminCode> adminCodeOpt = adminCodeRepository.findById(userId);
+        
+        if (adminCodeOpt.isPresent()) {
+            senderRole = "ADMIN";
+            senderName = "박람회 관리자";
+        } else {
+            Optional<Member> memberOpt = memberRepository.findById(userId);
+            
+            if (memberOpt.isPresent()) {
+                Member sender = memberOpt.get();
+                boolean isExpoOwner = expoRepository.existsByIdAndMemberId(expoId, userId);
+                
+                if (isExpoOwner) {
+                    senderRole = "ADMIN";
+                    senderName = "박람회 관리자";
+                } else {
+                    senderRole = "USER";
+                    senderName = sender.getName();
+                }
+            } else {
+                throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
+            }
+        }
+        
         ChatMessage chatMessage = chatMessageService.createMessage(
-            roomId,
-            sender.getRole().name(),
-            userId,
-            sender.getName(),
-            content
+            roomId, senderRole, userId, senderName, content
         );
         
-        // MongoDB에 메시지 저장
         ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
-        
-        // 채팅방 마지막 메시지 업데이트
         updateChatRoomLastMessage(roomId, savedMessage.getId(), content);
         
-        // 응답 DTO 생성 (Mapper 사용)
-        MessageResponse response = ChatMessageMapper.toSendResponse(savedMessage, roomId);
-        
-        log.info("메시지 전송 완료 - userId: {}, roomId: {}", userId, roomId);
-        return response;
+        return ChatMessageMapper.toSendResponse(savedMessage, roomId);
     }
 
     /**
@@ -164,8 +181,6 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
         Optional<ChatRoom> existingRoom = chatRoomRepository.findByRoomCode(roomId);
         
         if (existingRoom.isEmpty()) {
-            log.info("새 채팅방 생성 - roomId: {}", roomId);
-            
             ChatRoom newRoom = ChatRoom.builder()
                 .roomCode(roomId)
                 .expoId(expoId)
@@ -188,4 +203,45 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
             chatRoomRepository.save(chatRoom);
         }
     }
+
+    /**
+     * 관리자 담당자 배정 로직
+     */
+    @Override
+    public void assignAdminIfNeeded(ChatRoom chatRoom, String adminCode) {
+        if (!chatRoom.hasAssignedAdmin()) {
+            chatRoom.assignAdmin(adminCode);
+            chatRoom.setAdminDisplayName(getAdminDisplayName(adminCode));
+        } else if (!chatRoom.getCurrentAdminCode().equals(adminCode)) {
+            throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+        } else {
+            chatRoom.updateAdminActivity();
+        }
+    }
+
+    /**
+     * JWT 기반 관리자 코드 결정
+     */
+    @Override
+    public String determineAdminCode(Long memberId, String loginType) {
+        if ("ADMIN_CODE".equals(loginType)) {
+            AdminCode adminCode = adminCodeRepository.findById(memberId)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+            return adminCode.getCode();
+        } else {
+            return "SUPER_ADMIN";
+        }
+    }
+
+    /**
+     * 관리자 표시 이름 생성
+     */
+    private String getAdminDisplayName(String adminCode) {
+        if ("SUPER_ADMIN".equals(adminCode)) {
+            return "박람회 관리자";
+        } else {
+            return "박람회 관리자 (" + adminCode + ")";
+        }
+    }
+    
 }

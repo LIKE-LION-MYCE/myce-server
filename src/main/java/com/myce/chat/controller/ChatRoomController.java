@@ -39,22 +39,17 @@ public class ChatRoomController {
     public ResponseEntity<ChatRoomListResponse> getChatRooms(
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         
-        log.info("=== 채팅방 목록 조회 API 호출 시작 ===");
         if (customUserDetails == null) {
             log.error("CustomUserDetails가 null입니다. 인증되지 않은 사용자");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         
-        log.info("채팅방 목록 조회 API 호출 - 회원ID: {}, 역할: {}", 
-                customUserDetails.getMemberId(), customUserDetails.getRole());
 
         ChatRoomListResponse response = chatRoomService.getChatRooms(
                 customUserDetails.getMemberId(), 
                 customUserDetails.getRole()
         );
 
-        log.info("채팅방 목록 조회 성공 - 회원ID: {}, 조회된 채팅방 수: {}", 
-                customUserDetails.getMemberId(), response.getTotalCount());
 
         return ResponseEntity.ok(response);
     }
@@ -67,16 +62,12 @@ public class ChatRoomController {
             @PathVariable("expoId") Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         
-        log.info("박람회별 채팅방 조회 API 호출 - 박람회ID: {}, 관리자ID: {}", 
-                expoId, customUserDetails.getMemberId());
 
         ChatRoomListResponse response = chatRoomService.getChatRoomsByExpo(
                 expoId, 
                 customUserDetails.getMemberId()
         );
 
-        log.info("박람회별 채팅방 조회 성공 - 박람회ID: {}, 관리자ID: {}, 채팅방 수: {}", 
-                expoId, customUserDetails.getMemberId(), response.getTotalCount());
 
         return ResponseEntity.ok(response);
     }
@@ -91,8 +82,6 @@ public class ChatRoomController {
             @RequestParam(value = "size", defaultValue = "50") int size,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         
-        log.info("메시지 히스토리 조회 API 호출 - roomCode: {}, 회원ID: {}, page: {}, size: {}", 
-                roomCode, customUserDetails.getMemberId(), page, size);
 
         // 페이징 설정 (최대 100개로 제한)
         int pageSize = Math.min(size, 100);
@@ -103,9 +92,23 @@ public class ChatRoomController {
         
         PageResponse<MessageResponse> response = chatMessageService.getMessages(roomCode, pageable);
         
-        log.info("메시지 히스토리 조회 성공 - roomCode: {}, 회원ID: {}, 조회된 메시지 수: {}", 
-                roomCode, customUserDetails.getMemberId(), response.content().size());
 
         return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * 사용자 채팅방 읽음 처리 API
+     */
+    @PostMapping("/{roomCode}/read")
+    public ResponseEntity<Void> markAsRead(
+            @PathVariable("roomCode") String roomCode,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        
+        
+        // ChatRoomService의 markAsRead 메서드 호출 (예외는 GlobalExceptionHandler에서 처리)
+        chatRoomService.markAsRead(roomCode, null, customUserDetails.getMemberId());
+        
+        
+        return ResponseEntity.ok().build();
     }
 }

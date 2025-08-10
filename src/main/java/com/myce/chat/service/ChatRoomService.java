@@ -20,4 +20,9 @@ public interface ChatRoomService {
      * 박람회별 채팅방 목록 조회 (관리자 전용, 권한 검증)
      */
     ChatRoomListResponse getChatRoomsByExpo(Long expoId, Long adminId);
+    
+    /**
+     * 사용자 채팅방 읽음 처리 (USER 타입 사용자 전용)
+     */
+    void markAsRead(String roomCode, String lastReadMessageId, Long memberId);
 }
