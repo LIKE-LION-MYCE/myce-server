@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -32,6 +31,7 @@ public class QrCodeExpireScheduler implements TaskScheduler {
 
     @Override
     @Scheduled(cron = "${scheduler.qr-code-expire:0 * * * * *}")
+    @Transactional
     public void run() {
         try {
             process();
@@ -47,19 +47,13 @@ public class QrCodeExpireScheduler implements TaskScheduler {
         LocalDateTime now = LocalDateTime.now();
         log.info("만료 스케줄러 실행 - 현재 시간: {}", now);
         
-        List<QrCode> qrCodesToExpire = qrCodeRepository.findByStatusAndExpiredAtBefore(
-                QrCodeStatus.ACTIVE, now);
+        // Bulk Update로 성능 최적화
+        int updatedCount = qrCodeRepository.bulkUpdateStatusToExpired(
+                QrCodeStatus.ACTIVE, QrCodeStatus.EXPIRED, now);
         
-        log.info("만료 대상 QR코드 수: {}", qrCodesToExpire.size());
-        
-        if (!qrCodesToExpire.isEmpty()) {
-            qrCodesToExpire.forEach(qrCode -> {
-                log.info("QR코드 ID: {}, 변경 전 상태: {}", qrCode.getId(), qrCode.getStatus());
-                qrCode.expire();
-                log.info("QR코드 ID: {}, 변경 후 상태: {}", qrCode.getId(), qrCode.getStatus());
-            });
-            qrCodeRepository.saveAll(qrCodesToExpire);
-            log.info("QR 코드 만료 처리 완료 - {} 개", qrCodesToExpire.size());
+        if (updatedCount > 0) {
+            log.info("QR 코드 만료 처리 완료 - {} 개", updatedCount);
+          
         } else {
             log.debug("만료 처리할 QR 코드가 없습니다.");
         }

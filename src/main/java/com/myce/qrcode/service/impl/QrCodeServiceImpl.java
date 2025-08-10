@@ -103,6 +103,10 @@ public class QrCodeServiceImpl implements QrCodeService {
             throw new CustomException(CustomErrorCode.QR_EXPIRED);
         }
 
+        if (qr.getStatus() == QrCodeStatus.APPROVED) {
+            throw new CustomException(CustomErrorCode.QR_APPROVED);
+        }
+
         qr.markAsUsed();
         log.info("QR 코드 사용 처리 완료 - QR ID: {}, 예약자 ID: {}", 
                 qr.getId(), qr.getReserver().getId());
@@ -204,10 +208,11 @@ public class QrCodeServiceImpl implements QrCodeService {
     }
 
     /**
-     * 티켓의 use_end_date 당일 23:59:59로 만료 시간 계산
+     * 티켓의 use_end_date 다음날 00:00:00으로 만료 시간 계산
+     * (use_end_date 당일 종일 사용 가능하도록)
      */
     private LocalDateTime calculateExpiredAt(Reserver reserver) {
         LocalDate ticketUseEndDate = reserver.getReservation().getTicket().getUseEndDate();
-        return ticketUseEndDate.atTime(23, 59, 59);
+        return ticketUseEndDate.plusDays(1).atStartOfDay();
     }
 }
