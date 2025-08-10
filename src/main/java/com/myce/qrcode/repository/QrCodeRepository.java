@@ -25,22 +25,8 @@ public interface QrCodeRepository extends JpaRepository<QrCode, Long> {
     List<QrCode> findByStatusAndExpiredAtBefore(QrCodeStatus status, LocalDateTime expiredAt);
     
     // 혼잡도 계산용 - 특정 박람회의 1시간 내 입장자 수 조회
-    @Query("SELECT COUNT(qr) FROM QrCode qr " +
-           "JOIN qr.reserver r " +
-           "JOIN r.reservation res " +
-           "WHERE res.expo.id = :expoId " +
-           "AND qr.usedAt >= :oneHourAgo " +
-           "AND qr.usedAt <= :now")
-    long countRecentlyUsedQrCodesByExpo(@Param("expoId") Long expoId, 
-                                       @Param("oneHourAgo") LocalDateTime oneHourAgo,
-                                       @Param("now") LocalDateTime now);
-    
-    // QR코드 일괄 생성용 - 특정 박람회의 QR코드가 이미 생성된 예약자 수 확인
-    @Query("SELECT COUNT(qr) FROM QrCode qr " +
-           "JOIN qr.reserver r " +
-           "JOIN r.reservation res " +
-           "WHERE res.expo.id = :expoId")
-    long countExistingQrCodesByExpo(@Param("expoId") Long expoId);
+    long countByReserverReservationExpoIdAndUsedAtAfter(Long expoId, LocalDateTime oneHourAgo);
+
     
     // QR코드 상태 일괄 업데이트 - APPROVED -> ACTIVE
     @Modifying(clearAutomatically = true)

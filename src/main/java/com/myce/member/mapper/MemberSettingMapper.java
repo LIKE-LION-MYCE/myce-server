@@ -1,6 +1,7 @@
 package com.myce.member.mapper;
 
 import com.myce.member.dto.MemberSettingResponse;
+import com.myce.member.dto.MemberSettingUpdateRequest;
 import com.myce.member.entity.MemberSetting;
 import org.springframework.stereotype.Component;
 
@@ -14,5 +15,12 @@ public class MemberSettingMapper {
                 .isReceiveEmail(memberSetting.getIsReceiveEmail())
                 .isReceivePush(memberSetting.getIsReceivePush())
                 .build();
+    }
+    
+    public void updateMemberSetting(MemberSetting memberSetting, MemberSettingUpdateRequest request) {
+        memberSetting.updateSettings(
+                request.getLanguage(),
+                request.getFontSize()
+        );
     }
 }
