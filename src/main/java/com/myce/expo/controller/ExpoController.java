@@ -1,6 +1,7 @@
 package com.myce.expo.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.expo.dto.CongestionResponse;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.service.ExpoService;
 import jakarta.validation.Valid;
@@ -25,5 +26,12 @@ public class ExpoController {
         Long memberId = customUserDetails.getMemberId();
         exposervice.saveExpo(memberId, expoRegistrationRequest);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+    
+    // 박람회 실시간 혼잡도 조회
+    @GetMapping("/{expoId}/congestion")
+    public ResponseEntity<CongestionResponse> getCongestionLevel(@PathVariable Long expoId) {
+        CongestionResponse congestionResponse = exposervice.getCongestionLevel(expoId);
+        return ResponseEntity.ok(congestionResponse);
     }
 }

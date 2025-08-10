@@ -16,4 +16,6 @@ public class ExpoAdminTicketResponseDto {
     private Integer totalQuantity;
     private LocalDate saleStartDate;
     private LocalDate saleEndDate;
+    private LocalDate useStartDate;
+    private LocalDate useEndDate;
 }

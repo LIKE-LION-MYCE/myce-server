@@ -41,6 +41,7 @@ public enum CustomErrorCode {
     RESERVER_NOT_FOUND(HttpStatus.NOT_FOUND, "Q007", "예약자를 찾을 수 없습니다."),
     QR_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q008", "QR 코드 생성 중 오류가 발생했습니다."),
     QR_REISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q009", "QR 코드 재발급 중 오류가 발생했습니다."),
+    QR_APPROVED(HttpStatus.BAD_REQUEST , "Q010" , "QR 코드 발급 기간이 아닙니다."  ),
 
     // S3 S
     S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S001", "S3 파일 업로드에 실패했습니다."),
@@ -70,9 +71,7 @@ public enum CustomErrorCode {
     BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다."),
     BANNER_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
     ADVERTISEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "A003" ,  "광고가 존재 하지 않습니다" ),
-    INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A004", "환불할 수 없는 광고 상태입니다."),
-    INVALID_ADVERTISEMENT_REJECT_STATUS(HttpStatus.BAD_REQUEST, "A005", "이 광고는 거부할 수 없습니다."),
-    INVALID_ADVERTISEMENT_CANCEL_STATUS(HttpStatus.BAD_REQUEST, "A006", "이 광고는 취소할 수 없습니다."),
+    INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A004", "유효하지 않은 광고 상태입니다."),
 
     // 부스 B
     BOOTH_PREMIUM_RANK_REQUIRED(HttpStatus.BAD_REQUEST, "B001", "프리미엄 부스는 노출 순위가 필수입니다."),

@@ -143,3 +143,8 @@ management:
   #test-mode: false
 scheduler:
   test: 0 * * * * * # every minute
+  qr-code-activate: 0 10 0 * * * # QR 코드 활성화 - 매일 00:10에 실행
+  qr-code-expire: 0 20 0 * * * # QR 코드 만료 처리 - 매일 00:20에 실행
+  expo-qr-generate: 0 0 0 * * * # 박람회 QR코드 일괄 생성 - 매일 00:00에 실행
+  admin-timeout: 0 */1 * * * * # 1분마다 (테스트용) -> 담당자 배졍
+

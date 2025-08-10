@@ -34,6 +34,12 @@ public class QrCode {
     @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(20)")
     private QrCodeStatus status;
 
+    @Column(name = "activated_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
+    private LocalDateTime activatedAt;
+
+    @Column(name = "expired_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
+    private LocalDateTime expiredAt;
+
     @Column(name = "used_at", columnDefinition = "TIMESTAMP")
     private LocalDateTime usedAt;
 
@@ -43,11 +49,14 @@ public class QrCode {
 
     @Builder
     public QrCode(Reserver reserver, String qrToken,
-                  String qrImageUrl, QrCodeStatus status, LocalDateTime usedAt) {
+                  String qrImageUrl, QrCodeStatus status, LocalDateTime activatedAt
+                  ,LocalDateTime expiredAt, LocalDateTime usedAt) {
         this.reserver = reserver;
         this.qrToken = qrToken;
         this.qrImageUrl = qrImageUrl;
         this.status = status;
+        this.activatedAt = activatedAt;
+        this.expiredAt = expiredAt;
         this.usedAt = usedAt;
     }
 
@@ -59,5 +68,7 @@ public class QrCode {
     public void expire() {
         this.status = QrCodeStatus.EXPIRED;
     }
+
+    public void activate() { this. status = QrCodeStatus.ACTIVE; }
 
 }

@@ -1,5 +1,6 @@
 package com.myce.expo.service.impl;
 
+import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.expo.dto.ExpoAdminManagerRequest;
@@ -7,6 +8,7 @@ import com.myce.expo.dto.ExpoAdminManagerResponse;
 import com.myce.expo.entity.AdminCode;
 import com.myce.expo.entity.AdminPermission;
 import com.myce.expo.repository.AdminCodeRepository;
+import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.service.ExpoAdminManagerService;
 import com.myce.expo.service.mapper.ExpoAdminMangerMapper;
@@ -23,12 +25,13 @@ import java.util.stream.Collectors;
 public class ExpoAdminManagerServiceImpl implements ExpoAdminManagerService {
 
     private final AdminCodeRepository adminCodeRepository;
+    private final AdminPermissionRepository adminPermissionRepository;
     private final ExpoRepository expoRepository;
     private final ExpoAdminMangerMapper mapper;
 
-    @Override//TODO:하위관리자
-    public List<ExpoAdminManagerResponse> getMyExpoManagers(Long expoId, Long memberId) {
-        validateMyExpoAccess(expoId, memberId);
+    @Override
+    public List<ExpoAdminManagerResponse> getMyExpoManagers(Long expoId, Long memberId, LoginType loginType) {
+        validateMyAccess(expoId, memberId, loginType);
         List<AdminCode> adminCodes = adminCodeRepository.findAllWithAdminPermissionByExpoId(expoId);
 
         return adminCodes.stream()
@@ -37,13 +40,14 @@ public class ExpoAdminManagerServiceImpl implements ExpoAdminManagerService {
     }
 
     @Override
-    @Transactional//TODO:하위관리자
+    @Transactional
     public List<ExpoAdminManagerResponse> updateMyExpoManagers(
             Long expoId,
             Long memberId,
+            LoginType loginType,
             List<ExpoAdminManagerRequest> dtos) {
 
-        validateMyExpoAccess(expoId, memberId);
+        validateMyAccess(expoId, memberId, loginType);
 
         List<Long> ids = dtos.stream()
                 .map(ExpoAdminManagerRequest::getId)
@@ -73,9 +77,23 @@ public class ExpoAdminManagerServiceImpl implements ExpoAdminManagerService {
                 .toList();
     }
 
-    private void validateMyExpoAccess(Long expoId, Long memberId) {
-        if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
-            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+    private void validateMyAccess(Long expoId, Long memberId, LoginType loginType) {
+        if(memberId == null || loginType == null){
+            throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
+        }
+
+        switch(loginType){
+            case MEMBER -> {
+                if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
+                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+                }
+            }
+            case ADMIN_CODE -> {
+                if(!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoIdAndIsOperationsConfigUpdateTrue(memberId, expoId)){
+                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+                }
+            }
+            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
         }
     }
 }
