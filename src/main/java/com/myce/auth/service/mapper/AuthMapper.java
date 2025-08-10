@@ -1,5 +1,6 @@
 package com.myce.auth.service.mapper;
 
+import com.myce.auth.dto.CheckDuplicateResponse;
 import com.myce.auth.dto.FindLoginIdResponse;
 import com.myce.auth.dto.SignupRequest;
 import com.myce.common.util.DateUtil;
@@ -29,5 +30,9 @@ public class AuthMapper {
 
     public FindLoginIdResponse getFindLoginIdResponse(String loginId) {
         return new FindLoginIdResponse(loginId);
+    }
+
+    public CheckDuplicateResponse getDuplicateResponse(boolean isDuplicate) {
+        return new CheckDuplicateResponse(isDuplicate);
     }
 }

@@ -1,5 +1,6 @@
 package com.myce.auth.service;
 
+import com.myce.auth.dto.CheckDuplicateResponse;
 import com.myce.auth.dto.FindLoginIdRequest;
 import com.myce.auth.dto.FindLoginIdResponse;
 import com.myce.auth.dto.SignupRequest;
@@ -15,4 +16,5 @@ public interface AuthService {
 
     void sendTempPasswordMail(TempPasswordRequest request);
 
+    CheckDuplicateResponse checkDuplication(String loginId);
 }

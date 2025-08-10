@@ -1,5 +1,6 @@
 package com.myce.auth.controller;
 
+import com.myce.auth.dto.CheckDuplicateResponse;
 import com.myce.auth.dto.FindLoginIdResponse;
 import com.myce.auth.dto.FindLoginIdRequest;
 import com.myce.auth.dto.SignupRequest;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -45,6 +47,12 @@ public class AuthController {
     public ResponseEntity<Void> findLoginId(@RequestBody @Valid TempPasswordRequest request) {
         authService.sendTempPasswordMail(request);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/check-duplicate")
+    public ResponseEntity<CheckDuplicateResponse> checkDuplicateLoginId(@RequestParam String loginId) {
+        CheckDuplicateResponse response = authService.checkDuplication(loginId);
+        return ResponseEntity.ok().body(response);
     }
 
     @PostMapping("/reissue")

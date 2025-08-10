@@ -1,5 +1,6 @@
 package com.myce.auth.service.impl;
 
+import com.myce.auth.dto.CheckDuplicateResponse;
 import com.myce.auth.dto.FindLoginIdRequest;
 import com.myce.auth.dto.FindLoginIdResponse;
 import com.myce.auth.dto.SignupRequest;
@@ -65,5 +66,11 @@ public class AuthServiceImpl implements AuthService {
 
         MessageTemplate messageTemplate = messageTemplateService.getMessageForResetPassword(tempPassword);
         emailSendService.sendMail(request.getEmail(), messageTemplate.getSubject(), messageTemplate.getContent());
+    }
+
+    @Override
+    public CheckDuplicateResponse checkDuplication(String loginId) {
+        boolean isExist = memberRepository.existsByLoginId(loginId);
+        return authMapper.getDuplicateResponse(isExist);
     }
 }
