@@ -1,5 +1,7 @@
 package com.myce.auth.controller;
 
+import com.myce.auth.dto.FindLoginIdResponse;
+import com.myce.auth.dto.FindLoginIdRequest;
 import com.myce.auth.dto.SignupRequest;
 import com.myce.auth.dto.VerifyEmailCodeRequest;
 import com.myce.auth.service.AuthService;
@@ -10,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,14 +39,20 @@ public class AuthController {
     }
 
     @PostMapping("/email-verification/send")
-    public ResponseEntity<Void> sendVerifyEmail(@RequestBody VerificationEmailRequest request) {
+    public ResponseEntity<Void> sendVerifyEmail(@RequestBody @Valid VerificationEmailRequest request) {
         authVerificationService.sendVerificationMail(request);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/email-verification/verify")
-    public ResponseEntity<Void> verifyVerificationCode(@RequestBody VerifyEmailCodeRequest request) {
+    public ResponseEntity<Void> verifyVerificationCode(@RequestBody @Valid VerifyEmailCodeRequest request) {
         authVerificationService.verifyCode(request);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/find-id")
+    public ResponseEntity<FindLoginIdResponse> findLoginId(@RequestBody @Valid FindLoginIdRequest request) {
+        FindLoginIdResponse response = authService.getLoginId(request);
+        return ResponseEntity.ok().body(response);
     }
 }

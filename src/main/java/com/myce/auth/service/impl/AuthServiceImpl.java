@@ -1,10 +1,11 @@
 package com.myce.auth.service.impl;
 
+import com.myce.auth.dto.FindLoginIdRequest;
+import com.myce.auth.dto.FindLoginIdResponse;
 import com.myce.auth.dto.SignupRequest;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.auth.security.provider.TokenCookieProvider;
 import com.myce.auth.security.util.JwtUtil;
-import com.myce.auth.service.AdminCodeDetailService;
 import com.myce.auth.service.AuthService;
 import com.myce.auth.service.mapper.AuthMapper;
 import com.myce.common.exception.CustomErrorCode;
@@ -46,6 +47,13 @@ public class AuthServiceImpl implements AuthService {
         Member member = authMapper.signupRequestToMember(signupRequest, memberGrade, password);
 
         memberRepository.save(member);
+    }
+
+    @Override
+    public FindLoginIdResponse getLoginId(FindLoginIdRequest request) {
+        Member member = memberRepository.findByNameAndEmail(request.getName(), request.getEmail())
+                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+        return authMapper.getFindLoginIdResponse(member.getLoginId());
     }
 
     @Override
