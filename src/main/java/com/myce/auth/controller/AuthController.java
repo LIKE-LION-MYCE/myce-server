@@ -3,9 +3,11 @@ package com.myce.auth.controller;
 import com.myce.auth.dto.FindLoginIdResponse;
 import com.myce.auth.dto.FindLoginIdRequest;
 import com.myce.auth.dto.SignupRequest;
+import com.myce.auth.dto.TempPasswordRequest;
 import com.myce.auth.dto.VerifyEmailCodeRequest;
 import com.myce.auth.service.AuthService;
 import com.myce.auth.dto.VerificationEmailRequest;
+import com.myce.auth.service.AuthTokenService;
 import com.myce.auth.service.AuthVerificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final AuthTokenService authTokenService;
     private final AuthVerificationService authVerificationService;
 
     @PostMapping("/signup")
@@ -32,9 +35,21 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/find-id")
+    public ResponseEntity<FindLoginIdResponse> findLoginId(@RequestBody @Valid FindLoginIdRequest request) {
+        FindLoginIdResponse response = authService.getLoginId(request);
+        return ResponseEntity.ok().body(response);
+    }
+
+    @PostMapping("/password/temp")
+    public ResponseEntity<Void> findLoginId(@RequestBody @Valid TempPasswordRequest request) {
+        authService.sendTempPasswordMail(request);
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/reissue")
     public ResponseEntity<Void> reissue(HttpServletRequest request, HttpServletResponse response) {
-        authService.reissueToken(request, response);
+        authTokenService.reissueToken(request, response);
         return ResponseEntity.ok().build();
     }
 
@@ -48,11 +63,5 @@ public class AuthController {
     public ResponseEntity<Void> verifyVerificationCode(@RequestBody @Valid VerifyEmailCodeRequest request) {
         authVerificationService.verifyCode(request);
         return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/find-id")
-    public ResponseEntity<FindLoginIdResponse> findLoginId(@RequestBody @Valid FindLoginIdRequest request) {
-        FindLoginIdResponse response = authService.getLoginId(request);
-        return ResponseEntity.ok().body(response);
     }
 }

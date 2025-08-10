@@ -97,4 +97,8 @@ public class Member {
     public void withdraw() {
         this.isDeleted = true;
     }
+
+    public void resetPassword(String newPassword) {
+        this.password = newPassword;
+    }
 }
