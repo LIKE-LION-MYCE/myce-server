@@ -11,6 +11,8 @@ import com.myce.payment.entity.Payment;
 import com.myce.payment.entity.Refund;
 import com.myce.payment.entity.type.PaymentMethod;
 
+import java.util.HashMap;
+
 public class AdvertisementMapper {
     public static SimpleApplyAdvertisement getSimpleAdvertisement(Advertisement advertisement,
               BusinessProfile businessProfile) {
@@ -58,16 +60,27 @@ public class AdvertisementMapper {
                 .build();
     }
 
-    public static AdPaymentInfoResponse getPaymentInfoRequest(AdPaymentInfo adPaymentInfo){
+    public static AdPaymentHistoryResponse getPaymentInfoRequest(AdPaymentInfo adPaymentInfo){
         Advertisement advertisement = adPaymentInfo.getAdvertisement();
 
-        return AdPaymentInfoResponse.builder()
+        return AdPaymentHistoryResponse.builder()
                 .title(advertisement.getTitle())
                 .requesterName(advertisement.getMember().getName())
                 .startAt(advertisement.getDisplayStartDate())
                 .endAt(advertisement.getDisplayEndDate())
                 .totalPrice(adPaymentInfo.getFeePerDay() * adPaymentInfo.getTotalDay())
                 .totalPayment(adPaymentInfo.getTotalAmount())
+                .build();
+    }
+
+    public static AdPaymentInfoCheck getAdPaymentForm(Advertisement ad, HashMap<String, Integer> priceMap, int totalPayment) {
+        return AdPaymentInfoCheck.builder()
+                .title(ad.getTitle())
+                .requesterName(ad.getMember().getName())
+                .startAt(ad.getDisplayStartDate())
+                .endAt(ad.getDisplayEndDate())
+                .priceMap(priceMap)
+                .totalPayment(totalPayment)
                 .build();
     }
 
