@@ -2,12 +2,14 @@ package com.myce.payment.controller;
 
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
+import com.myce.payment.dto.PaymentRefundRequest;
 import com.myce.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/payment")
@@ -21,6 +23,14 @@ public class PaymentController {
   public ResponseEntity<PaymentVerifyResponse> verifyPayment(
       @RequestBody PaymentVerifyRequest request) {
     PaymentVerifyResponse response = paymentService.verifyPayment(request);
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+
+  // 결제 환불 API (POST 방식)
+  @PostMapping("/refund")
+  public ResponseEntity<Map<String, Object>> refundPayment(
+      @RequestBody PaymentRefundRequest request) {
+    Map<String, Object> response = paymentService.refundPayment(request);
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
