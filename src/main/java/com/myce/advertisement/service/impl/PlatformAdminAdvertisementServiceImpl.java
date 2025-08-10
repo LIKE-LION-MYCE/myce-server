@@ -19,6 +19,7 @@ import com.myce.payment.entity.Payment;
 import com.myce.payment.entity.Refund;
 import com.myce.payment.entity.type.PaymentStatus;
 import com.myce.payment.entity.type.PaymentTargetType;
+import com.myce.payment.entity.type.RefundStatus;
 import com.myce.payment.repository.AdPaymentInfoRepository;
 import com.myce.payment.repository.PaymentRepository;
 import com.myce.payment.repository.RefundRepository;
@@ -32,6 +33,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 
@@ -56,7 +60,8 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         Pageable pageable = PageRequest.of(page, pageSize, sort);
         List<AdvertisementStatus> applyStatusList = getApplyStatusList(isApply);
 
-        Page<Advertisement> bannerEntityPage = advertisementRepository.findByStatusIn(applyStatusList, pageable);
+        Page<Advertisement> bannerEntityPage = advertisementRepository
+                .findByStatusIn(applyStatusList, pageable);
 
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
@@ -90,6 +95,23 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         return getDetailApplyAdvertisement(ad);
     }
 
+    public AdPaymentInfoCheck generatePaymentCheck(Long bannerId) {
+        Advertisement ad = advertisementRepository.findById(bannerId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BANNER_NOT_EXIST));
+        AdFeeSetting feeSetting = adFeeSettingRepository
+                .findByAdPositionId(ad.getAdPosition().getId())
+                .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
+        HashMap<String, Integer> priceMap = new HashMap<>();
+        int totalPayment = 0;
+
+        // todo: PG 수수료 고려 X
+        int totalDayFee = feeSetting.getFeePerDay() * ad.getTotalDays();
+        priceMap.put("총 이용료", totalDayFee);
+        totalPayment += totalDayFee;
+
+        return AdvertisementMapper.getAdPaymentForm(ad, priceMap, totalPayment);
+    }
+
     @Transactional
     public void approveApply(Long bannerId, AdPaymentInfoRequest paymentInfoRequest) {
         Advertisement ad = advertisementRepository.findById(bannerId)
@@ -110,23 +132,6 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         ad.approve();
     }
 
-    public AdPaymentInfoCheck generatePaymentCheck(Long bannerId) {
-        Advertisement ad = advertisementRepository.findById(bannerId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.BANNER_NOT_EXIST));
-        AdFeeSetting feeSetting = adFeeSettingRepository
-                .findByAdPositionId(ad.getAdPosition().getId())
-                .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
-        HashMap<String, Integer> priceMap = new HashMap<>();
-        int totalPayment = 0;
-
-        // todo: PG 수수료 고려 X
-        int totalDayFee = feeSetting.getFeePerDay() * ad.getTotalDays();
-        priceMap.put("총 이용료", totalDayFee);
-        totalPayment += totalDayFee;
-
-        return AdvertisementMapper.getAdPaymentForm(ad, priceMap, totalPayment);
-    }
-
     @Transactional
     public void rejectApply(Long bannerId, RejectAdRequest request) {
         Advertisement ad = advertisementRepository.findById(bannerId)
@@ -139,6 +144,47 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
 
         rejectInfoRepository.save(rejectInfo);
         ad.reject();
+    }
+
+    public AdCancelInfoCheck generateCancelCheck(Long bannerId) {
+        Advertisement ad = advertisementRepository
+                .findById(bannerId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
+        Payment payment = paymentRepository
+                .findByTargetIdAndTargetType(ad.getId(), PaymentTargetType.AD)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        AdPaymentInfo adPayment = adPaymentInfoRepository
+                .findByAdvertisementId(ad.getId())
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        long remainDays = LocalDate.now().until(ad.getDisplayEndDate(), ChronoUnit.DAYS);
+        Integer totalAmount = (int) remainDays * adPayment.getFeePerDay();
+        return AdvertisementMapper.getAdCancelInfoCheck(payment, ad, totalAmount);
+    }
+
+    @Transactional
+    public void cancelBanner(Long bannerId, AdCancelInfoRequest request) {
+        Advertisement ad = advertisementRepository
+                .findById(bannerId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
+        Payment payment = paymentRepository
+                .findByTargetIdAndTargetType(ad.getId(), PaymentTargetType.AD)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        AdPaymentInfo adPayment = adPaymentInfoRepository
+                .findByAdvertisementId(ad.getId())
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        long remainDays = LocalDate.now().until(ad.getDisplayEndDate(), ChronoUnit.DAYS);
+        Integer totalAmount = (int) remainDays * adPayment.getFeePerDay();
+
+        Refund refund = Refund.builder()
+                .isPartial(true)
+                .payment(payment)
+                .amount(totalAmount)
+                .refundedAt(LocalDateTime.now())
+                .status(RefundStatus.PENDING)
+                .build();
+        refundRepository.save(refund);
+
+        ad.cancel();
     }
 
     public AdRejectInfoResponse getRejectInfo(Long bannerId) {
@@ -157,7 +203,7 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         return AdvertisementMapper.getPaymentInfoRequest(paymentInfo);
     }
 
-    public AdCancelInfoResponse getCancelInfo(Long bannerId) {
+    public AdCancelHistoryResponse getCancelInfo(Long bannerId) {
         Advertisement advertisement = advertisementRepository
                 .findById(bannerId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BANNER_NOT_EXIST));

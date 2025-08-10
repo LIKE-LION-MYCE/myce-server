@@ -14,8 +14,8 @@ import com.myce.payment.entity.type.PaymentMethod;
 import java.util.HashMap;
 
 public class AdvertisementMapper {
-    public static SimpleApplyAdvertisement getSimpleAdvertisement(Advertisement advertisement,
-              BusinessProfile businessProfile) {
+    public static SimpleApplyAdvertisement getSimpleAdvertisement(
+            Advertisement advertisement, BusinessProfile businessProfile) {
         Member member = advertisement.getMember();
         AdPosition adPosition = advertisement.getAdPosition();
 
@@ -32,8 +32,8 @@ public class AdvertisementMapper {
                 .build();
     }
 
-    public static DetailApplyAdvertisement getDetailAdvertisement(Advertisement advertisement,
-              BusinessProfile businessProfile) {
+    public static DetailApplyAdvertisement getDetailAdvertisement(
+            Advertisement advertisement, BusinessProfile businessProfile) {
         AdPosition adPosition = advertisement.getAdPosition();
 
         return DetailApplyAdvertisement.builder()
@@ -73,7 +73,8 @@ public class AdvertisementMapper {
                 .build();
     }
 
-    public static AdPaymentInfoCheck getAdPaymentForm(Advertisement ad, HashMap<String, Integer> priceMap, int totalPayment) {
+    public static AdPaymentInfoCheck getAdPaymentForm(
+            Advertisement ad, HashMap<String, Integer> priceMap, int totalPayment) {
         return AdPaymentInfoCheck.builder()
                 .title(ad.getTitle())
                 .requesterName(ad.getMember().getName())
@@ -84,8 +85,40 @@ public class AdvertisementMapper {
                 .build();
     }
 
-    public static AdCancelInfoResponse getAdCancelInfoResponse(Advertisement advertisement, Payment payment, Refund refund) {
+    public static AdCancelInfoCheck getAdCancelInfoCheck(
+            Payment payment, Advertisement ad, Integer totalAmount) {
+        PaymentTypeResult paymentTypeResult = getResult(payment, payment.getPaymentMethod());
+
+        return AdCancelInfoCheck.builder()
+                .title(ad.getTitle())
+                .requesterName(ad.getMember().getName())
+                .startAt(ad.getDisplayStartDate())
+                .endAt(ad.getDisplayEndDate())
+                .paymentType(payment.getPaymentMethod().name())
+                .paymentCompanyName(paymentTypeResult.paymentCompanyName)
+                .paymentAccountInfo(paymentTypeResult.paymentAccountInfo)
+                .totalAmount(totalAmount)
+                .build();
+    }
+
+    public static AdCancelHistoryResponse getAdCancelInfoResponse(
+            Advertisement advertisement, Payment payment, Refund refund) {
         PaymentMethod paymentMethod = payment.getPaymentMethod();
+        PaymentTypeResult paymentTypeResult = getResult(payment, paymentMethod);
+
+        return AdCancelHistoryResponse.builder()
+                .title(advertisement.getTitle())
+                .requesterName(advertisement.getMember().getName())
+                .startAt(advertisement.getDisplayStartDate())
+                .endAt(advertisement.getDisplayEndDate())
+                .paymentType(paymentMethod.name())
+                .paymentCompanyName(paymentTypeResult.paymentCompanyName())
+                .paymentAccountInfo(paymentTypeResult.paymentAccountInfo())
+                .totalAmount(refund.getAmount())
+                .build();
+    }
+
+    private static PaymentTypeResult getResult(Payment payment, PaymentMethod paymentMethod) {
         String paymentCompanyName;
         String paymentAccountInfo;
         // 계좌이체일때 - account_number
@@ -98,17 +131,10 @@ public class AdvertisementMapper {
             paymentCompanyName = payment.getCardCompany();
             paymentAccountInfo = payment.getCardNumber();
         }
+        return new PaymentTypeResult(paymentCompanyName, paymentAccountInfo);
+    }
 
-        return AdCancelInfoResponse.builder()
-                .title(advertisement.getTitle())
-                .requesterName(advertisement.getMember().getName())
-                .startAt(advertisement.getDisplayStartDate())
-                .endAt(advertisement.getDisplayEndDate())
-                .paymentType(paymentMethod.name())
-                .paymentCompanyName(paymentCompanyName)
-                .paymentAccountInfo(paymentAccountInfo)
-                .totalAmount(refund.getAmount())
-                .build();
+    private record PaymentTypeResult(String paymentCompanyName, String paymentAccountInfo) {
     }
 
 }

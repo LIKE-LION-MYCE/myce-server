@@ -8,7 +8,7 @@ import java.time.LocalDate;
 
 @Getter
 @NoArgsConstructor
-public class AdCancelInfoResponse {
+public class AdCancelInfoRequest {
     private String title;
     private String requesterName;
     private LocalDate startAt;
@@ -18,7 +18,7 @@ public class AdCancelInfoResponse {
     private String paymentAccountInfo;
     private Integer totalAmount;
     @Builder
-    public AdCancelInfoResponse(String title, String requesterName, LocalDate startAt, LocalDate endAt, String paymentType, String paymentCompanyName, String paymentAccountInfo, Integer totalAmount) {
+    public AdCancelInfoRequest(String title, String requesterName, LocalDate startAt, LocalDate endAt, String paymentType, String paymentCompanyName, String paymentAccountInfo, Integer totalAmount) {
         this.title = title;
         this.requesterName = requesterName;
         this.startAt = startAt;
