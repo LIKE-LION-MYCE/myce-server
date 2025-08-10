@@ -1,5 +1,6 @@
 package com.myce.advertisement.service.impl;
 
+import com.myce.advertisement.dto.*;
 import com.myce.advertisement.dto.AdPaymentHistoryResponse;
 import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.advertisement.dto.DetailApplyAdvertisement;
@@ -19,7 +20,12 @@ import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.common.repository.RejectInfoRepository;
 import com.myce.payment.entity.AdPaymentInfo;
+import com.myce.payment.entity.Payment;
+import com.myce.payment.entity.Refund;
+import com.myce.payment.entity.type.PaymentTargetType;
 import com.myce.payment.repository.AdPaymentInfoRepository;
+import com.myce.payment.repository.PaymentRepository;
+import com.myce.payment.repository.RefundRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -37,10 +43,15 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
     private AdvertisementRepository advertisementRepository;
     @Autowired
     private BusinessProfileRepository businessProfileRepository;
+    // PlatformAdminAdvertisementDetailService로 분리 예정
     @Autowired
     private RejectInfoRepository rejectInfoRepository;
     @Autowired
     private AdPaymentInfoRepository adPaymentInfoRepository;
+    @Autowired
+    private PaymentRepository paymentRepository;
+    @Autowired
+    private RefundRepository refundRepository;
 
     public PageResponse<SimpleApplyAdvertisement> getAllAdList(
             int page, int pageSize,
@@ -106,12 +117,26 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
         return AdvertisementMapper.getAdRejectInfoResponse(rejectInfo);
     }
 
-    public AdPaymentHistoryResponse getPaymentHistory(Long bannerId) {
-        AdPaymentInfo targetHistory = adPaymentInfoRepository
+    public AdPaymentInfoResponse getPaymentInfo(Long bannerId) {
+        AdPaymentInfo paymentInfo = adPaymentInfoRepository
                 .findByAdvertisementId(bannerId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
 
-        return AdvertisementMapper.getPaymentHistoryRequest(targetHistory);
+        return AdvertisementMapper.getPaymentInfoRequest(paymentInfo);
+    }
+
+    public AdCancelInfoResponse getCancelInfo(Long bannerId) {
+        Advertisement advertisement = advertisementRepository
+                .findById(bannerId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BANNER_NOT_EXIST));
+        Payment payment = paymentRepository
+                .findByTargetIdAndTargetType(bannerId, PaymentTargetType.AD)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        Refund refund = refundRepository
+                .findByPayment(payment)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.REFUND_NOT_FOUND));
+
+        return AdvertisementMapper.getAdCancelInfoResponse(advertisement, payment, refund);
     }
 
     private List<AdvertisementStatus> getApplyStatusList(boolean isApply) {
@@ -119,6 +144,7 @@ public class PlatformAdminAdvertisementServiceImpl implements PlatformAdminAdver
             return List.of(AdvertisementStatus.PENDING_APPROVAL,
                     AdvertisementStatus.PENDING_PAYMENT,
                     AdvertisementStatus.REJECTED,
+                    AdvertisementStatus.CANCELLED,
                     AdvertisementStatus.COMPLETED);
         } else {
             return List.of(AdvertisementStatus.PUBLISHED,
