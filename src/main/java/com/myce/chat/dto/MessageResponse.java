@@ -16,16 +16,25 @@ public class MessageResponse {
     private String roomId;
     private String messageId;
     private Long senderId;
+    private String senderType;
+    private String adminCode; // 관리자 메시지인 경우 관리자 코드
+    private String adminDisplayName; // 관리자 메시지인 경우 관리자 표시명
     private String content;
     private LocalDateTime sentAt;
+    private Integer unreadCount; // 카카오톡 스타일 읽지 않은 수 (0이면 읽음, 1이면 안읽음)
     
     @Builder
-    public MessageResponse(String roomId, String messageId, Long senderId, 
-                          String content, LocalDateTime sentAt) {
+    public MessageResponse(String roomId, String messageId, Long senderId, String senderType,
+                          String adminCode, String adminDisplayName, String content, 
+                          LocalDateTime sentAt, Integer unreadCount) {
         this.roomId = roomId;
         this.messageId = messageId;
         this.senderId = senderId;
+        this.senderType = senderType;
+        this.adminCode = adminCode;
+        this.adminDisplayName = adminDisplayName;
         this.content = content;
         this.sentAt = sentAt;
+        this.unreadCount = unreadCount;
     }
 }

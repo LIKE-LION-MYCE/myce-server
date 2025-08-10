@@ -98,12 +98,23 @@ public class ChatRoomListResponse {
          * 채팅방 활성화 상태
          */
         private Boolean isActive;
+        
+        /**
+         * 현재 담당 관리자 코드
+         */
+        private String currentAdminCode;
+        
+        /**
+         * 담당 관리자 표시명 (관리자용)
+         */
+        private String adminDisplayName;
 
         @Builder
         public ChatRoomInfo(String id, String roomCode, Long expoId, String expoTitle,
                            Long otherMemberId, String otherMemberName, String otherMemberRole,
                            String lastMessage, LocalDateTime lastMessageAt,
-                           Integer unreadCount, Boolean isActive) {
+                           Integer unreadCount, Boolean isActive,
+                           String currentAdminCode, String adminDisplayName) {
             this.id = id;
             this.roomCode = roomCode;
             this.expoId = expoId;
@@ -115,6 +126,8 @@ public class ChatRoomListResponse {
             this.lastMessageAt = lastMessageAt;
             this.unreadCount = unreadCount != null ? unreadCount : 0;
             this.isActive = isActive != null ? isActive : true;
+            this.currentAdminCode = currentAdminCode;
+            this.adminDisplayName = adminDisplayName;
         }
     }
 }
