@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
 @SpringBootApplication
+@EnableScheduling
 public class MyceApplication {
 
     public static void main(String[] args) {

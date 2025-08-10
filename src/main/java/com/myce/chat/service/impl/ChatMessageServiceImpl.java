@@ -1,8 +1,10 @@
 package com.myce.chat.service.impl;
 
 import com.myce.chat.document.ChatMessage;
+import com.myce.chat.document.ChatRoom;
 import com.myce.chat.dto.MessageResponse;
 import com.myce.chat.repository.ChatMessageRepository;
+import com.myce.chat.repository.ChatRoomRepository;
 import com.myce.chat.service.ChatMessageService;
 import com.myce.chat.service.mapper.ChatMessageMapper;
 import com.myce.chat.type.MessageSenderType;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 public class ChatMessageServiceImpl implements ChatMessageService {
 
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatRoomRepository chatRoomRepository;
 
     /**
      * 기본 메시지 타입
@@ -46,60 +49,53 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     private static final String LEAVE_MESSAGE_FORMAT = "%s님이 채팅방을 나가셨습니다.";
 
     @Override
-    public ChatMessage createMessage(String roomCode, String senderType, Long senderId,
-            String senderName, String content) {
-        log.debug("일반 메시지 생성 - roomCode: {}, senderId: {}", roomCode, senderId);
-        return createMessage(roomCode, senderType, senderId, senderName, content,
-                false, DEFAULT_MESSAGE_TYPE, null);
+    public ChatMessage createMessage(String roomCode, String senderType, Long senderId, 
+                                   String senderName, String content) {
+        return createMessage(roomCode, senderType, senderId, senderName, content, 
+                           false, DEFAULT_MESSAGE_TYPE, null);
     }
 
     @Override
     public ChatMessage createFileMessage(String roomCode, String senderType, Long senderId,
-            String senderName, String content, String messageType,
-            String fileInfoJson) {
-        log.debug("파일 메시지 생성 - roomCode: {}, senderId: {}, messageType: {}",
-                roomCode, senderId, messageType);
+                                       String senderName, String content, String messageType, 
+                                       String fileInfoJson) {
         return createMessage(roomCode, senderType, senderId, senderName, content,
                 false, messageType, fileInfoJson);
     }
 
     @Override
     public ChatMessage createSystemMessage(String roomCode, String messageType, String content) {
-        log.debug("시스템 메시지 생성 - roomCode: {}, messageType: {}", roomCode, messageType);
         return createMessage(roomCode, MessageSenderType.SYSTEM.name(), SYSTEM_SENDER_ID,
                 MessageSenderType.SYSTEM.getDescription(), content, true, messageType, null);
     }
 
     @Override
     public ChatMessage createEnterMessage(String roomCode, String memberName) {
-        log.debug("입장 알림 메시지 생성 - roomCode: {}, memberName: {}", roomCode, memberName);
         String content = String.format(ENTER_MESSAGE_FORMAT, memberName);
         return createSystemMessage(roomCode, SYSTEM_ENTER_TYPE, content);
     }
 
     @Override
     public ChatMessage createLeaveMessage(String roomCode, String memberName) {
-        log.debug("퇴장 알림 메시지 생성 - roomCode: {}, memberName: {}", roomCode, memberName);
         String content = String.format(LEAVE_MESSAGE_FORMAT, memberName);
         return createSystemMessage(roomCode, SYSTEM_LEAVE_TYPE, content);
     }
 
     @Override
     public PageResponse<MessageResponse> getMessages(String roomCode, Pageable pageable) {
-        log.debug("메시지 히스토리 조회 - roomCode: {}, page: {}, size: {}",
-                roomCode, pageable.getPageNumber(), pageable.getPageSize());
-
+        
         // MongoDB에서 페이징된 메시지 조회 (최신 순)
         Page<ChatMessage> messagePage = chatMessageRepository.findByRoomCodeOrderBySentAtDesc(roomCode, pageable);
-
-        // ChatMessage -> MessageResponse 변환 (Mapper 사용)
+        
+        // ChatMessage -> MessageResponse 변환 (읽음 상태 계산 포함)
         List<MessageResponse> messageResponses = messagePage.getContent().stream()
-                .map(ChatMessageMapper::toDto)
-                .toList();
-
-        log.info("메시지 히스토리 조회 완료 - roomCode: {}, 조회된 메시지 수: {}",
-                roomCode, messageResponses.size());
-
+            .map(message -> {
+                Integer unreadCount = calculateMessageUnreadCount(message);
+                return ChatMessageMapper.toDto(message, unreadCount);
+            })
+            .toList();
+        
+        
         return new PageResponse<>(
                 messageResponses,
                 messagePage.getNumber(),
@@ -125,5 +121,70 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 .messageType(messageType != null ? messageType : DEFAULT_MESSAGE_TYPE)
                 .fileInfoJson(fileInfoJson)
                 .build();
+    }
+    
+    /**
+     * 개별 메시지의 읽지 않은 수 계산 (카카오톡 스타일)
+     * ExpoChatServiceImpl의 calculateMessageUnreadCount 로직 참고
+     */
+    private Integer calculateMessageUnreadCount(ChatMessage message) {
+        try {
+            ChatRoom chatRoom = chatRoomRepository.findByRoomCode(message.getRoomCode()).orElse(null);
+            if (chatRoom == null) {
+                return 1; // 채팅방이 없으면 안읽음으로 표시
+            }
+            
+            String readStatusJson = chatRoom.getReadStatusJson();
+            
+            // 메시지 발송자에 따라 상대방의 읽음 상태 확인
+            if ("ADMIN".equals(message.getSenderType())) {
+                // 관리자가 보낸 메시지 -> 사용자가 읽었는지 확인
+                String userLastReadId = extractLastReadMessageId(readStatusJson, "USER");
+                if (userLastReadId == null || message.getId().compareTo(userLastReadId) > 0) {
+                    return 1; // 사용자가 안 읽음
+                }
+            } else {
+                // 사용자가 보낸 메시지 -> 관리자가 읽었는지 확인
+                String adminLastReadId = extractLastReadMessageId(readStatusJson, "ADMIN");
+                if (adminLastReadId == null || message.getId().compareTo(adminLastReadId) > 0) {
+                    return 1; // 관리자가 안 읽음
+                }
+            }
+            
+            return 0; // 읽음
+        } catch (Exception e) {
+            log.warn("메시지 읽음 상태 계산 실패 - messageId: {}", message.getId());
+            return 1; // 에러시 안읽음으로 표시
+        }
+    }
+    
+    /**
+     * readStatusJson에서 특정 타입의 마지막 읽은 메시지 ID 추출
+     * ExpoChatServiceImpl의 extractLastReadMessageId 로직과 동일
+     */
+    private String extractLastReadMessageId(String readStatusJson, String userType) {
+        try {
+            if (readStatusJson == null || readStatusJson.isEmpty() || readStatusJson.equals("{}")) {
+                return null;
+            }
+            
+            // 간단한 JSON 파싱 (Jackson 라이브러리 사용하지 않고)
+            String searchKey = "\"" + userType + "\":\"";
+            int startIndex = readStatusJson.indexOf(searchKey);
+            if (startIndex == -1) {
+                return null;
+            }
+            
+            startIndex += searchKey.length();
+            int endIndex = readStatusJson.indexOf("\"", startIndex);
+            if (endIndex == -1) {
+                return null;
+            }
+            
+            return readStatusJson.substring(startIndex, endIndex);
+        } catch (Exception e) {
+            log.warn("readStatusJson 파싱 실패: {}", readStatusJson, e);
+            return null;
+        }
     }
 }

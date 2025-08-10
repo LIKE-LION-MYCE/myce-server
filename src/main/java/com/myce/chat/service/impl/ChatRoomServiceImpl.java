@@ -1,9 +1,11 @@
 package com.myce.chat.service.impl;
 
 import com.myce.chat.document.ChatRoom;
+import com.myce.chat.document.ChatMessage;
 import com.myce.chat.dto.ChatRoomListResponse;
 import com.myce.member.entity.type.Role;
 import com.myce.chat.repository.ChatRoomRepository;
+import com.myce.chat.repository.ChatMessageRepository;
 import com.myce.chat.service.ChatRoomService;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
@@ -14,10 +16,12 @@ import com.myce.member.entity.Member;
 import com.myce.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.myce.chat.service.mapper.ChatRoomMapper;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 /**
@@ -37,10 +41,14 @@ public class ChatRoomServiceImpl implements ChatRoomService {
 
     // MongoDB Repository
     private final ChatRoomRepository chatRoomRepository;
+    private final ChatMessageRepository chatMessageRepository;
     
     // MySQL Repositories (상대방 정보 조회용)
     private final MemberRepository memberRepository;
     private final ExpoRepository expoRepository;
+    
+    // WebSocket 메시징
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
      * 현재 로그인한 사용자의 채팅방 목록 조회
@@ -48,7 +56,6 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     @Override
     public ChatRoomListResponse getChatRooms(Long memberId, String memberRole) {
         // 1. 로깅: 요청 정보 기록
-        log.info("채팅방 목록 조회 시작 - 회원ID: {}, 역할: {}", memberId, memberRole);
 
         // 2. 회원 존재 여부 확인 (예외 처리)
         Member currentMember = memberRepository.findById(memberId)
@@ -62,11 +69,9 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         
         if (Role.EXPO_ADMIN.name().equals(memberRole)) {
             // 관리자인 경우: 본인이 관리하는 박람회들의 모든 채팅방 조회
-            log.debug("관리자 권한으로 채팅방 조회 - 회원ID: {}", memberId);
             chatRooms = getChatRoomsForAdmin(memberId);
         } else {
             // 일반 사용자인 경우: 본인이 참여한 채팅방만 조회
-            log.debug("일반 사용자 권한으로 채팅방 조회 - 회원ID: {}", memberId);
             chatRooms = chatRoomRepository.findByMemberIdAndIsActiveTrueOrderByLastMessageAtDesc(memberId);
         }
 
@@ -90,11 +95,9 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             .totalCount(chatRoomInfos.size())
             .build();
 
-        log.info("채팅방 목록 조회 완료 - 회원ID: {}, 조회된 채팅방 개수: {}", memberId, response.getTotalCount());
         
         // 빈 목록일 때도 정상 응답
         if (chatRoomInfos.isEmpty()) {
-            log.info("채팅방이 없는 사용자 - 회원ID: {}, 역할: {}", memberId, memberRole);
         }
         
         return response;
@@ -105,7 +108,6 @@ public class ChatRoomServiceImpl implements ChatRoomService {
      */
     @Override
     public ChatRoomListResponse getChatRoomsByExpo(Long expoId, Long adminId) {
-        log.info("박람회별 채팅방 조회 시작 - 박람회ID: {}, 관리자ID: {}", expoId, adminId);
 
         // 1. 박람회 존재 여부 확인
         Expo expo = expoRepository.findById(expoId)
@@ -134,7 +136,6 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             .totalCount(chatRoomInfos.size())
             .build();
 
-        log.info("박람회별 채팅방 조회 완료 - 박람회ID: {}, 조회된 채팅방 개수: {}", expoId, response.getTotalCount());
         
         return response;
     }
@@ -149,7 +150,6 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 adminId, ExpoStatus.ACTIVE_STATUSES);
         
         if (adminExpoOpt.isEmpty()) {
-            log.debug("관리자가 소유한 활성 박람회가 없음 - 관리자ID: {}", adminId);
             return List.of(); // 빈 리스트 반환
         }
 
@@ -197,5 +197,88 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 expo.getTitle(),
                 unreadCount
         );
+    }
+    
+    /**
+     * 사용자 채팅방 읽음 처리 (USER 타입 사용자 전용)
+     */
+    @Override
+    @Transactional
+    public void markAsRead(String roomCode, String lastReadMessageId, Long memberId) {
+        
+        // 1. 채팅방 조회 및 존재 여부 확인
+        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> {
+                    log.error("존재하지 않는 채팅방 코드로 읽음 처리 시도 - roomCode: {}", roomCode);
+                    return new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
+                });
+        
+        // 2. 사용자 권한 검증 (본인 채팅방인지 확인)
+        validateUserPermission(chatRoom, memberId);
+        
+        // 3. 마지막 메시지 ID를 가져와서 읽음 처리 (가장 최근 메시지까지 읽음 처리)
+        List<ChatMessage> recentMessages = chatMessageRepository.findTop50ByRoomCodeOrderBySentAtDesc(roomCode);
+        if (!recentMessages.isEmpty()) {
+            String latestMessageId = recentMessages.get(0).getId();
+            
+            // 4. readStatusJson 업데이트
+            String currentReadStatus = chatRoom.getReadStatusJson();
+            String updatedReadStatus = updateReadStatusForUser(currentReadStatus, latestMessageId);
+            chatRoom.updateReadStatus(updatedReadStatus);
+        }
+        
+        // 5. 채팅방 저장
+        chatRoomRepository.save(chatRoom);
+        
+        // 6. WebSocket을 통해 관리자에게 읽음 상태 변경 알림
+        try {
+            Map<String, Object> readStatusPayload = Map.of(
+                "roomCode", roomCode,
+                "readerType", "USER",
+                "unreadCount", 0
+            );
+            
+            Map<String, Object> broadcastMessage = Map.of(
+                "type", "read_status_update",
+                "payload", readStatusPayload
+            );
+            
+            messagingTemplate.convertAndSend(
+                "/topic/chat/" + roomCode,
+                broadcastMessage
+            );
+            
+        } catch (Exception e) {
+            log.warn("읽음 상태 WebSocket 알림 전송 실패 - roomCode: {}, error: {}", roomCode, e.getMessage());
+        }
+        
+    }
+    
+    /**
+     * 사용자 권한 검증 (본인 채팅방인지 확인)
+     */
+    private void validateUserPermission(ChatRoom chatRoom, Long memberId) {
+        if (!chatRoom.getMemberId().equals(memberId)) {
+            log.error("권한 없는 사용자가 채팅방 읽음 처리 시도 - roomCode: {}, 사용자ID: {}, 채팅방 소유자ID: {}", 
+                    chatRoom.getRoomCode(), memberId, chatRoom.getMemberId());
+            throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+        }
+    }
+    
+    /**
+     * 사용자 읽음 상태 업데이트 (ExpoChatServiceImpl의 updateReadStatusForAdmin 패턴 참고)
+     */
+    private String updateReadStatusForUser(String currentReadStatus, String lastReadMessageId) {
+        if (currentReadStatus == null || currentReadStatus.isEmpty() || currentReadStatus.equals("{}")) {
+            return "{\"USER\":\"" + lastReadMessageId + "\"}";
+        }
+        
+        // 기존 USER 정보가 있으면 업데이트, 없으면 추가
+        if (currentReadStatus.contains("\"USER\"")) {
+            return currentReadStatus.replaceAll("\"USER\":\"[^\"]*\"", "\"USER\":\"" + lastReadMessageId + "\"");
+        } else {
+            return currentReadStatus.substring(0, currentReadStatus.length() - 1) + 
+                   ",\"USER\":\"" + lastReadMessageId + "\"}";
+        }
     }
 }
