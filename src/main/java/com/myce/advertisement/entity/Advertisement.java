@@ -84,11 +84,18 @@ public class Advertisement {
         this.displayEndDate = displayEndDate;
         this.status = status;
     }
+
+    public void approve() {
+        if(this.status != AdvertisementStatus.PENDING_APPROVAL){
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
+        }
+        this.status = AdvertisementStatus.PENDING_PAYMENT;
+    }
     
     public void cancel() {
         if (this.status != AdvertisementStatus.PUBLISHED &&
             this.status != AdvertisementStatus.PENDING_CANCEL) {
-            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_CANCEL_STATUS);
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
         }
         this.status = AdvertisementStatus.CANCELLED;
     }
@@ -96,7 +103,7 @@ public class Advertisement {
     public void reject() {
         if (this.status != AdvertisementStatus.PENDING_APPROVAL &&
                 this.status != AdvertisementStatus.PENDING_PAYMENT) {
-            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_REJECT_STATUS);
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
         }
         this.status = AdvertisementStatus.REJECTED;
     }

@@ -14,11 +14,15 @@ public interface PlatformAdminAdvertisementService {
 
     DetailApplyAdvertisement getDetail(Long bannerId);
 
+    AdPaymentInfoCheck generatePaymentCheck(Long bannerId);
+
+    void approveApply(Long bannerId, AdPaymentInfoRequest paymentInfoRequest);
+
     void rejectApply(Long bannerId, RejectAdRequest request);
 
     AdRejectInfoResponse getRejectInfo(Long bannerId);
 
-    AdPaymentInfoResponse getPaymentInfo(Long bannerId);
+    AdPaymentHistoryResponse getPaymentInfo(Long bannerId);
 
     AdCancelInfoResponse getCancelInfo(Long bannerId);
 }

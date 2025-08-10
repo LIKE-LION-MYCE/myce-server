@@ -48,6 +48,18 @@ public class PlatformAdminAdvertisementController {
         return service.getDetail(bannerId);
     }
 
+    @PostMapping("/detail/{bannerId}/approve")
+    public ResponseEntity<Void> approveApply(@PathVariable Long bannerId,
+                                             @RequestBody AdPaymentInfoRequest paymentInfoRequest) {
+        service.approveApply(bannerId, paymentInfoRequest);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/detail/{bannerId}/payment-check")
+    public AdPaymentInfoCheck getPaymentForm(@PathVariable Long bannerId) {
+        return service.generatePaymentCheck(bannerId);
+    }
+
     @PostMapping("/detail/{bannerId}/reject")
     public ResponseEntity<Void> rejectApply(@PathVariable Long bannerId,
                                             @RequestBody RejectAdRequest request) {
@@ -61,7 +73,7 @@ public class PlatformAdminAdvertisementController {
     }
 
     @GetMapping("/detail/{bannerId}/payment-history")
-    public AdPaymentInfoResponse getPaymentInfo(@PathVariable Long bannerId) {
+    public AdPaymentHistoryResponse getPaymentInfo(@PathVariable Long bannerId) {
         return service.getPaymentInfo(bannerId);
     }
 
