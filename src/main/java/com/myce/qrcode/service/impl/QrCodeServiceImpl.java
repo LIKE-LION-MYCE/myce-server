@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -172,12 +174,18 @@ public class QrCodeServiceImpl implements QrCodeService {
             byte[] image = out.toByteArray();
 
             String imageUrl = uploadToStorage(image, token);
+            
+            // 티켓 정보를 통해 QR 코드 활성화/만료 시간 계산
+            LocalDateTime activatedAt = calculateActivatedAt(reserver);
+            LocalDateTime expiredAt = calculateExpiredAt(reserver);
 
             QrCode qr = QrCode.builder()
                     .reserver(reserver)
                     .qrToken(token)
                     .qrImageUrl(imageUrl)
-                    .status(QrCodeStatus.ACTIVE)
+                    .status(QrCodeStatus.APPROVED)
+                    .activatedAt(activatedAt)
+                    .expiredAt(expiredAt)
                     .build();
 
             qrCodeRepository.save(qr);
@@ -185,5 +193,21 @@ public class QrCodeServiceImpl implements QrCodeService {
             log.error("QR 코드 생성 중 오류 - 예약자 ID: {}, 오류: {}", reserver.getId(), e.getMessage(), e);
             throw new CustomException(CustomErrorCode.QR_GENERATION_FAILED);
         }
+    }
+
+    /**
+     * 티켓의 use_start_date 당일 00:00:00으로 활성화 시간 계산
+     */
+    private LocalDateTime calculateActivatedAt(Reserver reserver) {
+        LocalDate ticketUseStartDate = reserver.getReservation().getTicket().getUseStartDate();
+        return ticketUseStartDate.atStartOfDay();
+    }
+
+    /**
+     * 티켓의 use_end_date 당일 23:59:59로 만료 시간 계산
+     */
+    private LocalDateTime calculateExpiredAt(Reserver reserver) {
+        LocalDate ticketUseEndDate = reserver.getReservation().getTicket().getUseEndDate();
+        return ticketUseEndDate.atTime(23, 59, 59);
     }
 }

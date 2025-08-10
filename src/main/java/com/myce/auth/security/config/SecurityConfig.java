@@ -73,6 +73,8 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/auth-docs/login",
                                 "/actuator/health",
+                                "/actuator/health/liveness",  // ALB health checks
+                                "/actuator/health/readiness", // Optional readiness checks
                                 "/actuator/info",
                                 "/ws/**" // WebSocket 엔드포인트 허용
                         ).permitAll()

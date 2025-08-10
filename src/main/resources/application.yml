@@ -1,5 +1,5 @@
 server:
-  # port: 8081
+# port: 8081
 spring:
   profiles:
     active: ${PROFILE} # local | product
@@ -115,6 +115,8 @@ management:
   endpoint:
     health:
       enabled: true
+      probes:
+        enabled: true  # Enable liveness/readiness probes
       show-details: when-authorized
     info:
       enabled: true
@@ -124,9 +126,23 @@ management:
     export:
       prometheus:
         enabled: true
+  # Health check groups - separate liveness from readiness
+  health:
+    mail:
+      enabled: false  # Exclude mail from all health checks
+    group:
+      liveness:
+        include: livenessState, ping  # Light & internal checks only
+      readiness:
+        include: readinessState, db, redis, diskSpace  # Heavy checks
 port-one:
   base-url: ${PORTONE_BASE_URL}
   api-key: ${PORTONE_API_KEY}
   api-secret: ${PORTONE_API_SECRET}
   customer-code: ${PORTONE_CUSTOMER_CODE}
   test-mode: false
+scheduler:
+  test: 0 * * * * * # every minute
+  admin-timeout: 0 */1 * * * * # 1분마다 (테스트용) -> 담당자 배졍
+  qr-code-activate: 0 * * * * * # QR 코드 활성화 - 매분 실행
+  qr-code-expire: 0 * * * * * # QR 코드 만료 처리 - 매분 실행

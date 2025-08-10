@@ -28,4 +28,14 @@ public interface ChatMessageRepository extends MongoRepository<ChatMessage, Stri
      * 채팅방별 메시지 개수
      */
     long countByRoomCode(String roomCode);
+    
+    /**
+     * 채팅방에서 특정 발송자 타입의 메시지 개수 (안읽은 메시지 계산용)
+     */
+    long countByRoomCodeAndSenderType(String roomCode, String senderType);
+    
+    /**
+     * 채팅방에서 특정 메시지 ID 이후의 특정 발송자 타입 메시지 개수
+     */
+    long countByRoomCodeAndSenderTypeAndIdGreaterThan(String roomCode, String senderType, String messageId);
 }

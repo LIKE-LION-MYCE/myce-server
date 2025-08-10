@@ -24,6 +24,9 @@ public enum CustomErrorCode {
     // 비회원 G
     GUEST_NOT_EXIST(HttpStatus.NOT_FOUND, "G001", "비회원 정보가 존재하지 않습니다."),
 
+    // 박람회 관리자 EAD
+    ADMIN_CODE_NOT_FOUND(HttpStatus.NOT_FOUND, "EAD001", "존재하지 않는 박람회 관리자 코드입니다."),
+
     // 관계자 정보 I
     BUSINESS_NOT_EXIST(HttpStatus.NOT_FOUND, "I001", "관계자 정보를 찾지 못했습니다"),
     BUSINESS_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "I002", "해당 박람회의 관계자 정보가 아닙니다."),
@@ -67,9 +70,7 @@ public enum CustomErrorCode {
     BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다."),
     BANNER_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
     ADVERTISEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "A003" ,  "광고가 존재 하지 않습니다" ),
-    INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A004", "환불할 수 없는 광고 상태입니다."),
-    INVALID_ADVERTISEMENT_REJECT_STATUS(HttpStatus.BAD_REQUEST, "A005", "이 광고는 거부할 수 없습니다."),
-    INVALID_ADVERTISEMENT_CANCEL_STATUS(HttpStatus.BAD_REQUEST, "A006", "이 광고는 취소할 수 없습니다."),
+    INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A004", "유효하지 않은 광고 상태입니다."),
 
     // 부스 B
     BOOTH_PREMIUM_RANK_REQUIRED(HttpStatus.BAD_REQUEST, "B001", "프리미엄 부스는 노출 순위가 필수입니다."),
@@ -108,8 +109,12 @@ public enum CustomErrorCode {
     // 거부사유 RJ
     REJECT_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "RJ001", "거부 사유가 존재하지 않습니다."),
 
+    // 환불 RF
+    REFUND_NOT_FOUND(HttpStatus.NOT_FOUND, "RF001", "환불 정보가 존재하지 않습니다."),
+
     // 시스템 설정 에러
     NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다.");
+
 
     private final HttpStatus status;
     private final String errorCode;

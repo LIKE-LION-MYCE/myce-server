@@ -1,9 +1,6 @@
 package com.myce.advertisement.service;
 
-import com.myce.advertisement.dto.AdRejectInfoResponse;
-import com.myce.advertisement.dto.DetailApplyAdvertisement;
-import com.myce.advertisement.dto.RejectAdRequest;
-import com.myce.advertisement.dto.SimpleApplyAdvertisement;
+import com.myce.advertisement.dto.*;
 import com.myce.common.dto.PageResponse;
 
 public interface PlatformAdminAdvertisementService {
@@ -17,7 +14,15 @@ public interface PlatformAdminAdvertisementService {
 
     DetailApplyAdvertisement getDetail(Long bannerId);
 
+    AdPaymentInfoCheck generatePaymentCheck(Long bannerId);
+
+    void approveApply(Long bannerId, AdPaymentInfoRequest paymentInfoRequest);
+
     void rejectApply(Long bannerId, RejectAdRequest request);
 
     AdRejectInfoResponse getRejectInfo(Long bannerId);
+
+    AdPaymentHistoryResponse getPaymentInfo(Long bannerId);
+
+    AdCancelInfoResponse getCancelInfo(Long bannerId);
 }

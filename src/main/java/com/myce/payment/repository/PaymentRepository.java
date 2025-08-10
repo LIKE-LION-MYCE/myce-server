@@ -1,6 +1,7 @@
 package com.myce.payment.repository;
 
 import com.myce.payment.entity.Payment;
+import com.myce.payment.entity.type.PaymentTargetType;
 import com.myce.reservation.entity.code.UserType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +21,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
            "WHERE rpi.reservation.userType = :userType AND rpi.reservation.userId = :userId " +
            "AND p.targetType = 'RESERVATION' " +
            "ORDER BY p.createdAt DESC")
-    List<Object[]> findReservationPaymentHistoryByUserTypeAndUserId(@Param("userType") UserType userType, 
+    List<Object[]> findReservationPaymentHistoryByUserTypeAndUserId(@Param("userType") UserType userType,
                                                                     @Param("userId") Long userId);
+
+    Optional<Payment> findByTargetIdAndTargetType(Long targetId, PaymentTargetType targetType);
 }
