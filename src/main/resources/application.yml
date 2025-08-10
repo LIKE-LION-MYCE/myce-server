@@ -143,3 +143,5 @@ management:
   #test-mode: false
 scheduler:
   test: 0 * * * * * # every minute
+  qr-code-activate: 0 * * * * * # QR 코드 활성화 - 매분 실행
+  qr-code-expire: 0 * * * * * # QR 코드 만료 처리 - 매분 실행
