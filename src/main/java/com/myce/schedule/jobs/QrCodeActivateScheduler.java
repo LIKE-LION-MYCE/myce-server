@@ -32,6 +32,7 @@ public class QrCodeActivateScheduler implements TaskScheduler {
 
     @Override
     @Scheduled(cron = "${scheduler.qr-code-activate:0 * * * * *}")
+    @Transactional
     public void run() {
         try {
             process();
@@ -47,20 +48,12 @@ public class QrCodeActivateScheduler implements TaskScheduler {
         LocalDateTime now = LocalDateTime.now();
         log.info("스케줄러 실행 - 현재 시간: {}", now);
 
-        List<QrCode> qrCodesToActivate = qrCodeRepository.findByStatusAndActivatedAtBefore(
-                QrCodeStatus.APPROVED, now);
-
-        log.info("활성화 대상 QR코드 수: {}", qrCodesToActivate.size());
-        // ...
+        // Bulk Update로 성능 최적화
+        int updatedCount = qrCodeRepository.bulkUpdateStatusToActive(
+                QrCodeStatus.APPROVED, QrCodeStatus.ACTIVE, now);
         
-        if (!qrCodesToActivate.isEmpty()) {
-            qrCodesToActivate.forEach(qrCode -> {
-                log.info("QR코드 ID: {}, 변경 전 상태: {}", qrCode.getId(), qrCode.getStatus());
-                qrCode.activate();
-                log.info("QR코드 ID: {}, 변경 후 상태: {}", qrCode.getId(), qrCode.getStatus());
-            });
-            qrCodeRepository.saveAll(qrCodesToActivate);
-            log.info("QR 코드 활성화 완료 - {} 개", qrCodesToActivate.size());
+        if (updatedCount > 0) {
+            log.info("QR 코드 활성화 완료 - {} 개", updatedCount);
         } else {
             log.debug("활성화할 QR 코드가 없습니다.");
         }
