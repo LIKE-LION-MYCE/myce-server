@@ -147,6 +147,8 @@ port-one:
   customer-code: ${PORTONE_CUSTOMER_CODE}
   test-mode: false
 scheduler:
+  test: "0 * * * * *" # every minute
+  days: "0 0 0 * * *" # every day
   test: 0 * * * * * # every minute
   qr-code-activate: 0 10 0 * * * # QR 코드 활성화 - 매일 00:10에 실행
   qr-code-expire: 0 20 0 * * * # QR 코드 만료 처리 - 매일 00:20에 실행
