@@ -102,8 +102,12 @@ public enum CustomErrorCode {
     // 거부사유 RJ
     REJECT_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "RJ001", "거부 사유가 존재하지 않습니다."),
 
+    // 환불 RF
+    REFUND_NOT_FOUND(HttpStatus.NOT_FOUND, "RF001", "환불 정보가 존재하지 않습니다."),
+
     // 시스템 설정 에러
     NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다.");
+
 
     private final HttpStatus status;
     private final String errorCode;

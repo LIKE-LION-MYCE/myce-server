@@ -1,5 +1,6 @@
 package com.myce.advertisement.controller;
 
+import com.myce.advertisement.dto.*;
 import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.RejectAdRequest;
@@ -57,6 +58,16 @@ public class PlatformAdminAdvertisementController {
     @GetMapping("/detail/{bannerId}/reject")
     public AdRejectInfoResponse getRejectInfo(@PathVariable Long bannerId) {
         return service.getRejectInfo(bannerId);
+    }
+
+    @GetMapping("/detail/{bannerId}/payment-history")
+    public AdPaymentInfoResponse getPaymentInfo(@PathVariable Long bannerId) {
+        return service.getPaymentInfo(bannerId);
+    }
+
+    @GetMapping("/detail/{bannerId}/cancel-history")
+    public AdCancelInfoResponse getCancelInfo(@PathVariable Long bannerId) {
+        return service.getCancelInfo(bannerId);
     }
 
 }

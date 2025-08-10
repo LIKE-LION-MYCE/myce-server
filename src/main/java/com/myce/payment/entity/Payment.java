@@ -41,10 +41,6 @@ public class Payment {
     @Column(name = "payment_id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "target_type", nullable = false, columnDefinition = "VARCHAR(20)")
     private PaymentTargetType targetType;
