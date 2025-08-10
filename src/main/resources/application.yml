@@ -115,6 +115,8 @@ management:
   endpoint:
     health:
       enabled: true
+      probes:
+        enabled: true  # Enable liveness/readiness probes
       show-details: when-authorized
     info:
       enabled: true
@@ -124,6 +126,15 @@ management:
     export:
       prometheus:
         enabled: true
+  # Health check groups - separate liveness from readiness
+  health:
+    mail:
+      enabled: false  # Exclude mail from all health checks
+    group:
+      liveness:
+        include: livenessState, ping  # Light & internal checks only
+      readiness:
+        include: readinessState, db, redis, diskSpace  # Heavy checks
   #port-one:
   #base-url: ${PORTONE_BASE_URL}
   #api-key: ${PORTONE_API_KEY}
