@@ -18,13 +18,15 @@ public class MessageTemplateServiceImpl implements MessageTemplateService {
     private final MessageTemplateSettingRepository messageTemplateSettingRepository;
 
     @Override
-    public MessageTemplate getMessageForVerifyingEmail(String code, String limitTime) {
+    public MessageTemplate getMessageForVerification
+            (String verificationName, String code, String limitTime) {
         MessageTemplateSetting messageTemplate = messageTemplateSettingRepository
                 .findByCodeAndChannelType(MessageTemplateCode.EMAIL_VERIFICATION, ChannelType.EMAIL)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_MESSAGE_TEMPLATE));
 
         String content = messageTemplate.getContent();
         content = content.replace("{{CODE}}", code);
+        content = content.replace("{{VERIFICATION_NAME}}", verificationName);
         content = content.replace("{{LIMIT_TIME}}", limitTime);
 
         return new MessageTemplate(messageTemplate.getSubject(), content);

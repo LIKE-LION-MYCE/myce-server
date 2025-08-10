@@ -1,5 +1,6 @@
 package com.myce.auth.service.mapper;
 
+import com.myce.auth.dto.FindLoginIdResponse;
 import com.myce.auth.dto.SignupRequest;
 import com.myce.common.util.DateUtil;
 import com.myce.member.entity.Member;
@@ -24,5 +25,9 @@ public class AuthMapper {
                 .providerType(ProviderType.LOCAL)
                 .providerId(ProviderType.LOCAL.name())
                 .build();
+    }
+
+    public FindLoginIdResponse getFindLoginIdResponse(String loginId) {
+        return new FindLoginIdResponse(loginId);
     }
 }

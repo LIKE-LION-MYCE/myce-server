@@ -15,6 +15,7 @@ public enum CustomErrorCode {
     INVALID_LOGIN_TYPE(HttpStatus.BAD_REQUEST, "U004", "잘못된 로그인 방식입니다."),
     EXPIRED_VERIFICATION_TIME(HttpStatus.BAD_REQUEST, "U005", "인증 시간이 초과되었습니다."),
     INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "U006", "인증 코드가 유효하지 않습니다."),
+    INVALID_VERIFICATION_TYPE(HttpStatus.BAD_REQUEST, "U007", "유효하지 않는 인증 타입입니다."),
 
     // 회원 M
     MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "M001", "회원정보가 존재하지 않습니다."),
