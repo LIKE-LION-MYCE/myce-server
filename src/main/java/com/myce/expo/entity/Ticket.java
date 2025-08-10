@@ -50,6 +50,12 @@ public class Ticket {
     @Column(name = "sale_end_date", nullable = false)
     private LocalDate saleEndDate;
 
+    @Column(name = "use_start_date", nullable = false)
+    private LocalDate useStartDate;
+
+    @Column(name = "use_end_date", nullable = false)
+    private LocalDate useEndDate;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP", nullable = false)
     private LocalDateTime createdAt;
@@ -61,6 +67,7 @@ public class Ticket {
     @Builder
     public Ticket(Expo expo, String name, String description, TicketType type,
                   Integer price, Integer remainingQuantity, Integer totalQuantity,
+                  LocalDate useStartDate, LocalDate useEndDate,
                   LocalDate saleStartDate, LocalDate saleEndDate) {
         this.expo = expo;
         this.name = name;
@@ -69,6 +76,8 @@ public class Ticket {
         this.price = price;
         this.remainingQuantity = remainingQuantity;
         this.totalQuantity = totalQuantity;
+        this.useStartDate = useStartDate;
+        this.useEndDate = useEndDate;
         this.saleStartDate = saleStartDate;
         this.saleEndDate = saleEndDate;
     }
