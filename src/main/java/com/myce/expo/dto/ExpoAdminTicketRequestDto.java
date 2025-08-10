@@ -38,4 +38,22 @@ public class ExpoAdminTicketRequestDto {
         if (saleStartDate == null || saleEndDate == null) return true;
         return !saleEndDate.isBefore(saleStartDate);
     }
+
+    @NotNull(message = "사용 시작일은 필수입니다.")
+    private LocalDate useStartDate;
+
+    @NotNull(message = "사용 종료일은 필수입니다.")
+    private LocalDate useEndDate;
+
+    @AssertTrue(message = "사용 종료일은 시작일과 같거나 이후여야 합니다.")
+    public boolean isUseEndDateValid(){
+        if (useStartDate == null || useEndDate == null) return true;
+        return !useEndDate.isBefore(useStartDate);
+    }
+
+    @AssertTrue(message = "사용 시작일은 판매 시작일과 같거나 이후여야 합니다.")
+    public boolean isUseStartAfterSaleStart(){
+        if (useStartDate == null || saleStartDate == null) return true;
+        return !useStartDate.isBefore(saleStartDate);
+    }
 }

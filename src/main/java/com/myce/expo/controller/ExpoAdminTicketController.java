@@ -1,6 +1,7 @@
 package com.myce.expo.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.auth.dto.type.LoginType;
 import com.myce.expo.dto.ExpoAdminTicketRequestDto;
 import com.myce.expo.dto.ExpoAdminTicketResponseDto;
 import com.myce.expo.service.ExpoAdminTicketService;
@@ -20,40 +21,44 @@ public class ExpoAdminTicketController {
 
     private final ExpoAdminTicketService service;
 
-    @GetMapping//TODO:하위관리자
+    @GetMapping
     public ResponseEntity<List<ExpoAdminTicketResponseDto>> getMyExpoTickets(
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails){
         Long memberId = customUserDetails.getMemberId();
-        return ResponseEntity.ok(service.getMyExpoTickets(expoId,memberId));
+        LoginType loginType = customUserDetails.getLoginType();
+        return ResponseEntity.ok(service.getMyExpoTickets(expoId,memberId,loginType));
     }
 
-    @DeleteMapping("/{ticketId}")//TODO:하위관리자
+    @DeleteMapping("/{ticketId}")
     public ResponseEntity<Void> deleteMyExpoTicket(
             @PathVariable Long expoId,
             @PathVariable Long ticketId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails){
         Long memberId = customUserDetails.getMemberId();
-        service.deleteMyExpoTicket(expoId,memberId,ticketId);
+        LoginType loginType = customUserDetails.getLoginType();
+        service.deleteMyExpoTicket(expoId,memberId,loginType,ticketId);
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping//TODO:하위관리자
+    @PostMapping
     public ResponseEntity<ExpoAdminTicketResponseDto> saveMyExpoTicket(
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody ExpoAdminTicketRequestDto dto){
         Long memberId = customUserDetails.getMemberId();
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.saveMyExpoTicket(expoId,memberId,dto));
+        LoginType loginType = customUserDetails.getLoginType();
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.saveMyExpoTicket(expoId,memberId,loginType,dto));
     }
 
-    @PutMapping("/{ticketId}")//TODO:하위관리자
+    @PutMapping("/{ticketId}")
     public ResponseEntity<ExpoAdminTicketResponseDto> updateMyExpoTicket(
             @PathVariable Long expoId,
             @PathVariable Long ticketId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody ExpoAdminTicketRequestDto dto){
         Long memberId = customUserDetails.getMemberId();
-        return ResponseEntity.ok(service.updateMyExpoTicket(expoId,memberId,ticketId,dto));
+        LoginType loginType = customUserDetails.getLoginType();
+        return ResponseEntity.ok(service.updateMyExpoTicket(expoId,memberId,loginType,ticketId,dto));
     }
 }

@@ -1,6 +1,7 @@
 package com.myce.expo.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.auth.dto.type.LoginType;
 import com.myce.expo.dto.ExpoAdminManagerRequest;
 import com.myce.expo.dto.ExpoAdminManagerResponse;
 import com.myce.expo.service.ExpoAdminManagerService;
@@ -18,20 +19,22 @@ public class ExpoAdminManagerController {
 
     private final ExpoAdminManagerService service;
 
-    @GetMapping//TODO:하위관리자
+    @GetMapping
     public ResponseEntity<List<ExpoAdminManagerResponse>> getMyExpoManagers(
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails userDetails){
         Long memberId = userDetails.getMemberId();
-        return ResponseEntity.ok(service.getMyExpoManagers(expoId,memberId));
+        LoginType loginType = userDetails.getLoginType();
+        return ResponseEntity.ok(service.getMyExpoManagers(expoId,memberId,loginType));
     }
 
-    @PutMapping//TODO:하위관리자
+    @PutMapping
     public ResponseEntity<List<ExpoAdminManagerResponse>> updateMyExpoManagers(
             @PathVariable Long expoId,
             @RequestBody List<ExpoAdminManagerRequest> dtos,
             @AuthenticationPrincipal CustomUserDetails userDetails){
         Long memberId = userDetails.getMemberId();
-        return ResponseEntity.ok(service.updateMyExpoManagers(expoId,memberId,dtos));
+        LoginType loginType = userDetails.getLoginType();
+        return ResponseEntity.ok(service.updateMyExpoManagers(expoId,memberId,loginType,dtos));
     }
 }
