@@ -45,4 +45,15 @@ public interface ChatRoomRepository extends MongoRepository<ChatRoom, String> {
      * 활성화된 모든 채팅방 개수 조회 (통계용)
      */
     Long countByIsActiveTrue();
+
+    /**
+     * 비활성 담당자가 있는 채팅방 조회 (타임아웃 스케줄러용)
+     */
+    @Query("{ 'currentAdminCode': { $ne: null }, 'lastAdminActivity': { $lt: ?0 } }")
+    List<ChatRoom> findByCurrentAdminCodeIsNotNullAndLastAdminActivityBefore(java.time.LocalDateTime threshold);
+
+    /**
+     * 특정 박람회의 모든 채팅방 조회 (active 여부 무관)
+     */
+    List<ChatRoom> findByExpoId(Long expoId);
 }

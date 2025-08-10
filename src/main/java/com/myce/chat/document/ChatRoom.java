@@ -93,6 +93,29 @@ public class ChatRoom {
     private LocalDateTime updatedAt;
 
     /**
+     * 현재 담당 관리자 식별자
+     * - AdminCode 로그인: AdminCode.code (예: "CODE123A") 
+     * - Super Admin 로그인: "SUPER_ADMIN"
+     * - 담당자 없음: null
+     */
+    @Setter
+    private String currentAdminCode;
+
+    /**
+     * 마지막 관리자 활동 시간
+     * 담당자 타임아웃 스케줄러에서 사용 (5분 비활성시 담당 해제)
+     */
+    @Setter
+    private LocalDateTime lastAdminActivity;
+
+    /**
+     * 사용자에게 표시되는 관리자 이름
+     * 예: "2024 IT박람회 관리자"
+     */
+    @Setter
+    private String adminDisplayName;
+
+    /**
      * 채팅방 생성 시 기본값 설정
      */
     @Builder
@@ -142,5 +165,49 @@ public class ChatRoom {
         if (content == null) return null;
         if (content.length() <= 200) return content;
         return content.substring(0, 197) + "...";
+    }
+
+    /**
+     * 담당자 배정
+     * @param adminCode AdminCode.code 또는 "SUPER_ADMIN"
+     */
+    public void assignAdmin(String adminCode) {
+        this.currentAdminCode = adminCode;
+        this.lastAdminActivity = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * 담당자 해제
+     */
+    public void releaseAdmin() {
+        this.currentAdminCode = null;
+        this.lastAdminActivity = null;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * 관리자 활동 시간 업데이트
+     */
+    public void updateAdminActivity() {
+        if (this.currentAdminCode != null) {
+            this.lastAdminActivity = LocalDateTime.now();
+            this.updatedAt = LocalDateTime.now();
+        }
+    }
+
+    /**
+     * 담당자가 있는지 확인
+     */
+    public boolean hasAssignedAdmin() {
+        return this.currentAdminCode != null;
+    }
+    
+    /**
+     * 읽음 상태 업데이트
+     */
+    public void updateReadStatus(String readStatusJson) {
+        this.readStatusJson = readStatusJson;
+        this.updatedAt = LocalDateTime.now();
     }
 }
