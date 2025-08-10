@@ -107,4 +107,18 @@ public class Advertisement {
         }
         this.status = AdvertisementStatus.REJECTED;
     }
+
+    public void publish() {
+        if (this.status != AdvertisementStatus.PENDING_PUBLISH) {
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
+        }
+        this.status = AdvertisementStatus.PUBLISHED;
+    }
+
+    public void complete() {
+        if (this.status != AdvertisementStatus.PUBLISHED) {
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
+        }
+        this.status = AdvertisementStatus.COMPLETED;
+    }
 }

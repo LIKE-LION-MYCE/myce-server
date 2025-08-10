@@ -18,6 +18,12 @@ export AWS_REGION="ap-northeast-2"
 export S3_MEDIA_BUCKET_NAME=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/s3-bucket-name" --query "Parameter.Value" --output text)
 export CLOUDFRONT_DOMAIN=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/cloudfront-domain" --query "Parameter.Value" --output text)
 
+# PortOne payment configuration
+export PORTONE_BASE_URL=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/portone-base-url" --query "Parameter.Value" --output text)
+export PORTONE_API_KEY=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/portone-api-key" --with-decryption --query "Parameter.Value" --output text)
+export PORTONE_API_SECRET=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/portone-api-secret" --with-decryption --query "Parameter.Value" --output text)
+export PORTONE_CUSTOMER_CODE=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/portone-customer-code" --query "Parameter.Value" --output text)
+
 # Note: AWS credentials (ACCESS_KEY_ID, SECRET_ACCESS_KEY) are NOT set
 # AwsConfig will automatically detect and use the EC2 IAM role for authentication
 

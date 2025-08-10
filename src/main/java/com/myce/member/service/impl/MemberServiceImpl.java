@@ -18,6 +18,7 @@ import com.myce.member.dto.AdvertisementPaymentDetailResponse;
 import com.myce.member.dto.AdvertisementRefundReceiptResponse;
 import com.myce.member.dto.ExpoAdminCodeResponse;
 import com.myce.member.dto.ExpoPaymentDetailResponse;
+import com.myce.member.mapper.ExpoRefundReceiptMapper;
 import com.myce.member.dto.ExpoRefundReceiptResponse;
 import com.myce.member.dto.ExpoSettlementReceiptResponse;
 import com.myce.member.dto.FavoriteExpoResponse;
@@ -38,7 +39,6 @@ import com.myce.member.mapper.AdvertisementPaymentDetailMapper;
 import com.myce.member.mapper.AdvertisementRefundReceiptMapper;
 import com.myce.member.mapper.ExpoAdminCodeMapper;
 import com.myce.member.mapper.ExpoPaymentDetailMapper;
-import com.myce.member.mapper.ExpoRefundReceiptMapper;
 import com.myce.member.mapper.ExpoSettlementReceiptMapper;
 import com.myce.member.mapper.FavoriteExpoMapper;
 import com.myce.member.mapper.MemberAdvertisementMapper;
@@ -330,7 +330,7 @@ public class MemberServiceImpl implements MemberService {
         List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
 
         // 현재 활성화된 수수료 설정 조회
-        ExpoFeeSetting feeSetting = expoFeeSettingRepository.findActiveFeeSetting()
+        ExpoFeeSetting feeSetting = expoFeeSettingRepository.findByIsActiveTrue()
                 .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
 
         return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, feeSetting);

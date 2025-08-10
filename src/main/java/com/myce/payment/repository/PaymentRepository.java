@@ -15,6 +15,8 @@ import java.util.Optional;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
+    Optional<Payment> findByImpUid(String impUid);
+    Optional<Payment> findByMerchantUid(String merchantUid);
     
     @Query("SELECT p, rpi, rpi.reservation, rpi.reservation.expo FROM Payment p " +
            "JOIN ReservationPaymentInfo rpi ON p.targetId = rpi.id " +

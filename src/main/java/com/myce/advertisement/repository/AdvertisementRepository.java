@@ -37,15 +37,21 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
             " WHERE a.member.id = :memberId ORDER BY a.createdAt DESC")
     List<Advertisement> findByMemberIdWithAdPosition(@Param("memberId") Long memberId);
 
-    @Query("SELECT a FROM Advertisement a JOIN FETCH a.adPosition WHERE a.id = :advertisementId AND a.member.id = :memberId")
+    @Query("SELECT a FROM Advertisement a JOIN FETCH a.adPosition" +
+            " WHERE a.id = :advertisementId AND a.member.id = :memberId")
     Optional<Advertisement> findByIdAndMemberIdWithAdPosition(@Param("advertisementId") Long advertisementId,
             @Param("memberId") Long memberId);
 
+    List<Advertisement> findAllByDisplayStartDateLessThanEqualAndStatus(
+            LocalDate date, AdvertisementStatus status);
+
+    List<Advertisement> findAllByDisplayEndDateLessThanAndStatus(
+            LocalDate date, AdvertisementStatus status);
 
     @Query("SELECT a FROM Advertisement a" +
             " WHERE a.status IN :status" +
             " AND a.displayStartDate <= CURRENT_DATE" +
             " AND a.displayEndDate >= CURRENT_DATE")
-    List<Advertisement> findAllPublishedAdvertisements(
+    List<Advertisement> findAdsActiveTodayAndStatusIn(
             @Param("status") List<AdvertisementStatus> status);
 }
