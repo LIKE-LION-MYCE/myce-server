@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +34,7 @@ public class ExpoAdminReservationController {
     }
 
     @GetMapping("/reservations")
-    public ResponseEntity<Page<ExpoAdminReservationResponse>> getMyExpoReservations(
+    public ResponseEntity<PagedModel<ExpoAdminReservationResponse>> getMyExpoReservations(
             @PathVariable Long expoId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -52,6 +53,6 @@ public class ExpoAdminReservationController {
                 entranceStatus, name, phone, reservationCode, ticketName,
                 pageable);
 
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(new PagedModel<>(result));
     }
 }
