@@ -1,11 +1,6 @@
 package com.myce.advertisement.service.impl;
 
 import com.myce.advertisement.dto.*;
-import com.myce.advertisement.dto.AdPaymentHistoryResponse;
-import com.myce.advertisement.dto.AdRejectInfoResponse;
-import com.myce.advertisement.dto.DetailApplyAdvertisement;
-import com.myce.advertisement.dto.RejectAdRequest;
-import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.advertisement.repository.AdvertisementRepository;

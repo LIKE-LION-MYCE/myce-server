@@ -1,7 +1,6 @@
 package com.myce.advertisement.controller;
 
 import com.myce.advertisement.dto.*;
-import com.myce.advertisement.dto.AdPaymentHistoryResponse;
 import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.advertisement.dto.DetailApplyAdvertisement;
 import com.myce.advertisement.dto.RejectAdRequest;
