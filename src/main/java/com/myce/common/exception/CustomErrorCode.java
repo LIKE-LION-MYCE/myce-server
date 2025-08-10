@@ -70,9 +70,7 @@ public enum CustomErrorCode {
     BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다."),
     BANNER_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
     ADVERTISEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "A003" ,  "광고가 존재 하지 않습니다" ),
-    INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A004", "환불할 수 없는 광고 상태입니다."),
-    INVALID_ADVERTISEMENT_REJECT_STATUS(HttpStatus.BAD_REQUEST, "A005", "이 광고는 거부할 수 없습니다."),
-    INVALID_ADVERTISEMENT_CANCEL_STATUS(HttpStatus.BAD_REQUEST, "A006", "이 광고는 취소할 수 없습니다."),
+    INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A004", "유효하지 않은 광고 상태입니다."),
 
     // 부스 B
     BOOTH_PREMIUM_RANK_REQUIRED(HttpStatus.BAD_REQUEST, "B001", "프리미엄 부스는 노출 순위가 필수입니다."),
