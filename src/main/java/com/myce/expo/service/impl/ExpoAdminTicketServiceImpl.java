@@ -91,7 +91,9 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
                 dto.getTotalQuantity(),
                 dto.getTotalQuantity(),
                 dto.getSaleStartDate(),
-                dto.getSaleEndDate()
+                dto.getSaleEndDate(),
+                dto.getUseStartDate(),
+                dto.getUseEndDate()
         );
 
        return mapper.toDto(ticket);
