@@ -9,6 +9,7 @@ import com.myce.chat.dto.MessageResponse;
 import com.myce.chat.repository.ChatRoomRepository;
 import com.myce.chat.repository.ChatMessageRepository;
 import com.myce.chat.service.ExpoChatService;
+import com.myce.chat.service.mapper.ChatMessageMapper;
 import com.myce.common.dto.PageResponse;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
@@ -154,6 +155,29 @@ public class ExpoChatServiceImpl implements ExpoChatService {
             log.warn("읽음 상태 WebSocket 알림 전송 실패 - roomCode: {}, error: {}", roomCode, e.getMessage());
         }
         
+        // 박람회 관리자들에게 unread count 업데이트 알림
+        try {
+            Long extractedExpoId = extractExpoIdFromRoomCode(roomCode);
+            if (extractedExpoId != null) {
+                Map<String, Object> unreadUpdatePayload = Map.of(
+                    "roomCode", roomCode,
+                    "unreadCount", 0
+                );
+                
+                Map<String, Object> unreadUpdateMessage = Map.of(
+                    "type", "unread_count_update",
+                    "payload", unreadUpdatePayload
+                );
+                
+                messagingTemplate.convertAndSend(
+                    "/topic/expo/" + extractedExpoId + "/chat-room-updates",
+                    unreadUpdateMessage
+                );
+            }
+        } catch (Exception e) {
+            log.warn("관리자 unread count 업데이트 전송 실패 - roomCode: {}, error: {}", roomCode, e.getMessage());
+        }
+        
     }
     
     /**
@@ -276,15 +300,16 @@ public class ExpoChatServiceImpl implements ExpoChatService {
         // 읽음 상태 계산 (현재는 임시로 0으로 설정, 실제 로직은 별도 구현 필요)
         Integer unreadCount = calculateMessageUnreadCount(message);
         
-        return MessageResponse.builder()
-                .roomId(message.getRoomCode())
-                .messageId(message.getId())
-                .senderId(message.getSenderId())
-                .senderType(message.getSenderType())
-                .content(message.getContent())
-                .sentAt(message.getSentAt())
-                .unreadCount(unreadCount)
-                .build();
+        // 관리자 메시지인 경우 관리자 정보 추가
+        String adminCode = null;
+        String adminDisplayName = null;
+        if ("ADMIN".equals(message.getSenderType()) && message.getActualSender() != null) {
+            adminCode = message.getActualSender();
+            adminDisplayName = getAdminDisplayName(adminCode);
+        }
+        
+        // ChatMessageMapper 사용
+        return ChatMessageMapper.toDto(message, unreadCount, adminCode, adminDisplayName);
     }
     
     /**
@@ -453,6 +478,35 @@ public class ExpoChatServiceImpl implements ExpoChatService {
         } catch (Exception e) {
             log.warn("사용자 안읽은 메시지 개수 계산 실패 - roomCode: {}, userId: {}", roomCode, userId);
             return 0;
+        }
+    }
+    
+    /**
+     * 룸 코드에서 박람회 ID 추출
+     * roomCode 형식: admin-{expoId}-{userId}
+     */
+    private Long extractExpoIdFromRoomCode(String roomCode) {
+        try {
+            if (roomCode != null && roomCode.startsWith("admin-")) {
+                String[] parts = roomCode.split("-");
+                if (parts.length >= 3) {
+                    return Long.parseLong(parts[1]);
+                }
+            }
+        } catch (NumberFormatException e) {
+            log.warn("Invalid room code format for expoId extraction: {}", roomCode);
+        }
+        return null;
+    }
+    
+    /**
+     * 관리자 표시 이름 생성
+     */
+    private String getAdminDisplayName(String adminCode) {
+        if ("SUPER_ADMIN".equals(adminCode)) {
+            return "박람회 관리자";
+        } else {
+            return "박람회 관리자 (" + adminCode + ")";
         }
     }
 }

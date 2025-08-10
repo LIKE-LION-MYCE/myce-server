@@ -266,7 +266,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     }
     
     /**
-     * 사용자 읽음 상태 업데이트 (ExpoChatServiceImpl의 updateReadStatusForAdmin 패턴 참고)
+     * 사용자 읽음 상태 업데이트
      */
     private String updateReadStatusForUser(String currentReadStatus, String lastReadMessageId) {
         if (currentReadStatus == null || currentReadStatus.isEmpty() || currentReadStatus.equals("{}")) {

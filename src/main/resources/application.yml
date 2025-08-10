@@ -123,7 +123,7 @@ management:
   metrics:
     export:
       prometheus:
-        enabled: true
+        enabled: true1
   #port-one:
   #base-url: ${PORTONE_BASE_URL}
   #api-key: ${PORTONE_API_KEY}
@@ -132,3 +132,4 @@ management:
   #test-mode: false
 scheduler:
   test: 0 * * * * * # every minute
+  admin-timeout: 0 */1 * * * * # 1분마다 (테스트용) -> 담당자 배졍

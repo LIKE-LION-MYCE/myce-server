@@ -1,10 +1,12 @@
 package com.myce.chat.controller;
 
+import com.myce.chat.document.ChatMessage;
 import com.myce.chat.document.ChatRoom;
 import com.myce.chat.dto.*;
+import com.myce.chat.repository.ChatMessageRepository;
 import com.myce.chat.repository.ChatRoomRepository;
 import com.myce.chat.service.ChatWebSocketService;
-// import com.myce.chat.service.AdminWebSocketService; // TODO: 추후 구현
+import com.myce.chat.service.mapper.ChatMessageMapper;
 import com.myce.chat.type.WebSocketMessageType;
 import com.myce.common.exception.CustomException;
 import com.myce.common.exception.CustomErrorCode;
@@ -30,6 +32,7 @@ public class ChatWebSocketController {
 
     private final ChatWebSocketService chatWebSocketService;
     private final ChatRoomRepository chatRoomRepository;
+    private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     /**
@@ -142,6 +145,39 @@ public class ChatWebSocketController {
                 broadcastMessage
             );
             
+            // 사용자 메시지 전송 후 박람회 관리자들에게 unread count 업데이트 알림
+            try {
+                Long expoId = extractExpoIdFromRoomCode(roomId);
+                if (expoId != null) {
+                    // 채팅방의 현재 unread count 조회
+                    ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomId)
+                        .orElse(null);
+                    
+                    if (chatRoom != null) {
+                        // 관리자가 마지막으로 읽은 메시지 이후의 USER 메시지만 계산
+                        Integer unreadCount = calculateUnreadCountForAdmin(chatRoom);
+                        
+                        Map<String, Object> unreadUpdatePayload = Map.of(
+                            "roomCode", roomId,
+                            "unreadCount", unreadCount
+                        );
+                        
+                        Map<String, Object> unreadUpdateMessage = Map.of(
+                            "type", "unread_count_update",
+                            "payload", unreadUpdatePayload
+                        );
+                        
+                        messagingTemplate.convertAndSend(
+                            "/topic/expo/" + expoId + "/chat-room-updates",
+                            unreadUpdateMessage
+                        );
+                    }
+                }
+            } catch (Exception unreadUpdateError) {
+                log.warn("Unread count 업데이트 전송 실패 - roomCode: {}, error: {}", 
+                    roomId, unreadUpdateError.getMessage());
+            }
+            
         } catch (Exception e) {
             log.error("메시지 전송 실패 - roomId: {}", message.get("roomId"));
             
@@ -208,8 +244,16 @@ public class ChatWebSocketController {
                 );
             }
             
-            MessageResponse messageResponse = chatWebSocketService.sendMessage(
-                userId, roomCode, content
+            // 관리자 메시지 직접 생성 및 저장
+            ChatMessage adminMessage = ChatMessage.createAdminMessage(
+                roomCode, content, userId, adminCode, "ADMIN_CODE", 
+                chatRoom.getAdminDisplayName()
+            );
+            ChatMessage savedMessage = chatMessageRepository.save(adminMessage);
+            
+            // ChatMessageMapper를 사용하여 일관성 있는 변환
+            MessageResponse messageResponse = ChatMessageMapper.toDto(
+                savedMessage, 1, adminCode, chatRoom.getAdminDisplayName()
             );
             
             Map<String, Object> payload = Map.of(
@@ -217,6 +261,8 @@ public class ChatWebSocketController {
                 "messageId", messageResponse.getMessageId(),
                 "senderId", messageResponse.getSenderId(),
                 "senderType", "ADMIN",
+                "adminCode", adminCode,
+                "adminDisplayName", chatRoom.getAdminDisplayName(),
                 "content", messageResponse.getContent(),
                 "sentAt", messageResponse.getSentAt().toString()
             );
@@ -306,6 +352,81 @@ public class ChatWebSocketController {
             
         } catch (Exception e) {
             log.error("읽음 상태 알림 처리 실패 - roomId: {}", message.get("roomId"));
+        }
+    }
+    
+    /**
+     * 룸 코드에서 박람회 ID 추출
+     * roomCode 형식: admin-{expoId}-{userId}
+     */
+    private Long extractExpoIdFromRoomCode(String roomCode) {
+        try {
+            if (roomCode != null && roomCode.startsWith("admin-")) {
+                String[] parts = roomCode.split("-");
+                if (parts.length >= 3) {
+                    return Long.parseLong(parts[1]);
+                }
+            }
+        } catch (NumberFormatException e) {
+            log.warn("Invalid room code format for expoId extraction: {}", roomCode);
+        }
+        return null;
+    }
+    
+    /**
+     * 관리자 입장에서 안읽은 메시지 개수 계산
+     * (관리자가 마지막으로 읽은 메시지 이후의 USER 메시지만 계산)
+     */
+    private Integer calculateUnreadCountForAdmin(ChatRoom chatRoom) {
+        try {
+            String roomCode = chatRoom.getRoomCode();
+            String readStatusJson = chatRoom.getReadStatusJson();
+            
+            // readStatusJson에서 ADMIN의 마지막 읽은 메시지 ID 추출
+            String lastReadMessageId = extractLastReadMessageId(readStatusJson, "ADMIN");
+            
+            if (lastReadMessageId == null || lastReadMessageId.isEmpty()) {
+                // 관리자가 아직 아무것도 읽지 않았다면 전체 USER 메시지 개수
+                Long count = chatMessageRepository.countByRoomCodeAndSenderType(roomCode, "USER");
+                return count.intValue();
+            } else {
+                // 마지막 읽은 메시지 ID 이후의 USER 메시지 개수
+                Long count = chatMessageRepository.countByRoomCodeAndSenderTypeAndIdGreaterThan(
+                    roomCode, "USER", lastReadMessageId);
+                return count.intValue();
+            }
+        } catch (Exception e) {
+            log.warn("안읽은 메시지 개수 계산 실패 - roomCode: {}", chatRoom.getRoomCode());
+            return 0;
+        }
+    }
+    
+    /**
+     * readStatusJson에서 특정 타입의 마지막 읽은 메시지 ID 추출
+     */
+    private String extractLastReadMessageId(String readStatusJson, String userType) {
+        try {
+            if (readStatusJson == null || readStatusJson.isEmpty() || readStatusJson.equals("{}")) {
+                return null;
+            }
+            
+            // 간단한 JSON 파싱 (Jackson 라이브러리 사용하지 않고)
+            String searchKey = "\"" + userType + "\":\"";
+            int startIndex = readStatusJson.indexOf(searchKey);
+            if (startIndex == -1) {
+                return null;
+            }
+            
+            startIndex += searchKey.length();
+            int endIndex = readStatusJson.indexOf("\"", startIndex);
+            if (endIndex == -1) {
+                return null;
+            }
+            
+            return readStatusJson.substring(startIndex, endIndex);
+        } catch (Exception e) {
+            log.warn("readStatusJson 파싱 실패: {}", readStatusJson, e);
+            return null;
         }
     }
 }

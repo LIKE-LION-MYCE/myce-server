@@ -20,7 +20,6 @@ import java.util.Map;
 
 /**
  * 박람회 관리자 채팅 컨트롤러
- * 기존 /api/expos/{expoId}/* 패턴 준수
  */
 @Slf4j
 @RestController
@@ -81,33 +80,7 @@ public class ExpoChatController {
             @PathVariable String roomCode,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         
-        
         Long unreadCount = chatService.getUnreadCount(expoId, roomCode, userDetails);
         return ResponseEntity.ok(unreadCount);
-    }
-}
-
-/**
- * 사용자용 채팅 API 컨트롤러
- */
-@Slf4j
-@RestController
-@RequestMapping("/api/chats")
-@RequiredArgsConstructor
-class UserChatController {
-    
-    private final ExpoChatService chatService;
-    
-    /**
-     * FAB용 전체 읽지 않은 메시지 수 조회
-     */
-    @GetMapping("/rooms/unread-counts")
-    public ResponseEntity<Map<String, Object>> getAllUnreadCounts(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        
-        
-        Map<String, Object> result = chatService.getAllUnreadCountsForUser(userDetails);
-        
-        return ResponseEntity.ok(result);
     }
 }

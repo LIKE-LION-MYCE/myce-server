@@ -4,8 +4,6 @@ import com.myce.chat.dto.ChatRoomListResponse;
 
 /**
  * 채팅방 비즈니스 로직 서비스
- * <p>
- * 역할별 권한 검증 및 채팅방 조회 로직을 제공합니다.
  */
 public interface ChatRoomService {
 
