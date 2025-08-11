@@ -101,6 +101,7 @@ public class PaymentMapper {
             .premiumDeposit(expoFeeSetting.getPremiumDeposit())
             .totalDay((int) totalDays)
             .dailyUsageFee(expoFeeSetting.getDailyUsageFee())
+            .commissionRate(expoFeeSetting.getSettlementCommission())
             .build();
     }
     

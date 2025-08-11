@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +23,7 @@ public class ExpoAdminPaymentController {
     private final ExpoAdminPaymentService service;
 
     @GetMapping
-    public ResponseEntity<Page<ExpoAdminPaymentResponse>> getExpoAdminPayment(
+    public ResponseEntity<PagedModel<ExpoAdminPaymentResponse>> getMyExpoPayments(
             @PathVariable Long expoId,
             @RequestParam(defaultValue = "desc") String sort,
             @RequestParam(defaultValue = "0") int page,
@@ -39,6 +40,6 @@ public class ExpoAdminPaymentController {
 
         Page<ExpoAdminPaymentResponse> result = service.getMyExpoPayments(expoId, memberId, loginType, status, name, phone, pageable);
 
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(new PagedModel<>(result));
     }
 }

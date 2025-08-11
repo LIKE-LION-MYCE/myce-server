@@ -81,11 +81,10 @@ public class ExpoServiceImpl implements ExpoService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
         
         // 현재 시간 기준 1시간 전부터 현재까지 입장한 인원 수 조회
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime oneHourAgo = now.minusHours(1);
+        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
         
-        long hourlyVisitors = qrCodeRepository.countRecentlyUsedQrCodesByExpo(
-                expoId, oneHourAgo, now);
+        long hourlyVisitors = qrCodeRepository.countByReserverReservationExpoIdAndUsedAtAfter(
+                expoId, oneHourAgo);
         
         // 시간당 수용 인원 계산
         int hourlyCapacity = calculateHourlyCapacity(expo);

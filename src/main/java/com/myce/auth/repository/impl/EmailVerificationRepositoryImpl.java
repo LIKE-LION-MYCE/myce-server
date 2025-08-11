@@ -12,19 +12,19 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class EmailVerificationRepositoryImpl implements EmailVerificationRepository {
 
-    private static final String KEY_FORMAT = "verification:email:%s";
+    private static final String KEY_FORMAT = "verification:email:%s:%s";
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
 
-    public void save(EmailVerificationInfo emailVerification, int limitTime) {
+    public void save(EmailVerificationInfo emailVerification, String type, int limitTime) {
         String email = emailVerification.getEmail();
-        String key = String.format(KEY_FORMAT, email);
+        String key = String.format(KEY_FORMAT, type, email);
         redisTemplate.opsForValue().set(key, emailVerification, limitTime, TimeUnit.MINUTES);
     }
 
-    public EmailVerificationInfo findByEmail(String email) {
-        String key = String.format(KEY_FORMAT, email);
+    public EmailVerificationInfo findByEmail(String type, String email) {
+        String key = String.format(KEY_FORMAT, type, email);
         return objectMapper.convertValue(redisTemplate.opsForValue().get(key), EmailVerificationInfo.class);
     }
 }

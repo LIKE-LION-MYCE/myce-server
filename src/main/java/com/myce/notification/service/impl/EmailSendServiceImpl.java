@@ -9,6 +9,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.io.UnsupportedEncodingException;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -19,13 +21,15 @@ public class EmailSendServiceImpl implements EmailSendService {
     public void sendMail(String to, String subject, String content) {
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         try {
-            MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage);
+            MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            messageHelper.setFrom("noreply@myce.live", "MYCE");
             messageHelper.setTo(to);
             messageHelper.setSubject(subject);
             messageHelper.setText(content, true);
             mailSender.send(mimeMessage);
-        } catch(MessagingException me) {
-            log.error("Fail to send email. to={}, subject={}", to, subject, me);
+            log.info("System email sent successfully. from=noreply@myce.live, to={}, subject={}", to, subject);
+        } catch (MessagingException | UnsupportedEncodingException me) {
+            log.error("Failed to send system email. from=noreply@myce.live, to={}, subject={}", to, subject, me);
         }
     }
 

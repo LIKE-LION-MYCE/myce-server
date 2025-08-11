@@ -24,6 +24,11 @@ export PORTONE_API_KEY=$(aws ssm get-parameter --region ap-northeast-2 --name "/
 export PORTONE_API_SECRET=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/portone-api-secret" --with-decryption --query "Parameter.Value" --output text)
 export PORTONE_CUSTOMER_CODE=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/portone-customer-code" --query "Parameter.Value" --output text)
 
+# Amazon SES email configuration
+export MAIL_HOST=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/ses-smtp-host" --query "Parameter.Value" --output text)
+export MAIL_USERNAME=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/ses-smtp-username" --with-decryption --query "Parameter.Value" --output text)
+export MAIL_PASSWORD=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/ses-smtp-password" --with-decryption --query "Parameter.Value" --output text)
+
 # Note: AWS credentials (ACCESS_KEY_ID, SECRET_ACCESS_KEY) are NOT set
 # AwsConfig will automatically detect and use the EC2 IAM role for authentication
 
@@ -33,5 +38,5 @@ export PROFILE="product"
 echo "✅ Successfully loaded environment variables from SSM Parameter Store"
 echo "🚀 Starting Spring Boot application..."
 
-# Start the Spring Boot application
-exec java -jar /app/app.jar
+# Start the Spring Boot application with Asia/Seoul timezone
+exec java -Duser.timezone=Asia/Seoul -jar /app/app.jar

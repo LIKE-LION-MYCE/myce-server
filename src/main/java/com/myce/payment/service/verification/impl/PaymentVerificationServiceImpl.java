@@ -1,7 +1,7 @@
 package com.myce.payment.service.verification.impl;
 
 import com.myce.advertisement.entity.Advertisement;
-import com.myce.advertisement.repository.AdvertisementRepository;
+import com.myce.advertisement.repository.AdRepository;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
@@ -51,7 +51,7 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
     private final AdPaymentInfoRepository adPaymentInfoRepository;
     private final ExpoPaymentInfoRepository expoPaymentInfoRepository;
     private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
-    private final AdvertisementRepository advertisementRepository;
+    private final AdRepository adRepository;
     private final ExpoRepository expoRepository;
     private final AdFeeSettingRepository adFeeSettingRepository;
     private final ExpoFeeSettingRepository expoFeeSettingRepository;
@@ -167,8 +167,8 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
                 savedPaymentInfo = reservationPaymentInfoRepository.save(reservationPaymentInfo);
                 break;
             case AD:
-                Advertisement advertisement = advertisementRepository.findById(request.getTargetId())
-                        .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
+                Advertisement advertisement = adRepository.findById(request.getTargetId())
+                        .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
                 AdFeeSetting adFeeSetting = adFeeSettingRepository.findByAdPositionIdAndIsActiveTrue(
                                 advertisement.getAdPosition().getId())
                         .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
