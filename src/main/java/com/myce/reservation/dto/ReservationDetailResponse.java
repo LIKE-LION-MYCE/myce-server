@@ -26,6 +26,7 @@ public class ReservationDetailResponse {
     @AllArgsConstructor
     @Builder
     public static class ExpoInfo {
+        private Long expoId;
         private String thumbnailUrl;
         private String title;
         private String location;
