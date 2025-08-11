@@ -47,7 +47,7 @@ public class ExpoAdminReservationController {
         Long memberId = customUserDetails.getMemberId();
         LoginType loginType = customUserDetails.getLoginType();
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size);
         Page<ExpoAdminReservationResponse> result = service.getMyExpoReservations(
                 expoId, memberId, loginType,
                 entranceStatus, name, phone, reservationCode, ticketName,

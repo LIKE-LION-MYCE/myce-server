@@ -6,6 +6,7 @@ import com.myce.common.exception.CustomException;
 import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.qrcode.entity.QrCode;
+import com.myce.qrcode.entity.code.QrCodeStatus;
 import com.myce.qrcode.repository.QrCodeRepository;
 import com.myce.qrcode.service.ExpoAdminManualCheckInService;
 import com.myce.reservation.dto.ExpoAdminReservationResponse;
@@ -34,9 +35,13 @@ public class ExpoAdminManualCheckInServiceImpl implements ExpoAdminManualCheckIn
         QrCode qrCode = qrCodeRepository.findByReserverId(reserverId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.QR_NOT_FOUND));
 
+        if(qrCode.getStatus() != QrCodeStatus.ACTIVE){
+            throw new CustomException(CustomErrorCode.QR_NOT_MANUAL_CHECK_IN);
+        }
+
         qrCode.markAsUsed();
 
-        return reserverRepository.findOneResponsesByReserverId(reserverId);
+        return reserverRepository.findOneResponsesByReserverId(reserverId,expoId);
     }
 
     private void validateMyAccess(Long expoId, Long memberId, LoginType loginType) {

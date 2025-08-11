@@ -43,6 +43,7 @@ public enum CustomErrorCode {
     QR_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q008", "QR 코드 생성 중 오류가 발생했습니다."),
     QR_REISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q009", "QR 코드 재발급 중 오류가 발생했습니다."),
     QR_APPROVED(HttpStatus.BAD_REQUEST , "Q010" , "QR 코드 발급 기간이 아닙니다."  ),
+    QR_NOT_MANUAL_CHECK_IN(HttpStatus.BAD_REQUEST, "Q011", "ACTIVE 상태의 QR만 수기입장 처리가 가능합니다."),
 
     // S3 S
     S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S001", "S3 파일 업로드에 실패했습니다."),
