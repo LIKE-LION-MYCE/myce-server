@@ -34,17 +34,19 @@ public class PaymentController {
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
-//  // getAccessToken() 임시 테스트용 엔드포인트
-//  @GetMapping("/test/token")
-//  public String testGetToken() {
-//    return paymentService.getAccessToken();
-//  }
+  // 가상계좌 확인 및 PENDING 상태 저장 API
+  @PostMapping("/verify-vbank")
+  public ResponseEntity<PaymentVerifyResponse> verifyVbankPayment(
+      @RequestBody PaymentVerifyRequest request) {
+    PaymentVerifyResponse response = paymentService.verifyVbankPayment(request);
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
 
-//  // getPaymentInfo 임시 테스트용 엔드포인트
-//  @GetMapping("/test/payment-info/{imp_uid}")
-//  public java.util.Map<String, Object> testGetPaymentInfo(@PathVariable("imp_uid") String impUid) {
-//    // 테스트를 위해 Access Token을 직접 발급받습니다.
-//    String accessToken = paymentService.getAccessToken();
-//    return paymentService.getPaymentInfo(impUid, accessToken);
+//  // 포트원 웹훅 API
+//  @PostMapping("/webhook")
+//  public ResponseEntity<Void> portoneWebhook(@RequestBody PortOneWebhookRequest request) {
+//    log.info("[포트원 웹훅]: {}", request);
+//    paymentService.processWebhook(request);
+//    return ResponseEntity.ok().build();
 //  }
 }

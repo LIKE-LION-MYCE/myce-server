@@ -10,22 +10,21 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.repository.ExpoRepository;
-import com.myce.member.entity.Guest;
-import com.myce.member.entity.Member;
-import com.myce.member.repository.GuestRepository;
-import com.myce.member.repository.MemberRepository;
 import com.myce.payment.config.PortOneConfig;
 import com.myce.payment.dto.PaymentInfoForRefund;
 import com.myce.payment.dto.PaymentRefundRequest;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
+import com.myce.payment.dto.PortOneWebhookRequest;
 import com.myce.payment.dto.UserIdentifier;
+import com.myce.payment.dto.VerifyVbankRequest;
 import com.myce.payment.entity.AdPaymentInfo;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.entity.Payment;
 import com.myce.payment.entity.Refund;
 import com.myce.payment.entity.ReservationPaymentInfo;
 import com.myce.payment.entity.type.PaymentStatus;
+import com.myce.payment.entity.type.PaymentTargetType;
 import com.myce.payment.entity.type.RefundStatus;
 import com.myce.payment.repository.AdPaymentInfoRepository;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
@@ -42,6 +41,7 @@ import com.myce.system.entity.ExpoFeeSetting;
 import com.myce.system.repository.AdFeeSettingRepository;
 import com.myce.system.repository.ExpoFeeSettingRepository;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -70,8 +70,6 @@ public class PaymentServiceImpl implements PaymentService {
   private final ObjectMapper objectMapper;
   private final PaymentRepository paymentRepository;
   private final PaymentMapper paymentMapper;
-  private final MemberRepository memberRepository;
-  private final GuestRepository guestRepository;
   private final ReservationRepository reservationRepository;
   private final AdPaymentInfoRepository adPaymentInfoRepository;
   private final ExpoPaymentInfoRepository expoPaymentInfoRepository;
@@ -132,7 +130,7 @@ public class PaymentServiceImpl implements PaymentService {
     identifyUser(request);
     Payment payment = paymentMapper.toEntity(request, portOnePayment);
     paymentRepository.save(payment);
-    Object paymentInfo = savePaymentInfoDetails(request, paidAmount, payment);
+    Object paymentInfo = savePaymentInfoDetails(request, paidAmount, payment, PaymentStatus.SUCCESS);
     return paymentMapper.toPaymentVerifyResponse(payment, paymentInfo);
   }
 
@@ -140,6 +138,7 @@ public class PaymentServiceImpl implements PaymentService {
   @Override
   @Transactional
   public Map<String, Object> refundPayment(PaymentRefundRequest request) {
+    log.info("[포트원 환불 impUid] impUid={}", request.getImpUid());
     String accessToken = getAccessToken();
     Payment payment = paymentRepository.findByImpUid(request.getImpUid())
         .orElseGet(() -> paymentRepository.findByMerchantUid(request.getMerchantUid())
@@ -155,6 +154,50 @@ public class PaymentServiceImpl implements PaymentService {
     processRefund(request, payment, paymentInfoEntity, originalPaidAmount, responseBody);
 
     return responseBody;
+  }
+
+  // 가상계좌 검증
+  @Override
+  @Transactional
+  public PaymentVerifyResponse verifyVbankPayment(PaymentVerifyRequest request) {
+    // 액세스 토큰 받기
+    String accessToken = getAccessToken();
+
+    // 포트원을 통해 결제내역 받아옴
+    Map<String, Object> portOnePayment = getPaymentInfo(request.getImpUid(), accessToken);
+    Integer paidAmount = verifyVbankDetails(request, portOnePayment);
+
+    identifyUser(request);
+
+    // 가상계좌 결제는 PENDING 상태로 저장
+    Payment payment = paymentMapper.toEntity(request, portOnePayment);
+    paymentRepository.save(payment);
+
+    // PaymentInfoDetails 저장 (PENDING 상태로)
+    Object paymentInfo = savePaymentInfoDetails(request, paidAmount, payment, PaymentStatus.PENDING);
+
+    return paymentMapper.toPaymentVerifyResponse(payment, paymentInfo);
+  }
+
+  private Integer verifyVbankDetails(PaymentVerifyRequest request, Map<String, Object> portOnePayment) {
+    String status = (String) portOnePayment.get("status");
+    Integer paidAmount = (Integer) portOnePayment.get("amount");
+    String merchantUid = (String) portOnePayment.get("merchant_uid");
+
+    // 가상계좌는 ready 상태로 넘어오므로, ready 상태도 유효한 것으로 간주
+    if (!"ready".equalsIgnoreCase(status) && !"paid".equalsIgnoreCase(status)) {
+      log.error("[가상계좌 검증 실패] 포트원 결제 상태가 'ready' 또는 'paid'가 아님: {}", status);
+      throw new CustomException(CustomErrorCode.PAYMENT_NOT_READY_OR_PAID);
+    }
+    if (!paidAmount.equals(request.getAmount())) {
+      log.error("[가상계좌 검증 실패] 결제 금액 불일치. 요청 금액: {}, 실제 금액: {}", request.getAmount(), paidAmount);
+      throw new CustomException(CustomErrorCode.PAYMENT_AMOUNT_MISMATCH);
+    }
+    if (!merchantUid.equals(request.getMerchantUid())) {
+      log.error("[가상계좌 검증 실패] 상점 UID 불일치. 요청 UID: {}, 실제 UID: {}", request.getMerchantUid(), merchantUid);
+      throw new CustomException(CustomErrorCode.PAYMENT_MERCHANT_UID_MISMATCH);
+    }
+    return paidAmount;
   }
 
   // 환불 처리 후 정보를 저장하는 메소드
@@ -272,20 +315,20 @@ public class PaymentServiceImpl implements PaymentService {
 
     switch (payment.getTargetType()) {
       case RESERVATION:
-        ReservationPaymentInfo rpi = reservationPaymentInfoRepository.findById(
+        ReservationPaymentInfo rpi = reservationPaymentInfoRepository.findByReservationId(
                 payment.getTargetId())
             .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
         paymentInfoEntity = rpi;
         originalPaidAmount = rpi.getTotalAmount();
         break;
       case AD:
-        AdPaymentInfo api = adPaymentInfoRepository.findById(payment.getTargetId())
+        AdPaymentInfo api = adPaymentInfoRepository.findByAdvertisementId(payment.getTargetId())
             .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
         paymentInfoEntity = api;
         originalPaidAmount = api.getTotalAmount();
         break;
       case EXPO:
-        ExpoPaymentInfo epi = expoPaymentInfoRepository.findById(payment.getTargetId())
+        ExpoPaymentInfo epi = expoPaymentInfoRepository.findByExpoId(payment.getTargetId())
             .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
         paymentInfoEntity = epi;
         originalPaidAmount = epi.getTotalAmount();
@@ -346,8 +389,7 @@ public class PaymentServiceImpl implements PaymentService {
 
   // 결제 유형에 따라 상세 정보를 저장하는 메소드
   private Object savePaymentInfoDetails(PaymentVerifyRequest request, Integer paidAmount,
-      Payment payment) {
-    PaymentStatus paymentStatus = PaymentStatus.SUCCESS;
+      Payment payment, PaymentStatus paymentStatus) {
     Object savedPaymentInfo;
 
     switch (request.getTargetType()) {
