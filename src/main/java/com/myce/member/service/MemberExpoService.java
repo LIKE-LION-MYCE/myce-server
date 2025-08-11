@@ -1,0 +1,24 @@
+package com.myce.member.service;
+
+import com.myce.member.dto.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
+
+public interface MemberExpoService {
+    
+    Page<MemberExpoResponse> getMemberExpos(Long memberId, Pageable pageable);
+    
+    MemberExpoDetailResponse getMemberExpoDetail(Long memberId, Long expoId);
+    
+    void cancelExpo(Long memberId, Long expoId);
+    
+    ExpoPaymentDetailResponse getExpoPaymentDetail(Long memberId, Long expoId);
+    
+    List<ExpoAdminCodeResponse> getExpoAdminCodes(Long memberId, Long expoId);
+    
+    ExpoSettlementReceiptResponse getExpoSettlementReceipt(Long memberId, Long expoId);
+    
+    ExpoRefundReceiptResponse getExpoRefundReceipt(Long memberId, Long expoId);
+}
