@@ -11,6 +11,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     Optional<Member> findByProviderTypeAndLoginId(ProviderType providerType, String loginId);
 
+    Optional<Member> findByNameAndEmail(String name, String email);
+
     @Query("SELECT m FROM Member m WHERE m.id = (SELECT e.member.id FROM Expo e WHERE e.id=:expoId)")
     Optional<Member> findByExpoId(Long expoId);
 }

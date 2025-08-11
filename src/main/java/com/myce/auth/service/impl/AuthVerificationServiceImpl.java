@@ -2,6 +2,7 @@ package com.myce.auth.service.impl;
 
 import com.myce.auth.dto.VerificationEmailRequest;
 import com.myce.auth.dto.VerifyEmailCodeRequest;
+import com.myce.auth.dto.type.VerificationType;
 import com.myce.auth.entity.EmailVerificationInfo;
 import com.myce.auth.repository.EmailVerificationRepository;
 import com.myce.auth.service.AuthVerificationService;
@@ -33,8 +34,9 @@ public class AuthVerificationServiceImpl implements AuthVerificationService {
     public void sendVerificationMail(VerificationEmailRequest request) {
         String email = request.getEmail();
         String code = randomCodeGenerateUtil.generateRandomCode(RANDOM_CODE_LENGTH);
+        VerificationType verificationType = request.getVerificationType();
         MessageTemplate messageTemplate = messageTemplateService
-                .getMessageForVerifyingEmail(code, String.valueOf(LIMIT_TIME));
+                .getMessageForVerification(verificationType.getDescription(), code, String.valueOf(LIMIT_TIME));
 
         emailSendService.sendMail(
                 email,
@@ -42,15 +44,17 @@ public class AuthVerificationServiceImpl implements AuthVerificationService {
                 messageTemplate.getContent()
                 );
 
-        log.debug("[EmailVerification] Successfully sent verification email to [{}]", email);
+        log.debug("[EmailVerification-{}] Successfully sent verification email to {}", verificationType.name(), email);
         EmailVerificationInfo emailVerification = new EmailVerificationInfo(email, code, LocalDateTime.now());
-        emailVerificationRepository.save(emailVerification, LIMIT_TIME);
+        emailVerificationRepository.save(emailVerification, verificationType.name(), LIMIT_TIME);
     }
 
     @Override
     public void verifyCode(VerifyEmailCodeRequest request) {
-        EmailVerificationInfo verificationInfo = emailVerificationRepository.findByEmail(request.getEmail());
-        log.debug("[EmailVerification] Verifying code [{}]", verificationInfo);
+        String typeName = request.getVerificationType().name();
+        String email = request.getEmail();
+        EmailVerificationInfo verificationInfo = emailVerificationRepository.findByEmail(typeName, email);
+        log.debug("[EmailVerification-{}] Verifying code {}", typeName, email);
         if (verificationInfo == null) throw new CustomException(CustomErrorCode.EXPIRED_VERIFICATION_TIME);
 
         if(!verificationInfo.getCode().equals(request.getCode()))

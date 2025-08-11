@@ -54,7 +54,7 @@ public class Reserver {
         this.phone = phone;
         this.email = email;
     }
-    
+
     public void updateReserverInfo(String name, Gender gender, String phone, String email) {
         this.name = name;
         this.gender = gender;
