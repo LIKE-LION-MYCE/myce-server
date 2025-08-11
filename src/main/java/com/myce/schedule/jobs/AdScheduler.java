@@ -1,10 +1,6 @@
 package com.myce.schedule.jobs;
 
-import com.myce.advertisement.dto.MainPageAdInfo;
-import com.myce.advertisement.entity.Advertisement;
-import com.myce.advertisement.entity.type.AdvertisementStatus;
-import com.myce.advertisement.repository.AdvertisementRepository;
-import com.myce.advertisement.service.ManageAdvertisementService;
+import com.myce.advertisement.service.SystemAdService;
 import com.myce.schedule.TaskScheduler;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -18,30 +14,28 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Set;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class BannerScheduler implements TaskScheduler {
-    private final ManageAdvertisementService manageAdvertisementService;
+public class AdScheduler implements TaskScheduler {
+    private final SystemAdService systemAdService;
     private final RedisTemplate<String, Object> redisTemplate;
 
     @PostConstruct
     public void init() {
-        log.debug("[Scheduler] Registered banner scheduler.");
+        log.debug("[Scheduler] Registered advertisement scheduler.");
     }
 
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void onApplicationReady() {
         try {
-            log.debug("[Scheduler] ApplicationReadyEvent - initial banner processing start.");
+            log.debug("[Scheduler] ApplicationReadyEvent - initial advertisement processing start.");
             this.process();
-            log.debug("[Scheduler] ApplicationReadyEvent - initial banner processing done.");
+            log.debug("[Scheduler] ApplicationReadyEvent - initial advertisement processing done.");
         } catch (Exception e) {
-            log.error("Fail to run initial banner processing on ApplicationReadyEvent.", e);
+            log.error("Fail to run initial advertisement processing on ApplicationReadyEvent.", e);
         }
     }
 
@@ -51,24 +45,24 @@ public class BannerScheduler implements TaskScheduler {
         try{
             this.process();
         }catch (Exception e){
-            log.error("Fail to run banner scheduler.", e);
+            log.error("Fail to run advertisement scheduler.", e);
         }
     }
 
     @Override
     public void process() {
-        int published = manageAdvertisementService.publishPendingAds();
-        int completed = manageAdvertisementService.closeCompletedAds();
+        int published = systemAdService.publishPendingAds();
+        int completed = systemAdService.closeCompletedAds();
 
         boolean needDateRefresh = shouldRefreshByDate();
         if (needDateRefresh || published > 0 || completed > 0) {
-            manageAdvertisementService.refreshBannerCache();
+            systemAdService.refreshAdCache();
         }
     }
 
     private boolean shouldRefreshByDate() {
         LocalDate today = LocalDate.now();
-        String lastUpdateTimeString = (String) redisTemplate.opsForValue().get("banner:lastUpdateTime");
+        String lastUpdateTimeString = (String) redisTemplate.opsForValue().get("ad:lastUpdateTime");
         return lastUpdateTimeString == null
                 || today.isAfter(LocalDate.parse(lastUpdateTimeString, DateTimeFormatter.ISO_DATE));
     }

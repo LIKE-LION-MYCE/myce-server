@@ -1,13 +1,13 @@
 package com.myce.advertisement.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.myce.advertisement.dto.MainPageAdInfo;
+import com.myce.advertisement.dto.AdMainPageInfo;
 import com.myce.advertisement.entity.AdPosition;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.advertisement.repository.AdPositionRepository;
-import com.myce.advertisement.repository.AdvertisementRepository;
-import com.myce.advertisement.service.ManageAdvertisementService;
+import com.myce.advertisement.repository.AdRepository;
+import com.myce.advertisement.service.SystemAdService;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import jakarta.transaction.Transactional;
@@ -24,15 +24,15 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class ManageAdvertisementServiceImpl implements ManageAdvertisementService {
-    private final AdvertisementRepository adRepository;
+public class SystemAdServiceImpl implements SystemAdService {
+    private final AdRepository adRepository;
     private final AdPositionRepository adPositionRepository;
     private final RedisTemplate<String, Object> redisTemplate;
 
     public void checkAvailablePeriod(Long locationId,
                                      LocalDate startedAt, LocalDate endedAt) {
         AdPosition requestedAdPosition = adPositionRepository.findById(locationId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.BANNER_POSITION_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(CustomErrorCode.AD_POSITION_NOT_EXIST));
         List<AdvertisementStatus> activeStatusList = getActiveStatusList();
 
         List<Advertisement> activeAds = adRepository.findOverlappingAds(
@@ -48,14 +48,14 @@ public class ManageAdvertisementServiceImpl implements ManageAdvertisementServic
                     .count();
             //해당 날짜의 배너 수가 최댓값일때
             if (overlappingCount >= requestedAdPosition.getMaxCount()) {
-                throw new CustomException(CustomErrorCode.BANNER_MAX_CAPACITY_REACHED);
+                throw new CustomException(CustomErrorCode.AD_MAX_CAPACITY_REACHED);
             }
         }
     }
 
     // 게시중인 배너 조회
-    public List<MainPageAdInfo> getActiveBanners() {
-        Set<String> keys = redisTemplate.keys("banner:list:*");
+    public List<AdMainPageInfo> getActiveAds() {
+        Set<String> keys = redisTemplate.keys("ad:list:*");
         List<Object> totalBanners = new ArrayList<>();
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -67,7 +67,7 @@ public class ManageAdvertisementServiceImpl implements ManageAdvertisementServic
         }
 
         return Objects.requireNonNull(totalBanners).stream()
-                .map(banner -> objectMapper.convertValue(banner, MainPageAdInfo.class))
+                .map(banner -> objectMapper.convertValue(banner, AdMainPageInfo.class))
                 .collect(Collectors.toList());
     }
 
@@ -106,27 +106,27 @@ public class ManageAdvertisementServiceImpl implements ManageAdvertisementServic
     }
 
     // 게시중인 배너 수집(업데이트 날짜가 오늘이 아니면)
-    public void refreshBannerCache() {
+    public void refreshAdCache() {
         List<AdvertisementStatus> activeStatusList = getActiveStatusList();
         List<Advertisement> allPublishedAds = adRepository
                 .findAdsActiveTodayAndStatusIn(activeStatusList);
 
-        Set<String> keys = redisTemplate.keys("banner:list:*");
+        Set<String> keys = redisTemplate.keys("ad:list:*");
         if (!keys.isEmpty()) {
             redisTemplate.delete(keys);
         }
         for (Advertisement ad : allPublishedAds) {
-            MainPageAdInfo adInfo = new MainPageAdInfo(
+            AdMainPageInfo adInfo = new AdMainPageInfo(
                     ad.getId(),
                     ad.getAdPosition().getId(),
                     ad.getImageUrl(),
                     ad.getLinkUrl());
 
-            String redisKey = "banner:list:" + adInfo.getLocationId();
+            String redisKey = "ad:list:" + adInfo.getLocationId();
             redisTemplate.opsForList().rightPush(redisKey, adInfo);
         }
 
-        redisTemplate.opsForValue().set("banner:lastUpdateTime", LocalDate.now().toString());
+        redisTemplate.opsForValue().set("ad:lastUpdateTime", LocalDate.now().toString());
     }
 
     private static List<AdvertisementStatus> getActiveStatusList() {

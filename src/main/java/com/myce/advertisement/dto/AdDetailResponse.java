@@ -6,7 +6,7 @@ import lombok.Getter;
 
 @Builder
 @Getter
-public class DetailApplyAdvertisement {
+public class AdDetailResponse {
 
     private Long id;
     private String statusMessage;

@@ -1,7 +1,7 @@
 package com.myce.advertisement.controller;
 
-import com.myce.advertisement.dto.MainPageAdInfo;
-import com.myce.advertisement.service.ManageAdvertisementService;
+import com.myce.advertisement.dto.AdMainPageInfo;
+import com.myce.advertisement.service.SystemAdService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,8 +15,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/ads")
 @RequiredArgsConstructor
-public class ManageAdvertisementController {
-    private final ManageAdvertisementService service;
+public class SystemAdController {
+    private final SystemAdService service;
 
     @GetMapping("/check-available")
     public ResponseEntity<Void> checkAvailablePeriod(
@@ -28,7 +28,7 @@ public class ManageAdvertisementController {
     }
 
     @GetMapping
-    public ResponseEntity<List<MainPageAdInfo>> getAds(){
-        return ResponseEntity.ok(service.getActiveBanners());
+    public ResponseEntity<List<AdMainPageInfo>> getAds(){
+        return ResponseEntity.ok(service.getActiveAds());
     }
 }
