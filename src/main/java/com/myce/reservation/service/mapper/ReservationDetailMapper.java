@@ -29,6 +29,7 @@ public class ReservationDetailMapper {
     
     private ReservationDetailResponse.ExpoInfo buildExpoInfo(Reservation reservation) {
         return ReservationDetailResponse.ExpoInfo.builder()
+                .expoId(reservation.getExpo().getId())
                 .thumbnailUrl(reservation.getExpo().getThumbnailUrl())
                 .title(reservation.getExpo().getTitle())
                 .location(reservation.getExpo().getLocation())
