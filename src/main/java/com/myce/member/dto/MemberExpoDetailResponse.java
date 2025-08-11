@@ -32,6 +32,7 @@ public class MemberExpoDetailResponse {
     private LocalDate displayEndDate;
     private String description;
     private ExpoStatus status;
+    private Boolean isPremium;           // 프리미엄 여부
     
     // 결제 정보
     private PaymentInfo paymentInfo;
