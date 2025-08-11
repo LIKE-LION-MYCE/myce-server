@@ -13,13 +13,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/members")
+@RequestMapping("/api/members/my-page")
 @RequiredArgsConstructor
 public class MemberMyPageController {
     
     private final MemberMyPageService memberMyPageService;
     
-    @GetMapping("/my-page/reserved-expos")
+    @GetMapping("/reserved-expos")
     public ResponseEntity<List<ReservedExpoResponse>> getReservedExpos(
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         
@@ -29,7 +29,7 @@ public class MemberMyPageController {
         return ResponseEntity.ok(reservedExpos);
     }
 
-    @GetMapping("/my-page/favorite_expos")
+    @GetMapping("/favorite-expos")
     public ResponseEntity<List<FavoriteExpoResponse>> getFavoriteExpos(
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
 
@@ -39,7 +39,7 @@ public class MemberMyPageController {
         return ResponseEntity.ok(favoriteExpos);
     }
     
-    @GetMapping("/my-page/info")
+    @GetMapping("/info")
     public ResponseEntity<MemberInfoResponse> getMemberInfo(
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         
@@ -49,7 +49,7 @@ public class MemberMyPageController {
         return ResponseEntity.ok(memberInfo);
     }
     
-    @PutMapping("/my-page/info")
+    @PutMapping("/info")
     public ResponseEntity<Void> updateMemberInfo(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @RequestBody MemberInfoUpdateRequest request) {
@@ -60,7 +60,7 @@ public class MemberMyPageController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/my-page/payment-history")
+    @GetMapping("/payment-history")
     public ResponseEntity<Page<PaymentHistoryResponse>> getPaymentHistory(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             Pageable pageable) {
@@ -71,7 +71,7 @@ public class MemberMyPageController {
         return ResponseEntity.ok(paymentHistory);
     }
     
-    @GetMapping("/my-page/settings")
+    @GetMapping("/settings")
     public ResponseEntity<MemberSettingResponse> getMemberSetting(
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         
@@ -81,7 +81,7 @@ public class MemberMyPageController {
         return ResponseEntity.ok(memberSetting);
     }
     
-    @PutMapping("/my-page/settings")
+    @PutMapping("/settings")
     public ResponseEntity<Void> updateMemberSetting(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @RequestBody MemberSettingUpdateRequest request) {

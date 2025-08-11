@@ -4,8 +4,6 @@ import com.myce.auth.dto.CustomUserDetails;
 import com.myce.member.dto.*;
 import com.myce.member.service.MemberAdService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -13,13 +11,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/members")
+@RequestMapping("/api/members/ads")
 @RequiredArgsConstructor
 public class MemberAdController {
     
     private final MemberAdService memberAdService;
 
-    @GetMapping("/my-page/ads")
+    @GetMapping
     public ResponseEntity<List<MemberAdvertisementResponse>> getMemberAdvertisements(
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         
@@ -29,7 +27,7 @@ public class MemberAdController {
         return ResponseEntity.ok(advertisements);
     }
     
-    @GetMapping("/my-page/ads/{advertisementId}")
+    @GetMapping("/{advertisementId}")
     public ResponseEntity<AdvertisementDetailResponse> getAdvertisementDetail(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long advertisementId) {
@@ -40,7 +38,7 @@ public class MemberAdController {
         return ResponseEntity.ok(advertisementDetail);
     }
     
-    @DeleteMapping("/my-page/ads/{advertisementId}")
+    @DeleteMapping("/{advertisementId}")
     public ResponseEntity<Void> cancelAdvertisement(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long advertisementId) {
@@ -51,7 +49,7 @@ public class MemberAdController {
         return ResponseEntity.noContent().build();
     }
     
-    @GetMapping("/my-page/ads/{advertisementId}/payment")
+    @GetMapping("/{advertisementId}/payment")
     public ResponseEntity<AdvertisementPaymentDetailResponse> getAdvertisementPaymentDetail(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long advertisementId) {
@@ -62,7 +60,7 @@ public class MemberAdController {
         return ResponseEntity.ok(paymentDetail);
     }
     
-    @GetMapping("/my-page/ads/{advertisementId}/refund-receipt")
+    @GetMapping("/{advertisementId}/refund-receipt")
     public ResponseEntity<AdvertisementRefundReceiptResponse> getAdvertisementRefundReceipt(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long advertisementId) {

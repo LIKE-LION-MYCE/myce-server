@@ -13,13 +13,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/members")
+@RequestMapping("/api/members/expos")
 @RequiredArgsConstructor
 public class MemberExpoController {
     
     private final MemberExpoService memberExpoService;
 
-    @GetMapping("/my-page/expos")
+    @GetMapping
     public ResponseEntity<Page<MemberExpoResponse>> getMemberExpos(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             Pageable pageable) {
@@ -30,7 +30,7 @@ public class MemberExpoController {
         return ResponseEntity.ok(expos);
     }
     
-    @GetMapping("/my-page/expos/{expoId}")
+    @GetMapping("/{expoId}")
     public ResponseEntity<MemberExpoDetailResponse> getMemberExpoDetail(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long expoId) {
@@ -41,7 +41,7 @@ public class MemberExpoController {
         return ResponseEntity.ok(expoDetail);
     }
     
-    @DeleteMapping("/my-page/expos/{expoId}")
+    @DeleteMapping("/{expoId}")
     public ResponseEntity<Void> cancelExpo(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long expoId) {
@@ -52,7 +52,7 @@ public class MemberExpoController {
         return ResponseEntity.noContent().build();
     }
     
-    @GetMapping("/my-page/expos/{expoId}/payment")
+    @GetMapping("/{expoId}/payment")
     public ResponseEntity<ExpoPaymentDetailResponse> getExpoPaymentDetail(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long expoId) {
@@ -63,7 +63,7 @@ public class MemberExpoController {
         return ResponseEntity.ok(paymentDetail);
     }
     
-    @GetMapping("/my-page/expos/{expoId}/admin-codes")
+    @GetMapping("/{expoId}/admin-codes")
     public ResponseEntity<List<ExpoAdminCodeResponse>> getExpoAdminCodes(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long expoId) {
@@ -74,7 +74,7 @@ public class MemberExpoController {
         return ResponseEntity.ok(adminCodes);
     }
     
-    @GetMapping("/my-page/expos/{expoId}/settlement-receipt")
+    @GetMapping("/{expoId}/settlement-receipt")
     public ResponseEntity<ExpoSettlementReceiptResponse> getExpoSettlementReceipt(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long expoId) {
@@ -85,7 +85,7 @@ public class MemberExpoController {
         return ResponseEntity.ok(settlementReceipt);
     }
     
-    @GetMapping("/my-page/expos/{expoId}/refund-receipt")
+    @GetMapping("/{expoId}/refund-receipt")
     public ResponseEntity<ExpoRefundReceiptResponse> getExpoRefundReceipt(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long expoId) {
