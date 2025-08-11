@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class AdvertisementRegistrationRequest {
+public class AdRegistrationRequest {
   @NotBlank(message = "광고명은 필수입니다.")
   @Size(max = 100, message = "광고명은 100자 이하여야 합니다.")
   private String title;

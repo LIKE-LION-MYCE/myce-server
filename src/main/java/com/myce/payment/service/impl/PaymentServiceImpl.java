@@ -4,14 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myce.advertisement.entity.Advertisement;
-import com.myce.advertisement.repository.AdvertisementRepository;
+import com.myce.advertisement.repository.AdRepository;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.repository.ExpoRepository;
-import com.myce.member.entity.Guest;
-import com.myce.member.entity.Member;
 import com.myce.member.repository.GuestRepository;
 import com.myce.member.repository.MemberRepository;
 import com.myce.payment.config.PortOneConfig;
@@ -76,7 +74,7 @@ public class PaymentServiceImpl implements PaymentService {
   private final AdPaymentInfoRepository adPaymentInfoRepository;
   private final ExpoPaymentInfoRepository expoPaymentInfoRepository;
   private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
-  private final AdvertisementRepository advertisementRepository;
+  private final AdRepository adRepository;
   private final ExpoRepository expoRepository;
   private final AdFeeSettingRepository adFeeSettingRepository;
   private final ExpoFeeSettingRepository expoFeeSettingRepository;
@@ -359,8 +357,8 @@ public class PaymentServiceImpl implements PaymentService {
         savedPaymentInfo = reservationPaymentInfoRepository.save(reservationPaymentInfo);
         break;
       case AD:
-        Advertisement advertisement = advertisementRepository.findById(request.getTargetId())
-            .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
+        Advertisement advertisement = adRepository.findById(request.getTargetId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
         AdFeeSetting adFeeSetting = adFeeSettingRepository.findByAdPositionIdAndIsActiveTrue(
                 advertisement.getAdPosition().getId())
             .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));

@@ -1,16 +1,16 @@
 package com.myce.advertisement.service;
 
 
-import com.myce.advertisement.dto.MainPageAdInfo;
+import com.myce.advertisement.dto.AdMainPageInfo;
 
 import java.time.LocalDate;
 import java.util.List;
 
-public interface ManageAdvertisementService {
+public interface SystemAdService {
     void checkAvailablePeriod(Long locationId,
             LocalDate startedAt, LocalDate endedAt);
 
-    List<MainPageAdInfo> getActiveBanners();
+    List<AdMainPageInfo> getActiveBanners();
 
     int publishPendingAds();
 

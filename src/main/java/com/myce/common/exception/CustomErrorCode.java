@@ -68,11 +68,10 @@ public enum CustomErrorCode {
     CHAT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "C005", "채팅 참여자 정보를 찾을 수 없습니다."),
     CHAT_SENDER_TYPE_INVALID(HttpStatus.BAD_REQUEST, "C006", "유효하지 않은 메시지 발송자 타입입니다."),
 
-    // 광고 A  
-    BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다."),
-    BANNER_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
-    ADVERTISEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "A003" ,  "광고가 존재 하지 않습니다" ),
-    INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A004", "유효하지 않은 광고 상태입니다."),
+    // 광고 A
+    AD_NOT_FOUND(HttpStatus.NOT_FOUND, "A001" ,  "광고가 존재 하지 않습니다" ),
+    AD_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
+    INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A003", "유효하지 않은 광고 상태입니다."),
 
     // 부스 B
     BOOTH_PREMIUM_RANK_REQUIRED(HttpStatus.BAD_REQUEST, "B001", "프리미엄 부스는 노출 순위가 필수입니다."),

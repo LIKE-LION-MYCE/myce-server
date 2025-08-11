@@ -1,12 +1,12 @@
 package com.myce.advertisement.service.impl;
 
-import com.myce.advertisement.dto.AdvertisementRegistrationRequest;
+import com.myce.advertisement.dto.AdRegistrationRequest;
 import com.myce.advertisement.entity.AdPosition;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.repository.AdPositionRepository;
-import com.myce.advertisement.repository.AdvertisementRepository;
-import com.myce.advertisement.service.UserAdvertisementService;
-import com.myce.advertisement.service.mapper.AdvertisementRegistrationMapper;
+import com.myce.advertisement.repository.AdRepository;
+import com.myce.advertisement.service.UserAdService;
+import com.myce.advertisement.service.mapper.AdRegistrationMapper;
 import com.myce.common.dto.RegistrationCompanyRequest;
 import com.myce.common.entity.BusinessProfile;
 import com.myce.common.entity.type.TargetType;
@@ -25,14 +25,14 @@ import java.time.temporal.ChronoUnit;
 @Service
 @Transactional
 @RequiredArgsConstructor
-public class UserAdvertisementServiceImpl implements UserAdvertisementService {
+public class UserAdServiceImpl implements UserAdService {
   private final MemberRepository memberRepository;
   private final AdPositionRepository adPositionRepository;
-  private final AdvertisementRepository  advertisementRepository;
+  private final AdRepository adRepository;
   private final BusinessProfileRepository  businessProfileRepository;
 
   @Override
-  public void saveAdvertisement(Long memberId, AdvertisementRegistrationRequest request) {
+  public void saveAdvertisement(Long memberId, AdRegistrationRequest request) {
     // 로그인한 사용자
     Member member = memberRepository.findById(memberId)
         .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
@@ -47,10 +47,10 @@ public class UserAdvertisementServiceImpl implements UserAdvertisementService {
     long totalDays = ChronoUnit.DAYS.between(startDate, endDate) + 1;
 
     // 광고 객체 생성
-    Advertisement advertisement = AdvertisementRegistrationMapper.toEntity(request, member, adPosition, (int)totalDays);
+    Advertisement advertisement = AdRegistrationMapper.toEntity(request, member, adPosition, (int)totalDays);
 
     // 광고 등록(저장)
-    advertisementRepository.save(advertisement);
+    adRepository.save(advertisement);
 
     // 등록 신청한 회사 정보 저장
     RegistrationCompanyRequest company = request.getRegistrationCompanyRequest();

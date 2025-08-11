@@ -1,10 +1,6 @@
 package com.myce.schedule.jobs;
 
-import com.myce.advertisement.dto.MainPageAdInfo;
-import com.myce.advertisement.entity.Advertisement;
-import com.myce.advertisement.entity.type.AdvertisementStatus;
-import com.myce.advertisement.repository.AdvertisementRepository;
-import com.myce.advertisement.service.ManageAdvertisementService;
+import com.myce.advertisement.service.SystemAdService;
 import com.myce.schedule.TaskScheduler;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -18,14 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Set;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class BannerScheduler implements TaskScheduler {
-    private final ManageAdvertisementService manageAdvertisementService;
+    private final SystemAdService systemAdService;
     private final RedisTemplate<String, Object> redisTemplate;
 
     @PostConstruct
@@ -57,12 +51,12 @@ public class BannerScheduler implements TaskScheduler {
 
     @Override
     public void process() {
-        int published = manageAdvertisementService.publishPendingAds();
-        int completed = manageAdvertisementService.closeCompletedAds();
+        int published = systemAdService.publishPendingAds();
+        int completed = systemAdService.closeCompletedAds();
 
         boolean needDateRefresh = shouldRefreshByDate();
         if (needDateRefresh || published > 0 || completed > 0) {
-            manageAdvertisementService.refreshBannerCache();
+            systemAdService.refreshBannerCache();
         }
     }
 

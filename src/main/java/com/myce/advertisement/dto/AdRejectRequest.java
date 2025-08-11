@@ -7,12 +7,12 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class RejectAdRequest {
+public class AdRejectRequest {
     @NotBlank(message = "거절 사유는 빈칸이 되면 안됩니다.")
     private String reason;
 
     @Builder
-    public RejectAdRequest(String reason) {
+    public AdRejectRequest(String reason) {
         this.reason = reason;
     }
 

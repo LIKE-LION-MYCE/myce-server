@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Builder
 @Getter
-public class SimpleApplyAdvertisement {
+public class AdSimpleResponse {
     private Long id;
     private String memberUsername;
     private String memberNickname;

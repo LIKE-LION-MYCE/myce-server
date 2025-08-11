@@ -1,13 +1,13 @@
 package com.myce.advertisement.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.myce.advertisement.dto.MainPageAdInfo;
+import com.myce.advertisement.dto.AdMainPageInfo;
 import com.myce.advertisement.entity.AdPosition;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.advertisement.repository.AdPositionRepository;
-import com.myce.advertisement.repository.AdvertisementRepository;
-import com.myce.advertisement.service.ManageAdvertisementService;
+import com.myce.advertisement.repository.AdRepository;
+import com.myce.advertisement.service.SystemAdService;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import jakarta.transaction.Transactional;
@@ -24,8 +24,8 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class ManageAdvertisementServiceImpl implements ManageAdvertisementService {
-    private final AdvertisementRepository adRepository;
+public class SystemAdServiceImpl implements SystemAdService {
+    private final AdRepository adRepository;
     private final AdPositionRepository adPositionRepository;
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -48,13 +48,13 @@ public class ManageAdvertisementServiceImpl implements ManageAdvertisementServic
                     .count();
             //해당 날짜의 배너 수가 최댓값일때
             if (overlappingCount >= requestedAdPosition.getMaxCount()) {
-                throw new CustomException(CustomErrorCode.BANNER_MAX_CAPACITY_REACHED);
+                throw new CustomException(CustomErrorCode.AD_MAX_CAPACITY_REACHED);
             }
         }
     }
 
     // 게시중인 배너 조회
-    public List<MainPageAdInfo> getActiveBanners() {
+    public List<AdMainPageInfo> getActiveBanners() {
         Set<String> keys = redisTemplate.keys("banner:list:*");
         List<Object> totalBanners = new ArrayList<>();
         ObjectMapper objectMapper = new ObjectMapper();
@@ -67,7 +67,7 @@ public class ManageAdvertisementServiceImpl implements ManageAdvertisementServic
         }
 
         return Objects.requireNonNull(totalBanners).stream()
-                .map(banner -> objectMapper.convertValue(banner, MainPageAdInfo.class))
+                .map(banner -> objectMapper.convertValue(banner, AdMainPageInfo.class))
                 .collect(Collectors.toList());
     }
 
@@ -116,7 +116,7 @@ public class ManageAdvertisementServiceImpl implements ManageAdvertisementServic
             redisTemplate.delete(keys);
         }
         for (Advertisement ad : allPublishedAds) {
-            MainPageAdInfo adInfo = new MainPageAdInfo(
+            AdMainPageInfo adInfo = new AdMainPageInfo(
                     ad.getId(),
                     ad.getAdPosition().getId(),
                     ad.getImageUrl(),

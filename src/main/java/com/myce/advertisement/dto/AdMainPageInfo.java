@@ -9,7 +9,7 @@ import java.io.Serializable;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class MainPageAdInfo implements Serializable {
+public class AdMainPageInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long bannerId;
