@@ -1,12 +1,10 @@
 package com.myce.advertisement.service.impl;
 
 import com.myce.advertisement.dto.AdCancelInfoCheck;
-import com.myce.advertisement.dto.AdCancelInfoRequest;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.repository.AdRepository;
 import com.myce.advertisement.service.PlatformCurrentAdService;
 import com.myce.advertisement.service.mapper.AdInfoMapper;
-import com.myce.advertisement.service.mapper.AdMapper;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.payment.entity.AdPaymentInfo;
@@ -33,9 +31,9 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
     private final PaymentRepository paymentRepository;
     private final RefundRepository refundRepository;
 
-    public AdCancelInfoCheck generateCancelCheck(Long bannerId) {
+    public AdCancelInfoCheck generateCancelCheck(Long adId) {
         Advertisement ad = adRepository
-                .findById(bannerId)
+                .findById(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
         Payment payment = paymentRepository
                 .findByTargetIdAndTargetType(ad.getId(), PaymentTargetType.AD)
@@ -49,9 +47,9 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
     }
 
     @Transactional
-    public void cancelBanner(Long bannerId, AdCancelInfoRequest request) {
+    public void cancelCurrent(Long adId) {
         Advertisement ad = adRepository
-                .findById(bannerId)
+                .findById(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
         Payment payment = paymentRepository
                 .findByTargetIdAndTargetType(ad.getId(), PaymentTargetType.AD)

@@ -4,5 +4,5 @@ import com.myce.advertisement.dto.*;
 
 public interface PlatformAdDetailService {
 
-    AdDetailResponse getDetail(Long bannerId);
+    AdDetailResponse getDetail(Long adId);
 }

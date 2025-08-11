@@ -19,8 +19,8 @@ public class PlatformAdDetailServiceImpl implements PlatformAdDetailService {
     private final AdRepository adRepository;
     private final BusinessProfileRepository businessProfileRepository;
 
-    public AdDetailResponse getDetail(Long bannerId) {
-        Advertisement ad = adRepository.findById(bannerId)
+    public AdDetailResponse getDetail(Long adId) {
+        Advertisement ad = adRepository.findById(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
 
         return getDetailApplyAdvertisement(ad);

@@ -36,8 +36,8 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
     private final RefundRepository refundRepository;
     private final AdFeeSettingRepository adFeeSettingRepository;
 
-    public AdPaymentInfoCheck generatePaymentCheck(Long bannerId) {
-        Advertisement ad = adRepository.findById(bannerId)
+    public AdPaymentInfoCheck generatePaymentCheck(Long adId) {
+        Advertisement ad = adRepository.findById(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
         AdFeeSetting feeSetting = adFeeSettingRepository
                 .findByAdPositionId(ad.getAdPosition().getId())
@@ -54,8 +54,8 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
     }
 
     @Transactional
-    public void approveApply(Long bannerId, AdPaymentInfoRequest paymentInfoRequest) {
-        Advertisement ad = adRepository.findById(bannerId)
+    public void approveApply(Long adId) {
+        Advertisement ad = adRepository.findById(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
         AdFeeSetting feeSetting = adFeeSettingRepository
                 .findByAdPositionId(ad.getAdPosition().getId())
@@ -74,8 +74,8 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
     }
 
     @Transactional
-    public void rejectApply(Long bannerId, AdRejectRequest request) {
-        Advertisement ad = adRepository.findById(bannerId)
+    public void rejectApply(Long adId, AdRejectRequest request) {
+        Advertisement ad = adRepository.findById(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
         RejectInfo rejectInfo = RejectInfo.builder()
                 .targetType(TargetType.ADVERTISEMENT)
@@ -87,28 +87,28 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
         ad.reject();
     }
 
-    public AdRejectInfoResponse getRejectInfo(Long bannerId) {
+    public AdRejectInfoResponse getRejectInfo(Long adId) {
         RejectInfo rejectInfo = rejectInfoRepository
-                .findByTargetIdAndTargetType(bannerId, TargetType.ADVERTISEMENT)
+                .findByTargetIdAndTargetType(adId, TargetType.ADVERTISEMENT)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.REJECT_INFO_NOT_FOUND));
 
         return AdInfoMapper.getAdRejectInfoResponse(rejectInfo);
     }
 
-    public AdPaymentHistoryResponse getPaymentHistory(Long bannerId) {
+    public AdPaymentHistoryResponse getPaymentHistory(Long adId) {
         AdPaymentInfo paymentInfo = adPaymentInfoRepository
-                .findByAdvertisementId(bannerId)
+                .findByAdvertisementId(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
 
         return AdInfoMapper.getPaymentInfoRequest(paymentInfo);
     }
 
-    public AdCancelHistoryResponse getCancelHistory(Long bannerId) {
+    public AdCancelHistoryResponse getCancelHistory(Long adId) {
         Advertisement advertisement = adRepository
-                .findById(bannerId)
+                .findById(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
         Payment payment = paymentRepository
-                .findByTargetIdAndTargetType(bannerId, PaymentTargetType.AD)
+                .findByTargetIdAndTargetType(adId, PaymentTargetType.AD)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
         Refund refund = refundRepository
                 .findByPayment(payment)

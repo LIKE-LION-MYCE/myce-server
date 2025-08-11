@@ -3,15 +3,15 @@ package com.myce.advertisement.service;
 import com.myce.advertisement.dto.*;
 
 public interface PlatformApplyAdService {
-    AdPaymentInfoCheck generatePaymentCheck(Long bannerId);
+    AdPaymentInfoCheck generatePaymentCheck(Long adId);
 
-    void approveApply(Long bannerId, AdPaymentInfoRequest paymentInfoRequest);
+    void approveApply(Long adId);
 
-    void rejectApply(Long bannerId, AdRejectRequest request);
+    void rejectApply(Long adId, AdRejectRequest request);
 
-    AdRejectInfoResponse getRejectInfo(Long bannerId);
+    AdRejectInfoResponse getRejectInfo(Long adId);
 
-    AdPaymentHistoryResponse getPaymentHistory(Long bannerId);
+    AdPaymentHistoryResponse getPaymentHistory(Long adId);
 
-    AdCancelHistoryResponse getCancelHistory(Long bannerId);
+    AdCancelHistoryResponse getCancelHistory(Long adId);
 }

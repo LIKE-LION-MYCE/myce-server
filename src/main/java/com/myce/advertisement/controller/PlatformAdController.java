@@ -47,9 +47,8 @@ public class PlatformAdController {
     }
 
     @PostMapping("/{adId}/approve")
-    public ResponseEntity<Void> approveApply(@PathVariable Long adId,
-                                             @RequestBody AdPaymentInfoRequest paymentInfoRequest) {
-        applyAdService.approveApply(adId, paymentInfoRequest);
+    public ResponseEntity<Void> approveApply(@PathVariable Long adId) {
+        applyAdService.approveApply(adId);
         return ResponseEntity.ok().build();
     }
 
@@ -59,9 +58,8 @@ public class PlatformAdController {
     }
 
     @PostMapping("/{adId}/cancel")
-    public ResponseEntity<Void> cancelApply(@PathVariable Long adId,
-                                            @RequestBody AdCancelInfoRequest request) {
-        currentAdService.cancelBanner(adId, request);
+    public ResponseEntity<Void> cancelApply(@PathVariable Long adId) {
+        currentAdService.cancelCurrent(adId);
         return ResponseEntity.ok().build();
     }
 
