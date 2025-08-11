@@ -121,8 +121,10 @@ public enum CustomErrorCode {
     REFUND_NOT_FOUND(HttpStatus.NOT_FOUND, "RF001", "환불 정보가 존재하지 않습니다."),
 
     // 시스템 설정 에러
-    NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다.");
+    NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다."),
 
+    // 엑셀 EX
+    EXCEL_EXPORT_FAILED(HttpStatus.NOT_FOUND, "EX001", "엑셀 추출에 실패하였습니다.");
 
     private final HttpStatus status;
     private final String errorCode;
