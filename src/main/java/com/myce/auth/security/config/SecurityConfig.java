@@ -64,7 +64,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth ->
                 auth.requestMatchers(HttpMethod.POST, "/api/auth/**")
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/find-id")
+                        .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/**")
                         .permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",

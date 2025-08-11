@@ -13,6 +13,10 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     Optional<Member> findByNameAndEmail(String name, String email);
 
+    Optional<Member> findByNameAndEmailAndLoginId(String name, String email, String loginId);
+
+    boolean existsByLoginId(String loginId);
+
     @Query("SELECT m FROM Member m WHERE m.id = (SELECT e.member.id FROM Expo e WHERE e.id=:expoId)")
     Optional<Member> findByExpoId(Long expoId);
 }

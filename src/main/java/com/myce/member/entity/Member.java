@@ -97,6 +97,9 @@ public class Member {
     public void withdraw() {
         this.isDeleted = true;
     }
+  
+    public void resetPassword(String newPassword) {
+        this.password = newPassword;
     
     public void updateInfo(String phone, String email) {
         if (phone != null && !phone.trim().isEmpty()) {
