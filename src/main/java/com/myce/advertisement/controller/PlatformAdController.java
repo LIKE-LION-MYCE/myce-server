@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 
 @RestController
-@RequestMapping("/api/platform/ads/list")
+@RequestMapping("/api/platform/ads")
 @RequiredArgsConstructor
 public class PlatformAdController {
     private final PlatformAdService service;
@@ -23,7 +23,7 @@ public class PlatformAdController {
     private final int PAGE_SIZE = 10;
 
     @GetMapping
-    public PageResponse<AdSimpleResponse> getAdvertisementList(
+    public PageResponse<AdSimpleResponse> getAdList(
             @RequestParam int page,
             @RequestParam(defaultValue = "true") boolean latestFirst,
             @RequestParam(defaultValue = "true") boolean isApply) {
@@ -31,7 +31,7 @@ public class PlatformAdController {
     }
 
     @GetMapping("/filter")
-    public PageResponse<AdSimpleResponse> filterAdvertisementList(
+    public PageResponse<AdSimpleResponse> filterAdList(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
@@ -41,55 +41,55 @@ public class PlatformAdController {
                 page, PAGE_SIZE, latestFirst, isApply);
     }
 
-    @GetMapping("/detail/{bannerId}")
-    public AdDetailResponse getApplyDetail(@PathVariable Long bannerId) {
-        return adDetailService.getDetail(bannerId);
+    @GetMapping("/{adId}")
+    public AdDetailResponse getApplyDetail(@PathVariable Long adId) {
+        return adDetailService.getDetail(adId);
     }
 
-    @PostMapping("/detail/{bannerId}/approve")
-    public ResponseEntity<Void> approveApply(@PathVariable Long bannerId,
+    @PostMapping("/{adId}/approve")
+    public ResponseEntity<Void> approveApply(@PathVariable Long adId,
                                              @RequestBody AdPaymentInfoRequest paymentInfoRequest) {
-        applyAdService.approveApply(bannerId, paymentInfoRequest);
+        applyAdService.approveApply(adId, paymentInfoRequest);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/detail/{bannerId}/payment-check")
-    public AdPaymentInfoCheck getPaymentForm(@PathVariable Long bannerId) {
-        return applyAdService.generatePaymentCheck(bannerId);
+    @GetMapping("/{adId}/payment-check")
+    public AdPaymentInfoCheck getPaymentForm(@PathVariable Long adId) {
+        return applyAdService.generatePaymentCheck(adId);
     }
 
-    @PostMapping("/detail/{bannerId}/cancel")
-    public ResponseEntity<Void> cancelApply(@PathVariable Long bannerId,
+    @PostMapping("/{adId}/cancel")
+    public ResponseEntity<Void> cancelApply(@PathVariable Long adId,
                                             @RequestBody AdCancelInfoRequest request) {
-        currentAdService.cancelBanner(bannerId, request);
+        currentAdService.cancelBanner(adId, request);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/detail/{bannerId}/cancel-check")
-    public AdCancelInfoCheck getCancelForm(@PathVariable Long bannerId) {
-        return currentAdService.generateCancelCheck(bannerId);
+    @GetMapping("/{adId}/cancel-check")
+    public AdCancelInfoCheck getCancelForm(@PathVariable Long adId) {
+        return currentAdService.generateCancelCheck(adId);
     }
 
-    @PostMapping("/detail/{bannerId}/reject")
-    public ResponseEntity<Void> rejectApply(@PathVariable Long bannerId,
+    @PostMapping("/{adId}/reject")
+    public ResponseEntity<Void> rejectApply(@PathVariable Long adId,
                                             @RequestBody AdRejectRequest request) {
-        applyAdService.rejectApply(bannerId, request);
+        applyAdService.rejectApply(adId, request);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/detail/{bannerId}/reject")
-    public AdRejectInfoResponse getRejectInfo(@PathVariable Long bannerId) {
-        return applyAdService.getRejectInfo(bannerId);
+    @GetMapping("/{adId}/reject")
+    public AdRejectInfoResponse getRejectInfo(@PathVariable Long adId) {
+        return applyAdService.getRejectInfo(adId);
     }
 
-    @GetMapping("/detail/{bannerId}/payment-history")
-    public AdPaymentHistoryResponse getPaymentHistory(@PathVariable Long bannerId) {
-        return applyAdService.getPaymentHistory(bannerId);
+    @GetMapping("/{adId}/payment-history")
+    public AdPaymentHistoryResponse getPaymentHistory(@PathVariable Long adId) {
+        return applyAdService.getPaymentHistory(adId);
     }
 
-    @GetMapping("/detail/{bannerId}/cancel-history")
-    public AdCancelHistoryResponse getCancelHistory(@PathVariable Long bannerId) {
-        return applyAdService.getCancelHistory(bannerId);
+    @GetMapping("/{adId}/cancel-history")
+    public AdCancelHistoryResponse getCancelHistory(@PathVariable Long adId) {
+        return applyAdService.getCancelHistory(adId);
     }
 
 }

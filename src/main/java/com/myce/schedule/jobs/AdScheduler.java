@@ -18,24 +18,24 @@ import java.time.format.DateTimeFormatter;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class BannerScheduler implements TaskScheduler {
+public class AdScheduler implements TaskScheduler {
     private final SystemAdService systemAdService;
     private final RedisTemplate<String, Object> redisTemplate;
 
     @PostConstruct
     public void init() {
-        log.debug("[Scheduler] Registered banner scheduler.");
+        log.debug("[Scheduler] Registered advertisement scheduler.");
     }
 
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void onApplicationReady() {
         try {
-            log.debug("[Scheduler] ApplicationReadyEvent - initial banner processing start.");
+            log.debug("[Scheduler] ApplicationReadyEvent - initial advertisement processing start.");
             this.process();
-            log.debug("[Scheduler] ApplicationReadyEvent - initial banner processing done.");
+            log.debug("[Scheduler] ApplicationReadyEvent - initial advertisement processing done.");
         } catch (Exception e) {
-            log.error("Fail to run initial banner processing on ApplicationReadyEvent.", e);
+            log.error("Fail to run initial advertisement processing on ApplicationReadyEvent.", e);
         }
     }
 
@@ -45,7 +45,7 @@ public class BannerScheduler implements TaskScheduler {
         try{
             this.process();
         }catch (Exception e){
-            log.error("Fail to run banner scheduler.", e);
+            log.error("Fail to run advertisement scheduler.", e);
         }
     }
 
@@ -56,13 +56,13 @@ public class BannerScheduler implements TaskScheduler {
 
         boolean needDateRefresh = shouldRefreshByDate();
         if (needDateRefresh || published > 0 || completed > 0) {
-            systemAdService.refreshBannerCache();
+            systemAdService.refreshAdCache();
         }
     }
 
     private boolean shouldRefreshByDate() {
         LocalDate today = LocalDate.now();
-        String lastUpdateTimeString = (String) redisTemplate.opsForValue().get("banner:lastUpdateTime");
+        String lastUpdateTimeString = (String) redisTemplate.opsForValue().get("ad:lastUpdateTime");
         return lastUpdateTimeString == null
                 || today.isAfter(LocalDate.parse(lastUpdateTimeString, DateTimeFormatter.ISO_DATE));
     }

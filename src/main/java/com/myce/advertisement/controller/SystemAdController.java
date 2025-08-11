@@ -29,6 +29,6 @@ public class SystemAdController {
 
     @GetMapping
     public ResponseEntity<List<AdMainPageInfo>> getAds(){
-        return ResponseEntity.ok(service.getActiveBanners());
+        return ResponseEntity.ok(service.getActiveAds());
     }
 }

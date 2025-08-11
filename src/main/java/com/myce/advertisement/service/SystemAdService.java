@@ -10,11 +10,11 @@ public interface SystemAdService {
     void checkAvailablePeriod(Long locationId,
             LocalDate startedAt, LocalDate endedAt);
 
-    List<AdMainPageInfo> getActiveBanners();
+    List<AdMainPageInfo> getActiveAds();
 
     int publishPendingAds();
 
     int closeCompletedAds();
 
-    void refreshBannerCache();
+    void refreshAdCache();
 }

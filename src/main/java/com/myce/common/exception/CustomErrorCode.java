@@ -82,7 +82,7 @@ public enum CustomErrorCode {
     BOOTH_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "B006", "해당 박람회에 속한 부스가 아닙니다."),
 
     // 광고 위치 AP
-    BANNER_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "AP001", "배너 위치 정보가 존재하지 않습니다."),
+    AD_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "AP001", "배너 위치 정보가 존재하지 않습니다."),
 
     // 결제 P
     PAYMENT_STATUS_INVALID(HttpStatus.BAD_REQUEST, "P001", "유효하지 않은 결제 상태값입니다."),

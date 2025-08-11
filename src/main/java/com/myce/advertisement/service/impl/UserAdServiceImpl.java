@@ -39,7 +39,7 @@ public class UserAdServiceImpl implements UserAdService {
 
     // 광고 위치
     AdPosition adPosition = adPositionRepository.findById(request.getAdPositionId())
-        .orElseThrow(() -> new CustomException(CustomErrorCode.BANNER_POSITION_NOT_EXIST));
+        .orElseThrow(() -> new CustomException(CustomErrorCode.AD_POSITION_NOT_EXIST));
 
     // 총 등록일 수 구하기
     LocalDate startDate = request.getDisplayStartDate();

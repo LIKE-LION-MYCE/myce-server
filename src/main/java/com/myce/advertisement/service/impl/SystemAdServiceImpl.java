@@ -32,7 +32,7 @@ public class SystemAdServiceImpl implements SystemAdService {
     public void checkAvailablePeriod(Long locationId,
                                      LocalDate startedAt, LocalDate endedAt) {
         AdPosition requestedAdPosition = adPositionRepository.findById(locationId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.BANNER_POSITION_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(CustomErrorCode.AD_POSITION_NOT_EXIST));
         List<AdvertisementStatus> activeStatusList = getActiveStatusList();
 
         List<Advertisement> activeAds = adRepository.findOverlappingAds(
@@ -54,8 +54,8 @@ public class SystemAdServiceImpl implements SystemAdService {
     }
 
     // 게시중인 배너 조회
-    public List<AdMainPageInfo> getActiveBanners() {
-        Set<String> keys = redisTemplate.keys("banner:list:*");
+    public List<AdMainPageInfo> getActiveAds() {
+        Set<String> keys = redisTemplate.keys("ad:list:*");
         List<Object> totalBanners = new ArrayList<>();
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -106,12 +106,12 @@ public class SystemAdServiceImpl implements SystemAdService {
     }
 
     // 게시중인 배너 수집(업데이트 날짜가 오늘이 아니면)
-    public void refreshBannerCache() {
+    public void refreshAdCache() {
         List<AdvertisementStatus> activeStatusList = getActiveStatusList();
         List<Advertisement> allPublishedAds = adRepository
                 .findAdsActiveTodayAndStatusIn(activeStatusList);
 
-        Set<String> keys = redisTemplate.keys("banner:list:*");
+        Set<String> keys = redisTemplate.keys("ad:list:*");
         if (!keys.isEmpty()) {
             redisTemplate.delete(keys);
         }
@@ -122,11 +122,11 @@ public class SystemAdServiceImpl implements SystemAdService {
                     ad.getImageUrl(),
                     ad.getLinkUrl());
 
-            String redisKey = "banner:list:" + adInfo.getLocationId();
+            String redisKey = "ad:list:" + adInfo.getLocationId();
             redisTemplate.opsForList().rightPush(redisKey, adInfo);
         }
 
-        redisTemplate.opsForValue().set("banner:lastUpdateTime", LocalDate.now().toString());
+        redisTemplate.opsForValue().set("ad:lastUpdateTime", LocalDate.now().toString());
     }
 
     private static List<AdvertisementStatus> getActiveStatusList() {
