@@ -39,8 +39,7 @@ public class MyExpoController {
     public ResponseEntity<MyExpoDetailResponse> getMyExpoDetail(
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
-        Long memberId = customUserDetails.getMemberId();
-        MyExpoDetailResponse response = expoService.getMyExpoDetail(expoId, memberId);
+        MyExpoDetailResponse response = expoService.getMyExpoDetail(expoId, customUserDetails.getLoginType(), customUserDetails.getMemberId());
         return ResponseEntity.ok(response);
     }
 
@@ -50,9 +49,7 @@ public class MyExpoController {
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody MyExpoUpdateRequest updateRequest) {
-        Long memberId = customUserDetails.getMemberId();
-        MyExpoDetailResponse updatedExpo = expoService.updateMyExpoDetail(expoId, memberId,
-                updateRequest); // 서비스에서 DTO 반환
-        return ResponseEntity.ok(updatedExpo); // 업데이트된 DTO 반환
+        MyExpoDetailResponse updatedExpo = expoService.updateMyExpoDetail(expoId, updateRequest, customUserDetails.getLoginType(), customUserDetails.getMemberId());
+        return ResponseEntity.ok(updatedExpo);
     }
 }

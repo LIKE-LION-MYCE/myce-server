@@ -1,5 +1,6 @@
 package com.myce.expo.entity;
 
+import com.myce.expo.dto.EventRequest;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -10,7 +11,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-@Getter @Entity
+@Getter
+@Entity
 @NoArgsConstructor
 @Table(name = "expo_event")
 @EntityListeners(AuditingEntityListener.class)
@@ -46,7 +48,7 @@ public class Event {
     @Column(name = "contact_phone", length = 13, nullable = false)
     private String contactPhone;
 
-    @Column(name = "contact_email", length = 100,  nullable = false)
+    @Column(name = "contact_email", length = 100, nullable = false)
     private String contactEmail;
 
     @Column(name = "description", columnDefinition = "TEXT", nullable = false)
@@ -60,6 +62,7 @@ public class Event {
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
+    @Builder
     public Event(Expo expo, String name, LocalDate eventDate, LocalTime startTime,
                  LocalTime endTime, String location, String contactName, String contactPhone,
                  String contactEmail, String description) {
@@ -73,5 +76,17 @@ public class Event {
         this.contactPhone = contactPhone;
         this.contactEmail = contactEmail;
         this.description = description;
+    }
+
+    public void update(EventRequest request) {
+        this.name = request.getName();
+        this.eventDate = request.getEventDate();
+        this.startTime = request.getStartTime();
+        this.endTime = request.getEndTime();
+        this.location = request.getLocation();
+        this.contactName = request.getContactName();
+        this.contactPhone = request.getContactPhone();
+        this.contactEmail = request.getContactEmail();
+        this.description = request.getDescription();
     }
 }
