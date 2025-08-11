@@ -14,6 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
@@ -59,6 +60,9 @@ public class ExpoPaymentInfo {
     @Column(name = "total_amount", nullable = false)
     private Integer totalAmount;
 
+    @Column(name = "commission_rate", nullable = false, precision = 5, scale = 2, columnDefinition = "DECIMAL(5, 2)")
+    private BigDecimal commissionRate;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
@@ -69,7 +73,7 @@ public class ExpoPaymentInfo {
 
     @Builder
     public ExpoPaymentInfo(Expo expo, PaymentStatus status, Integer deposit, Integer premiumDeposit,
-            Integer totalDay, Integer dailyUsageFee, Integer totalAmount) {
+            Integer totalDay, Integer dailyUsageFee, Integer totalAmount, BigDecimal commissionRate) {
         this.expo = expo;
         this.status = status;
         this.deposit = deposit;
@@ -77,5 +81,6 @@ public class ExpoPaymentInfo {
         this.totalDay = totalDay;
         this.dailyUsageFee = dailyUsageFee;
         this.totalAmount = totalAmount;
+        this.commissionRate = commissionRate;
     }
 }

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Getter
@@ -28,4 +29,5 @@ public class ExpoPaymentDetailResponse {
     private Integer depositAmount;     // 등록금 (프리미엄이면 premiumDeposit, 아니면 deposit)
     private Integer totalAmount;       // 총 결제해야 할 금액
     private Boolean isPremium;         // 프리미엄 여부
+    private BigDecimal commissionRate; // 수수료율 (퍼센트)
 }

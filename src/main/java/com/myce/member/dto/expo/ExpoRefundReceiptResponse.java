@@ -24,7 +24,10 @@ public class ExpoRefundReceiptResponse {
     // 원본 결제 정보
     private Integer totalDays;         // 총 게시 일수
     private Integer dailyUsageFee;     // 일일 이용료
-    private Integer totalAmount;       // 총 결제 금액
+    private Integer depositAmount;     // 등록금 (프리미엄/기본)
+    private Integer totalUsageFee;     // 총 이용료 (일수 * 일일이용료)
+    private Integer totalAmount;       // 총 결제 금액 (등록금 + 총이용료)
+    private Boolean isPremium;         // 프리미엄 여부
     
     // 사용 정보
     private LocalDate refundRequestDate;  // 환불 요청일 (오늘)
