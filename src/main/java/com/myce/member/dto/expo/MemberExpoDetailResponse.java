@@ -1,4 +1,4 @@
-package com.myce.member.dto;
+package com.myce.member.dto.expo;
 
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.entity.type.TicketType;

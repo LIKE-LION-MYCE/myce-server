@@ -1,7 +1,7 @@
-package com.myce.member.mapper;
+package com.myce.member.mapper.ad;
 
 import com.myce.advertisement.entity.Advertisement;
-import com.myce.member.dto.MemberAdvertisementResponse;
+import com.myce.member.dto.ad.MemberAdvertisementResponse;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

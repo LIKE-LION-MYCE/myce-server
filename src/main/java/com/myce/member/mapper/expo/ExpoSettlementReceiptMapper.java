@@ -1,8 +1,8 @@
-package com.myce.member.mapper;
+package com.myce.member.mapper.expo;
 
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
-import com.myce.member.dto.ExpoSettlementReceiptResponse;
+import com.myce.member.dto.expo.ExpoSettlementReceiptResponse;
 import com.myce.system.entity.ExpoFeeSetting;
 import java.math.BigDecimal;
 import java.time.LocalDate;

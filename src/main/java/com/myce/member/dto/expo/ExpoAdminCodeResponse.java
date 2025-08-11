@@ -1,4 +1,4 @@
-package com.myce.member.dto;
+package com.myce.member.dto.expo;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
