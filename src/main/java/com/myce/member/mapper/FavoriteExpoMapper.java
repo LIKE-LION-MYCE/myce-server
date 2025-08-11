@@ -1,6 +1,6 @@
 package com.myce.member.mapper;
 
-import com.myce.member.dto.FavoriteExpoResponse;
+import com.myce.member.dto.expo.FavoriteExpoResponse;
 import com.myce.member.entity.Favorite;
 import java.util.List;
 import java.util.stream.Collectors;

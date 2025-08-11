@@ -1,7 +1,9 @@
 package com.myce.member.service;
 
-import com.myce.member.dto.*;
-
+import com.myce.member.dto.ad.AdvertisementDetailResponse;
+import com.myce.member.dto.ad.AdvertisementPaymentDetailResponse;
+import com.myce.member.dto.ad.AdvertisementRefundReceiptResponse;
+import com.myce.member.dto.ad.MemberAdvertisementResponse;
 import java.util.List;
 
 public interface MemberAdService {

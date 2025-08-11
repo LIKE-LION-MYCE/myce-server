@@ -1,14 +1,20 @@
 package com.myce.member.service.impl;
 
 import com.myce.advertisement.entity.Advertisement;
-import com.myce.advertisement.repository.AdvertisementRepository;
+import com.myce.advertisement.repository.AdRepository;
 import com.myce.common.entity.BusinessProfile;
 import com.myce.common.entity.type.TargetType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
-import com.myce.member.dto.*;
-import com.myce.member.mapper.*;
+import com.myce.member.dto.ad.AdvertisementDetailResponse;
+import com.myce.member.dto.ad.AdvertisementPaymentDetailResponse;
+import com.myce.member.dto.ad.AdvertisementRefundReceiptResponse;
+import com.myce.member.dto.ad.MemberAdvertisementResponse;
+import com.myce.member.mapper.ad.AdvertisementDetailMapper;
+import com.myce.member.mapper.ad.AdvertisementPaymentDetailMapper;
+import com.myce.member.mapper.ad.AdvertisementRefundReceiptMapper;
+import com.myce.member.mapper.ad.MemberAdvertisementMapper;
 import com.myce.member.service.MemberAdService;
 import com.myce.payment.entity.AdPaymentInfo;
 import com.myce.payment.repository.AdPaymentInfoRepository;
@@ -23,7 +29,7 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class MemberAdServiceImpl implements MemberAdService {
 
-    private final AdvertisementRepository advertisementRepository;
+    private final AdRepository adRepository;
     private final MemberAdvertisementMapper memberAdvertisementMapper;
     private final AdvertisementDetailMapper advertisementDetailMapper;
     private final AdvertisementPaymentDetailMapper advertisementPaymentDetailMapper;
@@ -33,16 +39,16 @@ public class MemberAdServiceImpl implements MemberAdService {
 
     @Override
     public List<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId) {
-        List<Advertisement> advertisements = advertisementRepository.findByMemberIdWithAdPosition(memberId);
+        List<Advertisement> advertisements = adRepository.findByMemberIdWithAdPosition(memberId);
         return memberAdvertisementMapper.toResponseDtoList(advertisements);
     }
 
     @Override
     public AdvertisementDetailResponse getAdvertisementDetail(Long memberId, Long advertisementId) {
 
-        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
+        Advertisement advertisement = adRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
                         memberId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
 
         BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(advertisementId,
                         TargetType.ADVERTISEMENT)
@@ -54,9 +60,9 @@ public class MemberAdServiceImpl implements MemberAdService {
     @Override
     @Transactional
     public void cancelAdvertisement(Long memberId, Long advertisementId) {
-        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
+        Advertisement advertisement = adRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
                         memberId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
 
         advertisement.cancel();
     }
@@ -64,9 +70,9 @@ public class MemberAdServiceImpl implements MemberAdService {
     @Override
     public AdvertisementPaymentDetailResponse getAdvertisementPaymentDetail(Long memberId, Long advertisementId) {
         // 광고 정보 조회
-        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
+        Advertisement advertisement = adRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
                         memberId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
 
         // 사업자 정보 조회
         BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(advertisementId,
@@ -83,9 +89,9 @@ public class MemberAdServiceImpl implements MemberAdService {
     @Override
     public AdvertisementRefundReceiptResponse getAdvertisementRefundReceipt(Long memberId, Long advertisementId) {
         // 광고 정보 조회
-        Advertisement advertisement = advertisementRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
+        Advertisement advertisement = adRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
                         memberId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.ADVERTISEMENT_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
 
         // 게시 중인 광고만 환불 가능
         if (advertisement.getStatus() != com.myce.advertisement.entity.type.AdvertisementStatus.PUBLISHED) {

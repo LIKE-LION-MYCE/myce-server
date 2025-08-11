@@ -1,0 +1,69 @@
+package com.myce.schedule.jobs;
+
+import com.myce.advertisement.service.SystemAdService;
+import com.myce.schedule.TaskScheduler;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class AdScheduler implements TaskScheduler {
+    private final SystemAdService systemAdService;
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    @PostConstruct
+    public void init() {
+        log.debug("[Scheduler] Registered advertisement scheduler.");
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void onApplicationReady() {
+        try {
+            log.debug("[Scheduler] ApplicationReadyEvent - initial advertisement processing start.");
+            this.process();
+            log.debug("[Scheduler] ApplicationReadyEvent - initial advertisement processing done.");
+        } catch (Exception e) {
+            log.error("Fail to run initial advertisement processing on ApplicationReadyEvent.", e);
+        }
+    }
+
+    @Override
+    @Scheduled(cron = "${scheduler.days}")
+    public void run() {
+        try{
+            this.process();
+        }catch (Exception e){
+            log.error("Fail to run advertisement scheduler.", e);
+        }
+    }
+
+    @Override
+    public void process() {
+        int published = systemAdService.publishPendingAds();
+        int completed = systemAdService.closeCompletedAds();
+
+        boolean needDateRefresh = shouldRefreshByDate();
+        if (needDateRefresh || published > 0 || completed > 0) {
+            systemAdService.refreshAdCache();
+        }
+    }
+
+    private boolean shouldRefreshByDate() {
+        LocalDate today = LocalDate.now();
+        String lastUpdateTimeString = (String) redisTemplate.opsForValue().get("ad:lastUpdateTime");
+        return lastUpdateTimeString == null
+                || today.isAfter(LocalDate.parse(lastUpdateTimeString, DateTimeFormatter.ISO_DATE));
+    }
+}

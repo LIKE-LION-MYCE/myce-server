@@ -103,20 +103,38 @@ jobs:
 
       - name: 🏥 Health Check
         run: |
-          echo "🏥 Performing health check..."
-          sleep 45
+          echo "🏥 Performing health check with intelligent retry..."
+          MAX_ATTEMPTS=15
+          ATTEMPT=1
           
-          # Primary: Test production ALB endpoint (end-to-end)
-          if curl -f https://api.myce.live/actuator/health; then
-            echo "✅ Health check passed via ALB!"
-          else
-            echo "❌ ALB health check failed, trying direct EC2 endpoint..."
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+            
+            # Primary: Test production ALB endpoint (end-to-end)
+            if curl -f -m 10 https://api.myce.live/actuator/health; then
+              echo "✅ Health check passed via ALB on attempt $ATTEMPT!"
+              exit 0
+            fi
+            
+            echo "❌ ALB failed, trying direct EC2 endpoint..."
             # Fallback: Test direct container health
-            curl -f http://${{ env.EC2_HOST }}:8080/actuator/health || {
-              echo "❌ Both ALB and direct container health checks failed"
+            if curl -f -m 10 http://${{ env.EC2_HOST }}:8080/actuator/health; then
+              echo "✅ Health check passed via direct EC2 on attempt $ATTEMPT!"
+              echo "⚠️  Note: ALB might need more time to detect healthy targets"
+              exit 0
+            fi
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "❌ Health check failed after $MAX_ATTEMPTS attempts (2.5 minutes)"
+              echo "🔍 Server may still be starting up. Check container logs:"
+              echo "   ssh ubuntu@${{ env.EC2_HOST }} 'docker logs myce-backend --tail 50'"
               exit 1
-            }
-          fi
+            fi
+            
+            echo "⏳ Server not ready, waiting 10s... ($(($MAX_ATTEMPTS - $ATTEMPT)) attempts remaining)"
+            sleep 10
+            ATTEMPT=$((ATTEMPT + 1))
+          done
 
       - name: 🎉 백엔드 배포 성공 알림
         if: success()
