@@ -45,6 +45,7 @@ public enum CustomErrorCode {
     QR_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q008", "QR 코드 생성 중 오류가 발생했습니다."),
     QR_REISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q009", "QR 코드 재발급 중 오류가 발생했습니다."),
     QR_APPROVED(HttpStatus.BAD_REQUEST , "Q010" , "QR 코드 발급 기간이 아닙니다."  ),
+    QR_NOT_MANUAL_CHECK_IN(HttpStatus.BAD_REQUEST, "Q011", "ACTIVE 상태의 QR만 수기입장 처리가 가능합니다."),
 
     // S3 S
     S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S001", "S3 파일 업로드에 실패했습니다."),
@@ -98,6 +99,10 @@ public enum CustomErrorCode {
     PORTONE_REFUND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "P009", "포트원 환불 요청에 실패했습니다."),
     REFUND_AMOUNT_EXCEEDS_PAID(HttpStatus.BAD_REQUEST, "P010", "환불 금액이 결제 금액을 초과합니다."),
     PORTONE_REQUEST_SERIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "P011", "포트원 요청 본문 직렬화에 실패했습니다."),
+    PORTONE_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "P012", "포트원 요청에 실패했습니다."),
+    PAYMENT_NOT_READY_OR_PAID(HttpStatus.BAD_REQUEST, "P013", "결제 상태가 'ready' 또는 'paid'가 아닙니다."),
+    WEBHOOK_DATA_MISMATCH(HttpStatus.BAD_REQUEST, "P014", "웹훅 데이터와 포트원 조회 데이터가 일치하지 않습니다."),
+    INVALID_MERCHANT_UID_FORMAT(HttpStatus.BAD_REQUEST, "P015", "유효하지 않은 상점 주문번호 형식입니다."),
 
     // 예약 R
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "해당 예약 정보를 조회 할수 없습니다."),

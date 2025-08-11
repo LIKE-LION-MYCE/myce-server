@@ -26,8 +26,6 @@ import com.myce.member.mapper.expo.MemberExpoMapper;
 import com.myce.member.service.MemberExpoService;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
-import com.myce.system.entity.ExpoFeeSetting;
-import com.myce.system.repository.ExpoFeeSettingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -51,7 +49,6 @@ public class MemberExpoServiceImpl implements MemberExpoService {
     private final ExpoRepository expoRepository;
     private final TicketRepository ticketRepository;
     private final AdminCodeRepository adminCodeRepository;
-    private final ExpoFeeSettingRepository expoFeeSettingRepository;
     private final ExpoRefundReceiptMapper expoRefundReceiptMapper;
 
     @Override
@@ -147,11 +144,11 @@ public class MemberExpoServiceImpl implements MemberExpoService {
         // 해당 박람회의 티켓 목록 조회
         List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
 
-        // 현재 활성화된 수수료 설정 조회
-        ExpoFeeSetting feeSetting = expoFeeSettingRepository.findByIsActiveTrue()
-                .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
+        // 박람회 결제 정보 조회 (결제 시점의 수수료율 사용)
+        ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
 
-        return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, feeSetting);
+        return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, expoPaymentInfo);
     }
 
     @Override
@@ -164,10 +161,8 @@ public class MemberExpoServiceImpl implements MemberExpoService {
             throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
         }
 
-        // 게시 중인 박람회만 환불 가능
-        if (expo.getStatus() != com.myce.expo.entity.type.ExpoStatus.PUBLISHED) {
-            throw new CustomException(CustomErrorCode.INVALID_EXPO_STATUS);
-        }
+        // 상태와 관계없이 환불 영수증 조회 가능 (UI에서 모든 영수증을 항상 표시하기 위해)
+        // 실제 환불 신청은 별도 API에서 상태 검증
 
         // 사업자 정보 조회
         BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(expoId,

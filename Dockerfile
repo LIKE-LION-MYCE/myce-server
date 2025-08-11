@@ -1,7 +1,7 @@
-# Use OpenJDK 21 slim image
+# Production Docker image for MYCE backend
 FROM openjdk:21-jdk-slim
 
-# Install AWS CLI and curl for health checks
+# Install AWS CLI and essential dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     unzip \
@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy the JAR file and startup script
+# Copy application files
 COPY build/libs/*.jar app.jar
 COPY startup.sh startup.sh
 

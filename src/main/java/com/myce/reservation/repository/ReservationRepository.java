@@ -95,4 +95,5 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("userType") UserType userType
     );
 
+    Optional<Reservation> findByReservationCode(String reservationCode);
 }

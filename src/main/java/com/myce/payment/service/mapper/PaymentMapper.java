@@ -34,8 +34,8 @@ public class PaymentMapper {
                 .impUid(request.getImpUid())
                 .cardCompany((String) portOnePayment.get("card_name"))
                 .cardNumber((String) portOnePayment.get("card_number"))
-                .accountBank((String) portOnePayment.get("bank_name"))
-                .accountNumber((String) portOnePayment.get("account_number"))
+                .accountBank((String) portOnePayment.get("vbank_name"))
+                .accountNumber((String) portOnePayment.get("vbank_num"))
                 .country((String) portOnePayment.get("country"))
                 .paidAt(toPaidAtLocalDateTime(portOnePayment.get("paid_at")))
                 .build();
@@ -101,6 +101,7 @@ public class PaymentMapper {
             .premiumDeposit(expoFeeSetting.getPremiumDeposit())
             .totalDay((int) totalDays)
             .dailyUsageFee(expoFeeSetting.getDailyUsageFee())
+            .commissionRate(expoFeeSetting.getSettlementCommission())
             .build();
     }
     

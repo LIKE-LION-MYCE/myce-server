@@ -1,19 +1,19 @@
-package com.myce.system.service.impl;
+package com.myce.system.service.impl.message;
 
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
-import com.myce.system.dto.MessageTemplate;
+import com.myce.system.dto.message.MessageTemplate;
 import com.myce.system.entity.MessageTemplateSetting;
 import com.myce.system.entity.type.ChannelType;
 import com.myce.system.entity.type.MessageTemplateCode;
 import com.myce.system.repository.MessageTemplateSettingRepository;
-import com.myce.system.service.MessageTemplateService;
+import com.myce.system.service.message.GenerateMessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class MessageTemplateServiceImpl implements MessageTemplateService {
+public class GenerateMessageServiceImpl implements GenerateMessageService {
 
     private final MessageTemplateSettingRepository messageTemplateSettingRepository;
 

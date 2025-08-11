@@ -26,6 +26,7 @@ public class ReservationDetailResponse {
     @AllArgsConstructor
     @Builder
     public static class ExpoInfo {
+        private Long expoId;
         private String thumbnailUrl;
         private String title;
         private String location;
@@ -45,6 +46,8 @@ public class ReservationDetailResponse {
         private Integer quantity;
         private LocalDateTime createdAt;
         private Integer ticketPrice;
+        private String ticketName;
+        private String ticketType;
     }
     
     @Getter
