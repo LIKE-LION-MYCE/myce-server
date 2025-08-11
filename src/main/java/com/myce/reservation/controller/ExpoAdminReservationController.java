@@ -17,13 +17,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/expos/{expoId}")
+@RequestMapping("/api/expos/{expoId}/reservations")
 @RequiredArgsConstructor
 public class ExpoAdminReservationController {
 
     private final ExpoAdminReservationService service;
 
-    @GetMapping("/reservations/ticket-name")
+    @GetMapping("/ticket-name")
     public ResponseEntity<List<String>> getExpoTicketNames(
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
@@ -33,7 +33,7 @@ public class ExpoAdminReservationController {
         return ResponseEntity.ok(service.getExpoTicketNames(expoId,memberId,loginType));
     }
 
-    @GetMapping("/reservations")
+    @GetMapping
     public ResponseEntity<PagedModel<ExpoAdminReservationResponse>> getMyExpoReservations(
             @PathVariable Long expoId,
             @RequestParam(defaultValue = "0") int page,
