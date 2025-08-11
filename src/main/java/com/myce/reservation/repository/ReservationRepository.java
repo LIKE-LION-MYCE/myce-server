@@ -4,14 +4,15 @@ import com.myce.reservation.dto.ExpoAdminPaymentBasicResponse;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.code.ReservationStatus;
 import com.myce.reservation.entity.code.UserType;
-import java.util.List;
-import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
@@ -80,4 +81,18 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("phone") String phone,
             Pageable pageable
     );
+
+    @Query("""
+           select distinct r.userId
+           from Reservation r
+           where r.expo.id = :expoId
+             and r.status = :status
+             and r.userType = :userType
+           """)
+    List<Long> findAllMemberIdByExpoIdAndStatusAndUserType(
+            @Param("expoId") Long expoId,
+            @Param("status") ReservationStatus status,
+            @Param("userType") UserType userType
+    );
+
 }
