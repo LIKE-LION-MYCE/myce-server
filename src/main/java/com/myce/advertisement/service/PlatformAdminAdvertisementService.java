@@ -20,9 +20,13 @@ public interface PlatformAdminAdvertisementService {
 
     void rejectApply(Long bannerId, RejectAdRequest request);
 
+    AdCancelInfoCheck generateCancelCheck(Long bannerId);
+
+    void cancelBanner(Long bannerId, AdCancelInfoRequest request);
+
     AdRejectInfoResponse getRejectInfo(Long bannerId);
 
     AdPaymentHistoryResponse getPaymentInfo(Long bannerId);
 
-    AdCancelInfoResponse getCancelInfo(Long bannerId);
+    AdCancelHistoryResponse getCancelInfo(Long bannerId);
 }
