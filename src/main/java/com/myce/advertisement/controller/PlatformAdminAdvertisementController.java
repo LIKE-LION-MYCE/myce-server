@@ -1,19 +1,11 @@
 package com.myce.advertisement.controller;
 
 import com.myce.advertisement.dto.*;
-import com.myce.advertisement.dto.AdRejectInfoResponse;
-import com.myce.advertisement.dto.DetailApplyAdvertisement;
-import com.myce.advertisement.dto.RejectAdRequest;
-import com.myce.advertisement.dto.SimpleApplyAdvertisement;
 import com.myce.advertisement.service.PlatformAdminAdvertisementService;
 import com.myce.common.dto.PageResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
@@ -60,6 +52,18 @@ public class PlatformAdminAdvertisementController {
         return service.generatePaymentCheck(bannerId);
     }
 
+    @PostMapping("/detail/{bannerId}/cancel")
+    public ResponseEntity<Void> cancelApply(@PathVariable Long bannerId,
+                                            @RequestBody AdCancelInfoRequest request) {
+        service.cancelBanner(bannerId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/detail/{bannerId}/cancel-check")
+    public AdCancelInfoCheck getCancelForm(@PathVariable Long bannerId) {
+        return service.generateCancelCheck(bannerId);
+    }
+
     @PostMapping("/detail/{bannerId}/reject")
     public ResponseEntity<Void> rejectApply(@PathVariable Long bannerId,
                                             @RequestBody RejectAdRequest request) {
@@ -78,7 +82,7 @@ public class PlatformAdminAdvertisementController {
     }
 
     @GetMapping("/detail/{bannerId}/cancel-history")
-    public AdCancelInfoResponse getCancelInfo(@PathVariable Long bannerId) {
+    public AdCancelHistoryResponse getCancelInfo(@PathVariable Long bannerId) {
         return service.getCancelInfo(bannerId);
     }
 

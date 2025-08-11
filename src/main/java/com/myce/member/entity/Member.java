@@ -100,5 +100,13 @@ public class Member {
 
     public void resetPassword(String newPassword) {
         this.password = newPassword;
+    
+    public void updateInfo(String phone, String email) {
+        if (phone != null && !phone.trim().isEmpty()) {
+            this.phone = phone;
+        }
+        if (email != null && !email.trim().isEmpty()) {
+            this.email = email;
+        }
     }
 }

@@ -18,6 +18,7 @@ import com.myce.member.dto.AdvertisementPaymentDetailResponse;
 import com.myce.member.dto.AdvertisementRefundReceiptResponse;
 import com.myce.member.dto.ExpoAdminCodeResponse;
 import com.myce.member.dto.ExpoPaymentDetailResponse;
+import com.myce.member.mapper.ExpoRefundReceiptMapper;
 import com.myce.member.dto.ExpoRefundReceiptResponse;
 import com.myce.member.dto.ExpoSettlementReceiptResponse;
 import com.myce.member.dto.FavoriteExpoResponse;
@@ -26,6 +27,7 @@ import com.myce.member.dto.MemberExpoDetailResponse;
 import com.myce.member.dto.MemberExpoResponse;
 import com.myce.member.dto.MemberInfoResponse;
 import com.myce.member.dto.MemberSettingResponse;
+import com.myce.member.dto.MemberInfoUpdateRequest;
 import com.myce.member.dto.MemberSettingUpdateRequest;
 import com.myce.member.dto.PaymentHistoryResponse;
 import com.myce.member.dto.ReservedExpoResponse;
@@ -33,10 +35,10 @@ import com.myce.member.entity.Favorite;
 import com.myce.member.entity.Member;
 import com.myce.member.entity.MemberSetting;
 import com.myce.member.mapper.AdvertisementDetailMapper;
+import com.myce.member.mapper.AdvertisementPaymentDetailMapper;
 import com.myce.member.mapper.AdvertisementRefundReceiptMapper;
 import com.myce.member.mapper.ExpoAdminCodeMapper;
 import com.myce.member.mapper.ExpoPaymentDetailMapper;
-import com.myce.member.mapper.ExpoRefundReceiptMapper;
 import com.myce.member.mapper.ExpoSettlementReceiptMapper;
 import com.myce.member.mapper.FavoriteExpoMapper;
 import com.myce.member.mapper.MemberAdvertisementMapper;
@@ -62,6 +64,8 @@ import com.myce.system.entity.ExpoFeeSetting;
 import com.myce.system.repository.ExpoFeeSettingRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,6 +87,7 @@ public class MemberServiceImpl implements MemberService {
     private final AdvertisementRepository advertisementRepository;
     private final MemberAdvertisementMapper memberAdvertisementMapper;
     private final AdvertisementDetailMapper advertisementDetailMapper;
+    private final AdvertisementPaymentDetailMapper advertisementPaymentDetailMapper;
     private final AdvertisementRefundReceiptMapper advertisementRefundReceiptMapper;
     private final MemberExpoMapper memberExpoMapper;
     private final MemberExpoDetailMapper memberExpoDetailMapper;
@@ -120,6 +125,15 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     @Transactional
+    public void updateMemberInfo(Long memberId, MemberInfoUpdateRequest request) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+        
+        member.updateInfo(request.getPhone(), request.getEmail());
+    }
+
+    @Override
+    @Transactional
     public void withdrawMember(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
@@ -127,10 +141,10 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public List<PaymentHistoryResponse> getPaymentHistory(Long memberId) {
-        List<Object[]> paymentHistoryData = paymentRepository.findReservationPaymentHistoryByUserTypeAndUserId(
-                UserType.MEMBER, memberId);
-        return paymentHistoryMapper.toResponseDtoList(paymentHistoryData);
+    public Page<PaymentHistoryResponse> getPaymentHistory(Long memberId, Pageable pageable) {
+        Page<Object[]> paymentHistoryData = paymentRepository.findReservationPaymentHistoryByUserTypeAndUserId(
+                UserType.MEMBER, memberId, pageable);
+        return paymentHistoryData.map(paymentHistoryMapper::toResponseDto);
     }
 
     @Override
@@ -146,12 +160,7 @@ public class MemberServiceImpl implements MemberService {
         MemberSetting memberSetting = memberSettingRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_SETTING_NOT_EXIST));
 
-        memberSetting.updateSettings(
-                request.getLanguage(),
-                request.getFontSize(),
-                request.getIsReceiveEmail(),
-                request.getIsReceivePush()
-        );
+        memberSettingMapper.updateMemberSetting(memberSetting, request);
     }
 
     @Override
@@ -200,16 +209,7 @@ public class MemberServiceImpl implements MemberService {
         AdPaymentInfo adPaymentInfo = adPaymentInfoRepository.findByAdvertisementId(advertisementId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
 
-        return AdvertisementPaymentDetailResponse.builder()
-                .advertisementTitle(advertisement.getTitle())
-                .applicantName(businessProfile.getCompanyName())
-                .displayStartDate(advertisement.getDisplayStartDate())
-                .displayEndDate(advertisement.getDisplayEndDate())
-                .totalDays(adPaymentInfo.getTotalDay())
-                .feePerDay(adPaymentInfo.getFeePerDay())
-                .totalAmount(adPaymentInfo.getTotalAmount())
-                .status(advertisement.getStatus())
-                .build();
+        return advertisementPaymentDetailMapper.toAdvertisementPaymentDetailResponse(advertisement, businessProfile, adPaymentInfo);
     }
 
     @Override
@@ -330,7 +330,7 @@ public class MemberServiceImpl implements MemberService {
         List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
 
         // 현재 활성화된 수수료 설정 조회
-        ExpoFeeSetting feeSetting = expoFeeSettingRepository.findActiveFeeSetting()
+        ExpoFeeSetting feeSetting = expoFeeSettingRepository.findByIsActiveTrue()
                 .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
 
         return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, feeSetting);

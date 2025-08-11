@@ -19,6 +19,8 @@ public class ExpoAdminTicketMapper {
                 .totalQuantity(ticket.getTotalQuantity())
                 .saleStartDate(ticket.getSaleStartDate())
                 .saleEndDate(ticket.getSaleEndDate())
+                .useStartDate(ticket.getUseStartDate())
+                .useEndDate(ticket.getUseEndDate())
                 .build();
     }
 
@@ -33,6 +35,8 @@ public class ExpoAdminTicketMapper {
                 .totalQuantity(dto.getTotalQuantity())
                 .saleStartDate(dto.getSaleStartDate())
                 .saleEndDate(dto.getSaleEndDate())
+                .useStartDate(dto.getUseStartDate())
+                .useEndDate(dto.getUseEndDate())
                 .build();
     }
 }
