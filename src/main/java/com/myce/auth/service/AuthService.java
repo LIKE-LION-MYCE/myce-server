@@ -17,4 +17,5 @@ public interface AuthService {
     void sendTempPasswordMail(TempPasswordRequest request);
 
     CheckDuplicateResponse checkDuplication(String loginId);
+
 }

@@ -1,4 +1,4 @@
-package com.myce.member.dto;
+package com.myce.member.dto.ad;
 
 import com.myce.advertisement.entity.type.AdvertisementStatus;
 import lombok.AllArgsConstructor;

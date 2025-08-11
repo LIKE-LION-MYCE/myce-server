@@ -76,9 +76,7 @@ public class Member {
     private LocalDateTime updatedAt;
 
     @Builder
-    public Member(MemberGrade memberGrade, String name, String loginId, String password,
-                  String email, LocalDate birth, String phone, Role role, Gender gender,
-                  ProviderType providerType, String providerId) {
+    public Member(MemberGrade memberGrade, String name, String loginId, String password, String email, LocalDate birth, String phone, Role role, Gender gender, ProviderType providerType, String providerId) {
         this.memberGrade = memberGrade;
         this.name = name;
         this.loginId = loginId;
@@ -93,16 +91,16 @@ public class Member {
         this.mileage = 0;
         this.isDeleted = false;
     }
-    
+
     public void withdraw() {
         this.isDeleted = true;
     }
-  
+
     public void resetPassword(String newPassword) {
         this.password = newPassword;
     }
-    
-    public void updateInfo(String phone, String email) {
+
+    public void updateInfo (String phone, String email){
         if (phone != null && !phone.trim().isEmpty()) {
             this.phone = phone;
         }
@@ -111,3 +109,4 @@ public class Member {
         }
     }
 }
+

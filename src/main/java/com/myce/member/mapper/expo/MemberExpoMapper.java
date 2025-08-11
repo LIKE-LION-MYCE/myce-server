@@ -1,7 +1,7 @@
-package com.myce.member.mapper;
+package com.myce.member.mapper.expo;
 
 import com.myce.expo.entity.Expo;
-import com.myce.member.dto.MemberExpoResponse;
+import com.myce.member.dto.expo.MemberExpoResponse;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

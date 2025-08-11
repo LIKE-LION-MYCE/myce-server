@@ -2,6 +2,8 @@ package com.myce.member.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.member.dto.*;
+import com.myce.member.dto.expo.FavoriteExpoResponse;
+import com.myce.member.dto.expo.ReservedExpoResponse;
 import com.myce.member.service.MemberMyPageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

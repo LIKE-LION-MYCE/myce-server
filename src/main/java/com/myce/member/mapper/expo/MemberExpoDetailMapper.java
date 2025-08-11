@@ -1,9 +1,9 @@
-package com.myce.member.mapper;
+package com.myce.member.mapper.expo;
 
 import com.myce.common.entity.BusinessProfile;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
-import com.myce.member.dto.MemberExpoDetailResponse;
+import com.myce.member.dto.expo.MemberExpoDetailResponse;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import org.springframework.stereotype.Component;
 
