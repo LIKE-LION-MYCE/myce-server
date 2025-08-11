@@ -46,6 +46,8 @@ public class ReservationDetailMapper {
                 .quantity(reservation.getQuantity())
                 .createdAt(reservation.getCreatedAt())
                 .ticketPrice(reservation.getTicket().getPrice())
+                .ticketName(reservation.getTicket().getName())
+                .ticketType(reservation.getTicket().getType().toString())
                 .build();
     }
     

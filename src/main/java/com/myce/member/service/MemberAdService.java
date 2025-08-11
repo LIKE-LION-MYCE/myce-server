@@ -4,11 +4,12 @@ import com.myce.member.dto.ad.AdvertisementDetailResponse;
 import com.myce.member.dto.ad.AdvertisementPaymentDetailResponse;
 import com.myce.member.dto.ad.AdvertisementRefundReceiptResponse;
 import com.myce.member.dto.ad.MemberAdvertisementResponse;
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface MemberAdService {
     
-    List<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId);
+    Page<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId, Pageable pageable);
     
     AdvertisementDetailResponse getAdvertisementDetail(Long memberId, Long advertisementId);
     
