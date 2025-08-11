@@ -1,16 +1,21 @@
 package com.myce.reservation.repository;
 
+import com.myce.reservation.dto.ExpoAdminExcelDownloadResponse;
 import com.myce.reservation.dto.ExpoAdminReservationResponse;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.Reserver;
+import jakarta.persistence.QueryHint;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 @Repository
 public interface ReserverRepository extends JpaRepository<Reserver, Long> {
@@ -116,4 +121,31 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
     ExpoAdminReservationResponse findOneResponsesByReserverId(
             @Param("reserverId") Long reserverId,
             @Param("expoId") Long expoId);
+
+    @Transactional(readOnly = true)
+    @QueryHints(value = @QueryHint(name = "org.hibernate.fetchSize", value = "1000"))
+    @Query("""
+          SELECT NEW com.myce.reservation.dto.ExpoAdminExcelDownloadResponse(
+            r.reservationCode,
+            rv.name,
+            CASE
+              WHEN rv.gender = com.myce.member.entity.type.Gender.FEMALE THEN '여'
+              WHEN rv.gender = com.myce.member.entity.type.Gender.MALE   THEN '남'
+              ELSE '-'
+            END,
+            rv.birth,
+            rv.phone,
+            rv.email,
+            t.name
+          )
+          FROM Reserver rv
+          JOIN rv.reservation r
+          JOIN r.ticket t
+          WHERE r.expo.id = :expoId
+            AND r.status = com.myce.reservation.entity.code.ReservationStatus.CONFIRMED
+          ORDER BY
+              rv.createdAt ASC,
+              rv.id ASC
+    """)
+    Stream<ExpoAdminExcelDownloadResponse> streamAllForExcel(@Param("expoId") Long expoId);
 }
