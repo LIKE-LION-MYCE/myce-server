@@ -1,4 +1,4 @@
-package com.myce.system.dto;
+package com.myce.system.dto.message;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
