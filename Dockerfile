@@ -1,8 +1,7 @@
-# Multi-stage build for optimized production image
-# Stage 1: Build environment with AWS CLI (temporary)
-FROM eclipse-temurin:21-jdk-jammy AS builder
+# Production Docker image for MYCE backend
+FROM openjdk:21-jdk-slim
 
-# Install AWS CLI and build tools in builder stage only
+# Install AWS CLI and essential dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     unzip \
@@ -12,19 +11,6 @@ RUN apt-get update && apt-get install -y \
     && rm -rf awscliv2.zip aws \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-# Stage 2: Runtime image (final, optimized)
-FROM eclipse-temurin:21-jre-jammy
-
-# Install only essential runtime dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy AWS CLI from builder stage (only necessary components)
-COPY --from=builder /usr/local/aws-cli /usr/local/aws-cli
-COPY --from=builder /usr/local/bin/aws /usr/local/bin/aws
 
 # Set working directory
 WORKDIR /app
