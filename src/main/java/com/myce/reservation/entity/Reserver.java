@@ -2,6 +2,7 @@ package com.myce.reservation.entity;
 
 import com.myce.member.entity.type.Gender;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -37,6 +38,9 @@ public class Reserver {
     @Column(name = "email", length = 100, nullable = false)
     private String email;
 
+    @Column(name = "birth", nullable = false)
+    private LocalDate birth;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
@@ -47,12 +51,13 @@ public class Reserver {
 
     @Builder
     public Reserver(Reservation reservation, String name,
-                    Gender gender, String phone, String email) {
+                    Gender gender, String phone, String email, LocalDate birth) {
         this.reservation = reservation;
         this.name = name;
         this.gender = gender;
         this.phone = phone;
         this.email = email;
+        this.birth = birth;
     }
 
     public void updateReserverInfo(String name, Gender gender, String phone, String email) {

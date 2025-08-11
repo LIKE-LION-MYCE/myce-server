@@ -1,6 +1,8 @@
 package com.myce.member.service;
 
 import com.myce.member.dto.*;
+import com.myce.member.dto.expo.FavoriteExpoResponse;
+import com.myce.member.dto.expo.ReservedExpoResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

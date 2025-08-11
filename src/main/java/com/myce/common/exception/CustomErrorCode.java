@@ -21,6 +21,8 @@ public enum CustomErrorCode {
     MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "M001", "회원정보가 존재하지 않습니다."),
     MEMBER_TYPE_INVALID(HttpStatus.NOT_FOUND, "M002", "존재하지 않는 회원 타입입니다."),
     MEMBER_SETTING_NOT_EXIST(HttpStatus.NOT_FOUND, "M003", "회원의 시스템 설정이 존재하지 않습니다."),
+    CURRENT_PASSWORD_NOT_MATCH(HttpStatus.BAD_REQUEST, "M004", "기존 비밀번호가 일치하지 않습니다."),
+    PASSWORD_CONFIRMATION_MISMATCH(HttpStatus.BAD_REQUEST, "M005", "새로운 비밀번호가 일치하지 않습니다."),
 
     // 비회원 G
     GUEST_NOT_EXIST(HttpStatus.NOT_FOUND, "G001", "비회원 정보가 존재하지 않습니다."),
@@ -43,6 +45,7 @@ public enum CustomErrorCode {
     QR_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q008", "QR 코드 생성 중 오류가 발생했습니다."),
     QR_REISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q009", "QR 코드 재발급 중 오류가 발생했습니다."),
     QR_APPROVED(HttpStatus.BAD_REQUEST, "Q010", "QR 코드 발급 기간이 아닙니다."),
+    QR_NOT_MANUAL_CHECK_IN(HttpStatus.BAD_REQUEST, "Q011", "ACTIVE 상태의 QR만 수기입장 처리가 가능합니다."),
 
     // S3 S
     S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S001", "S3 파일 업로드에 실패했습니다."),
@@ -53,6 +56,7 @@ public enum CustomErrorCode {
     EXPO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "E003", "해당 박람회에 대한 접근 권한이 없습니다."),
     CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E004", "카테고리가 존재하지 않습니다."),
     INVALID_EXPO_STATUS(HttpStatus.NOT_FOUND, "E005", "영수증을 조회 할 수 없습니다."),
+
 
     // 티켓 T
     TICKET_NOT_EXIST(HttpStatus.NOT_FOUND, "T001", "티켓이 존재하지 않습니다."),
@@ -67,11 +71,10 @@ public enum CustomErrorCode {
     CHAT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "C005", "채팅 참여자 정보를 찾을 수 없습니다."),
     CHAT_SENDER_TYPE_INVALID(HttpStatus.BAD_REQUEST, "C006", "유효하지 않은 메시지 발송자 타입입니다."),
 
-    // 광고 A  
-    BANNER_NOT_EXIST(HttpStatus.NOT_FOUND, "A001", "배너가 존재하지 않습니다."),
-    BANNER_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
-    ADVERTISEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "A003", "광고가 존재 하지 않습니다"),
-    INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A004", "유효하지 않은 광고 상태입니다."),
+    // 광고 A
+    AD_NOT_FOUND(HttpStatus.NOT_FOUND, "A001", "광고가 존재 하지 않습니다"),
+    AD_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
+    INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A003", "유효하지 않은 광고 상태입니다."),
 
     // 부스 B
     BOOTH_PREMIUM_RANK_REQUIRED(HttpStatus.BAD_REQUEST, "B001", "프리미엄 부스는 노출 순위가 필수입니다."),
@@ -87,8 +90,9 @@ public enum CustomErrorCode {
     EVENT_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "EV002", "해당 박람회에 속한 이벤트가 아닙니다."),
     EVENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "EV003", "해당 행사에 대한 권한이 없습니다."),
 
+
     // 광고 위치 AP
-    BANNER_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "AP001", "배너 위치 정보가 존재하지 않습니다."),
+    AD_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "AP001", "배너 위치 정보가 존재하지 않습니다."),
 
     // 결제 P
     PAYMENT_STATUS_INVALID(HttpStatus.BAD_REQUEST, "P001", "유효하지 않은 결제 상태값입니다."),
@@ -102,6 +106,10 @@ public enum CustomErrorCode {
     PORTONE_REFUND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "P009", "포트원 환불 요청에 실패했습니다."),
     REFUND_AMOUNT_EXCEEDS_PAID(HttpStatus.BAD_REQUEST, "P010", "환불 금액이 결제 금액을 초과합니다."),
     PORTONE_REQUEST_SERIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "P011", "포트원 요청 본문 직렬화에 실패했습니다."),
+    PORTONE_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "P012", "포트원 요청에 실패했습니다."),
+    PAYMENT_NOT_READY_OR_PAID(HttpStatus.BAD_REQUEST, "P013", "결제 상태가 'ready' 또는 'paid'가 아닙니다."),
+    WEBHOOK_DATA_MISMATCH(HttpStatus.BAD_REQUEST, "P014", "웹훅 데이터와 포트원 조회 데이터가 일치하지 않습니다."),
+    INVALID_MERCHANT_UID_FORMAT(HttpStatus.BAD_REQUEST, "P015", "유효하지 않은 상점 주문번호 형식입니다."),
 
     // 예약 R
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "해당 예약 정보를 조회 할수 없습니다."),
@@ -120,8 +128,10 @@ public enum CustomErrorCode {
     REFUND_NOT_FOUND(HttpStatus.NOT_FOUND, "RF001", "환불 정보가 존재하지 않습니다."),
 
     // 시스템 설정 에러
-    NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다.");
+    NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다."),
 
+    // 엑셀 EX
+    EXCEL_EXPORT_FAILED(HttpStatus.NOT_FOUND, "EX001", "엑셀 추출에 실패하였습니다.");
 
     private final HttpStatus status;
     private final String errorCode;

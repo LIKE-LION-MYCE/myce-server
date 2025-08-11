@@ -16,8 +16,8 @@ import com.myce.member.entity.type.GradeCode;
 import com.myce.member.repository.MemberGradeRepository;
 import com.myce.member.repository.MemberRepository;
 import com.myce.notification.service.EmailSendService;
-import com.myce.system.dto.MessageTemplate;
-import com.myce.system.service.MessageTemplateService;
+import com.myce.system.dto.message.MessageTemplate;
+import com.myce.system.service.message.GenerateMessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,7 +36,7 @@ public class AuthServiceImpl implements AuthService {
     private final MemberRepository memberRepository;
     private final MemberGradeRepository memberGradeRepository;
     private final RandomCodeGenerateUtil randomCodeGenerateUtil;
-    private final MessageTemplateService messageTemplateService;
+    private final GenerateMessageService messageTemplateService;
     private final EmailSendService emailSendService;
 
     public void signup(SignupRequest signupRequest) {

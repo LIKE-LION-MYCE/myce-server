@@ -10,6 +10,7 @@ spring:
   jackson: # port one 호환성을 위한 파트
     serialization:
       WRITE_DATES_AS_TIMESTAMPS: false
+    time-zone: Asia/Seoul
   config: # load .env variables
     import: optional:file:.env[.properties]
   security:
@@ -84,9 +85,9 @@ spring:
           media: ${S3_MEDIA_BUCKET_NAME}
           cloudfront-domain: ${CLOUDFRONT_DOMAIN}
   mail:
-    host: smtp.gmail.com
+    host: ${MAIL_HOST}
     port: 587
-    username: chldlghk@gmail.com
+    username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
     properties:
       mail:

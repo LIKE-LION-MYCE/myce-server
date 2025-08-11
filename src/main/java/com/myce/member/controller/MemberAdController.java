@@ -1,14 +1,18 @@
 package com.myce.member.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
-import com.myce.member.dto.*;
+import com.myce.member.dto.ad.AdvertisementDetailResponse;
+import com.myce.member.dto.ad.AdvertisementPaymentDetailResponse;
+import com.myce.member.dto.ad.AdvertisementRefundReceiptResponse;
+import com.myce.member.dto.ad.MemberAdvertisementResponse;
 import com.myce.member.service.MemberAdService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/members/ads")
@@ -18,11 +22,12 @@ public class MemberAdController {
     private final MemberAdService memberAdService;
 
     @GetMapping
-    public ResponseEntity<List<MemberAdvertisementResponse>> getMemberAdvertisements(
-            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+    public ResponseEntity<Page<MemberAdvertisementResponse>> getMemberAdvertisements(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PageableDefault(size = 10) Pageable pageable) {
         
         Long memberId = customUserDetails.getMemberId();
-        List<MemberAdvertisementResponse> advertisements = memberAdService.getMemberAdvertisements(memberId);
+        Page<MemberAdvertisementResponse> advertisements = memberAdService.getMemberAdvertisements(memberId, pageable);
         
         return ResponseEntity.ok(advertisements);
     }

@@ -29,6 +29,7 @@ public class ReservationDetailMapper {
     
     private ReservationDetailResponse.ExpoInfo buildExpoInfo(Reservation reservation) {
         return ReservationDetailResponse.ExpoInfo.builder()
+                .expoId(reservation.getExpo().getId())
                 .thumbnailUrl(reservation.getExpo().getThumbnailUrl())
                 .title(reservation.getExpo().getTitle())
                 .location(reservation.getExpo().getLocation())
@@ -46,6 +47,8 @@ public class ReservationDetailMapper {
                 .quantity(reservation.getQuantity())
                 .createdAt(reservation.getCreatedAt())
                 .ticketPrice(reservation.getTicket().getPrice())
+                .ticketName(reservation.getTicket().getName())
+                .ticketType(reservation.getTicket().getType().toString())
                 .build();
     }
     
