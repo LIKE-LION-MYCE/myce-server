@@ -9,6 +9,7 @@ import com.myce.qrcode.entity.QrCode;
 import com.myce.qrcode.entity.code.QrCodeStatus;
 import com.myce.qrcode.repository.QrCodeRepository;
 import com.myce.qrcode.service.ExpoAdminManualCheckInService;
+import com.myce.qrcode.service.QrCodeService;
 import com.myce.reservation.dto.ExpoAdminReservationResponse;
 import com.myce.reservation.repository.ReserverRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class ExpoAdminManualCheckInServiceImpl implements ExpoAdminManualCheckIn
     private final AdminPermissionRepository adminPermissionRepository;
     private final QrCodeRepository  qrCodeRepository;
     private final ReserverRepository reserverRepository;
+    private final QrCodeService qrCodeService;
 
     @Override
     @Transactional
@@ -32,15 +34,20 @@ public class ExpoAdminManualCheckInServiceImpl implements ExpoAdminManualCheckIn
                                                                              Long reserverId) {
         validateMyAccess(expoId, memberId, loginType);
 
-        QrCode qrCode = qrCodeRepository.findByReserverId(reserverId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.QR_NOT_FOUND));
+        QrCode qrCode = qrCodeRepository.findByReserverId(reserverId).orElse(null);
 
-        if(qrCode.getStatus() != QrCodeStatus.ACTIVE){
-            throw new CustomException(CustomErrorCode.QR_NOT_MANUAL_CHECK_IN);
+        if(qrCode != null){
+            if (qrCode.getStatus() == QrCodeStatus.ACTIVE || qrCode.getStatus() == QrCodeStatus.APPROVED) {
+                qrCode.markAsUsed();
+            }else{
+                throw new CustomException(CustomErrorCode.QR_NOT_MANUAL_CHECK_IN);
+            }
+        }else{
+            qrCodeService.issueQr(reserverId);
+            QrCode newQrCode = qrCodeRepository.findByReserverId(reserverId)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.QR_NOT_FOUND));
+            newQrCode.markAsUsed();
         }
-
-        qrCode.markAsUsed();
-
         return reserverRepository.findOneResponsesByReserverId(reserverId,expoId);
     }
 
