@@ -10,6 +10,7 @@ spring:
   jackson: # port one 호환성을 위한 파트
     serialization:
       WRITE_DATES_AS_TIMESTAMPS: false
+    time-zone: Asia/Seoul
   config: # load .env variables
     import: optional:file:.env[.properties]
   security:

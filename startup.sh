@@ -38,5 +38,5 @@ export PROFILE="product"
 echo "✅ Successfully loaded environment variables from SSM Parameter Store"
 echo "🚀 Starting Spring Boot application..."
 
-# Start the Spring Boot application
-exec java -jar /app/app.jar
+# Start the Spring Boot application with Asia/Seoul timezone
+exec java -Duser.timezone=Asia/Seoul -jar /app/app.jar
