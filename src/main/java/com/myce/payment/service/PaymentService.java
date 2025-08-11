@@ -16,7 +16,7 @@ public interface PaymentService {
   // 가상계좌 확인 및 PENDING 상태 저장
   PaymentVerifyResponse verifyVbankPayment(PaymentVerifyRequest request);
 
-//  // 포트원 웹훅 처리
-//  void processWebhook(PortOneWebhookRequest request);
+  // 포트원 웹훅 처리
+  void processWebhook(PortOneWebhookRequest request);
 
 }

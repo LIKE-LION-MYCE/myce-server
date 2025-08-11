@@ -3,6 +3,7 @@ package com.myce.payment.controller;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.PaymentRefundRequest;
+import com.myce.payment.dto.PortOneWebhookRequest;
 import com.myce.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,11 +43,11 @@ public class PaymentController {
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
-//  // 포트원 웹훅 API
-//  @PostMapping("/webhook")
-//  public ResponseEntity<Void> portoneWebhook(@RequestBody PortOneWebhookRequest request) {
-//    log.info("[포트원 웹훅]: {}", request);
-//    paymentService.processWebhook(request);
-//    return ResponseEntity.ok().build();
-//  }
+  // 포트원 웹훅 API
+  @PostMapping("/webhook")
+  public ResponseEntity<Void> portoneWebhook(@RequestBody PortOneWebhookRequest request) {
+    log.info("[포트원 웹훅]: {}", request);
+    paymentService.processWebhook(request);
+    return ResponseEntity.ok().build();
+  }
 }

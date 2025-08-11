@@ -82,4 +82,8 @@ public class Payment {
 
     @Column(name = "paid_at", columnDefinition = "TIMESTAMP")
     private LocalDateTime paidAt;
+
+    public void updateOnSuccess(LocalDateTime paidAt) {
+        this.paidAt = paidAt;
+    }
 }

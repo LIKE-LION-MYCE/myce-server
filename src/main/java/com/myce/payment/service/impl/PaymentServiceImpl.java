@@ -17,7 +17,6 @@ import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.PortOneWebhookRequest;
 import com.myce.payment.dto.UserIdentifier;
-import com.myce.payment.dto.VerifyVbankRequest;
 import com.myce.payment.entity.AdPaymentInfo;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.entity.Payment;
@@ -41,6 +40,7 @@ import com.myce.system.entity.ExpoFeeSetting;
 import com.myce.system.repository.AdFeeSettingRepository;
 import com.myce.system.repository.ExpoFeeSettingRepository;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -177,6 +177,106 @@ public class PaymentServiceImpl implements PaymentService {
     Object paymentInfo = savePaymentInfoDetails(request, paidAmount, payment, PaymentStatus.PENDING);
 
     return paymentMapper.toPaymentVerifyResponse(payment, paymentInfo);
+  }
+
+  @Override
+  @Transactional
+  public void processWebhook(PortOneWebhookRequest request) {
+    // 내역 조회 후 저장
+    String accessToken = getAccessToken();
+    Map<String, Object> pay =  getPaymentInfo(request.getImpUid(), accessToken);
+
+    // 포트원 재조회 결과에서 핵심 값 추출
+    String status = (String) pay.get("status");
+    String portOneMerchantUid = (String) pay.get("merchant_uid");
+    Integer paidAmount = ((Number) pay.getOrDefault("amount", 0)).intValue();
+
+    // 입금완료 아니면 무시
+    if (!"paid".equalsIgnoreCase(status)) {
+      log.info("[웹훅 무시] 포트원 상태가 paid 아님. status={}", status);
+      return;
+    }
+
+    // 결제 시점 추출
+    Long paidAt = ((Number) pay.getOrDefault("paid_at", 0)).longValue();
+
+    // 우리 Payment 조회 (imp_uid 우선, 없으면 merchant_uid)
+    Payment payment = paymentRepository.findByImpUid(request.getImpUid())
+        .orElseGet(() -> paymentRepository.findByMerchantUid(request.getMerchantUid())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND)));
+
+    // 타깃별 PaymentInfo 조회 -> 이미 조회했는지 체크 -> 금액 검증 -> SUCCESS
+    switch (payment.getTargetType()) {
+      case RESERVATION -> {
+        ReservationPaymentInfo rpi = reservationPaymentInfoRepository
+            .findByReservationId(payment.getTargetId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        // 이미 조회했는지 체크 (웹훅이 하나만 가는 게 아니므로 이미 체크한 건은 안 해도 됨)
+        if (rpi.getStatus() == PaymentStatus.SUCCESS
+            || rpi.getStatus() == PaymentStatus.REFUNDED
+            || rpi.getStatus() == PaymentStatus.PARTIAL_REFUNDED) {
+          return;
+        }
+
+        // 금액 검증
+        if (!Integer.valueOf(rpi.getTotalAmount()).equals(paidAmount)) {
+          throw new CustomException(CustomErrorCode.PAYMENT_AMOUNT_MISMATCH);
+        }
+
+        // SUCCESS로 변환
+        rpi.setStatus(PaymentStatus.SUCCESS);
+        reservationPaymentInfoRepository.save(rpi);
+      }
+
+      case AD -> {
+        AdPaymentInfo api = adPaymentInfoRepository
+            .findByAdvertisementId(payment.getTargetId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        if (api.getStatus() == PaymentStatus.SUCCESS
+            || api.getStatus() == PaymentStatus.REFUNDED
+            || api.getStatus() == PaymentStatus.PARTIAL_REFUNDED) {
+          return;
+        }
+
+        if (!Integer.valueOf(api.getTotalAmount()).equals(paidAmount)) {
+          throw new CustomException(CustomErrorCode.PAYMENT_AMOUNT_MISMATCH);
+        }
+
+        api.setStatus(PaymentStatus.SUCCESS);
+        adPaymentInfoRepository.save(api);
+      }
+
+      case EXPO -> {
+        ExpoPaymentInfo epi = expoPaymentInfoRepository
+            .findByExpoId(payment.getTargetId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        if (epi.getStatus() == PaymentStatus.SUCCESS
+            || epi.getStatus() == PaymentStatus.REFUNDED
+            || epi.getStatus() == PaymentStatus.PARTIAL_REFUNDED) {
+          return;
+        }
+
+        if (!Integer.valueOf(epi.getTotalAmount()).equals(paidAmount)) {
+          throw new CustomException(CustomErrorCode.PAYMENT_AMOUNT_MISMATCH);
+        }
+
+        epi.setStatus(PaymentStatus.SUCCESS);
+        expoPaymentInfoRepository.save(epi);
+      }
+
+      default -> throw new CustomException(CustomErrorCode.INVALID_PAYMENT_TARGET_TYPE);
+    }
+    // 7) Payment 결제 시점 업데이트
+    payment.updateOnSuccess(
+        LocalDateTime.ofEpochSecond(paidAt, 0, ZoneOffset.ofHours(9))
+    );
+    paymentRepository.save(payment);
+
+    log.info("[웹훅 처리 완료] imp_uid={}, merchant_uid={}, paid_at={}",
+        request.getImpUid(), portOneMerchantUid, paidAt);
   }
 
   private Integer verifyVbankDetails(PaymentVerifyRequest request, Map<String, Object> portOnePayment) {
