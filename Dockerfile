@@ -1,6 +1,6 @@
 # Multi-stage build for optimized production image
 # Stage 1: Build environment with AWS CLI (temporary)
-FROM eclipse-temurin:21-jdk-jammy AS builder
+FROM openjdk:21-jdk-slim AS builder
 
 # Install AWS CLI and build tools in builder stage only
 RUN apt-get update && apt-get install -y \
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Stage 2: Runtime image (final, optimized)
-FROM eclipse-temurin:21-jre-jammy
+FROM openjdk:21-jdk-slim
 
 # Install only essential runtime dependencies
 RUN apt-get update && apt-get install -y \
