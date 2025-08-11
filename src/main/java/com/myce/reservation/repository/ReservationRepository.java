@@ -80,4 +80,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("phone") String phone,
             Pageable pageable
     );
+
+    Optional<Reservation> findByReservationCode(String reservationCode);
 }

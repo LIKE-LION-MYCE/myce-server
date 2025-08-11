@@ -35,7 +35,7 @@ public interface AdRepository extends JpaRepository<Advertisement, Long> {
 
     @Query("SELECT a FROM Advertisement a JOIN FETCH a.adPosition" +
             " WHERE a.member.id = :memberId ORDER BY a.createdAt DESC")
-    List<Advertisement> findByMemberIdWithAdPosition(@Param("memberId") Long memberId);
+    Page<Advertisement> findByMemberIdWithAdPosition(@Param("memberId") Long memberId, Pageable pageable);
 
     @Query("SELECT a FROM Advertisement a JOIN FETCH a.adPosition" +
             " WHERE a.id = :advertisementId AND a.member.id = :memberId")

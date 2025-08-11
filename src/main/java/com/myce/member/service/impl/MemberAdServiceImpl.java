@@ -19,6 +19,8 @@ import com.myce.member.service.MemberAdService;
 import com.myce.payment.entity.AdPaymentInfo;
 import com.myce.payment.repository.AdPaymentInfoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,9 +40,9 @@ public class MemberAdServiceImpl implements MemberAdService {
     private final AdPaymentInfoRepository adPaymentInfoRepository;
 
     @Override
-    public List<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId) {
-        List<Advertisement> advertisements = adRepository.findByMemberIdWithAdPosition(memberId);
-        return memberAdvertisementMapper.toResponseDtoList(advertisements);
+    public Page<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId, Pageable pageable) {
+        Page<Advertisement> advertisements = adRepository.findByMemberIdWithAdPosition(memberId, pageable);
+        return advertisements.map(memberAdvertisementMapper::toResponseDto);
     }
 
     @Override
@@ -92,11 +94,6 @@ public class MemberAdServiceImpl implements MemberAdService {
         Advertisement advertisement = adRepository.findByIdAndMemberIdWithAdPosition(advertisementId,
                         memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
-
-        // 게시 중인 광고만 환불 가능
-        if (advertisement.getStatus() != com.myce.advertisement.entity.type.AdvertisementStatus.PUBLISHED) {
-            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
-        }
 
         // 사업자 정보 조회
         BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(advertisementId,
