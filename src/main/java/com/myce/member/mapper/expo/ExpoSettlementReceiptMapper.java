@@ -3,7 +3,7 @@ package com.myce.member.mapper.expo;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
 import com.myce.member.dto.expo.ExpoSettlementReceiptResponse;
-import com.myce.system.entity.ExpoFeeSetting;
+import com.myce.payment.entity.ExpoPaymentInfo;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -14,7 +14,7 @@ public class ExpoSettlementReceiptMapper {
 
     public ExpoSettlementReceiptResponse toSettlementReceiptResponse(Expo expo,
             List<Ticket> tickets,
-            ExpoFeeSetting feeSetting) {
+            ExpoPaymentInfo expoPaymentInfo) {
 
         // 티켓별 판매 정보 계산
         List<ExpoSettlementReceiptResponse.TicketSalesInfo> ticketSales = tickets.stream()
@@ -26,8 +26,8 @@ public class ExpoSettlementReceiptMapper {
                 .mapToInt(ExpoSettlementReceiptResponse.TicketSalesInfo::getTotalSales)
                 .sum();
 
-        // 수수료 계산
-        BigDecimal commissionRate = feeSetting.getSettlementCommission();
+        // 결제 시점에 저장된 수수료율 사용
+        BigDecimal commissionRate = expoPaymentInfo.getCommissionRate();
         int commissionAmount = totalRevenue * commissionRate.intValue() / 100;
 
         // 순수익 계산

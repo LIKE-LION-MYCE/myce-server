@@ -28,6 +28,14 @@ public class ExpoRefundReceiptMapper {
         int remainingDays = expoPaymentInfo.getTotalDay() - usedDays;
         if (remainingDays < 0) remainingDays = 0;
         
+        // 등록금 계산 (프리미엄 여부에 따라)
+        int depositAmount = expo.getIsPremium() ? 
+            expoPaymentInfo.getPremiumDeposit() : 
+            expoPaymentInfo.getDeposit();
+        
+        // 총 이용료 계산
+        int totalUsageFee = expoPaymentInfo.getTotalDay() * expoPaymentInfo.getDailyUsageFee();
+        
         // 금액 계산
         int usedAmount = usedDays * expoPaymentInfo.getDailyUsageFee();
         int refundAmount = remainingDays * expoPaymentInfo.getDailyUsageFee();
@@ -40,7 +48,10 @@ public class ExpoRefundReceiptMapper {
                 .status(expo.getStatus())
                 .totalDays(expoPaymentInfo.getTotalDay())
                 .dailyUsageFee(expoPaymentInfo.getDailyUsageFee())
+                .depositAmount(depositAmount)
+                .totalUsageFee(totalUsageFee)
                 .totalAmount(expoPaymentInfo.getTotalAmount())
+                .isPremium(expo.getIsPremium())
                 .refundRequestDate(today)
                 .usedDays(usedDays)
                 .usedAmount(usedAmount)

@@ -33,6 +33,7 @@ public class ExpoPaymentDetailMapper {
                 .depositAmount(depositAmount)
                 .totalAmount(expoPaymentInfo.getTotalAmount())
                 .isPremium(expo.getIsPremium())
+                .commissionRate(expoPaymentInfo.getCommissionRate())
                 .build();
     }
 }
