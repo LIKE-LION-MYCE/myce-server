@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -215,5 +217,67 @@ public class QrCodeServiceImpl implements QrCodeService {
     private LocalDateTime calculateExpiredAt(Reserver reserver) {
         LocalDate ticketUseEndDate = reserver.getReservation().getTicket().getUseEndDate();
         return ticketUseEndDate.plusDays(1).atStartOfDay();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> verifyQrCode(String token) {
+        log.info("QR 코드 검증 시작 - token: {}", token);
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        QrCode qrCode = qrCodeRepository.findByQrToken(token)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.QR_NOT_FOUND));
+        
+        LocalDateTime now = LocalDateTime.now();
+        
+        // QR 코드 상태별 검증
+        switch (qrCode.getStatus()) {
+            case USED:
+                result.put("valid", false);
+                result.put("message", "이미 사용된 QR 코드입니다.");
+                result.put("status", "USED");
+                break;
+                
+            case EXPIRED:
+                result.put("valid", false);
+                result.put("message", "만료된 QR 코드입니다.");
+                result.put("status", "EXPIRED");
+                break;
+                
+            case APPROVED:
+                if (now.isBefore(qrCode.getActivatedAt())) {
+                    result.put("valid", false);
+                    result.put("message", "아직 활성화되지 않은 QR 코드입니다.");
+                    result.put("status", "NOT_ACTIVE");
+                    result.put("activatedAt", qrCode.getActivatedAt());
+                } else {
+                    result.put("valid", false);
+                    result.put("message", "활성화가 필요한 QR 코드입니다.");
+                    result.put("status", "APPROVED");
+                }
+                break;
+                
+            case ACTIVE:
+                if (now.isAfter(qrCode.getExpiredAt())) {
+                    result.put("valid", false);
+                    result.put("message", "만료된 QR 코드입니다.");
+                    result.put("status", "EXPIRED");
+                } else {
+                    result.put("valid", true);
+                    result.put("message", "유효한 QR 코드입니다.");
+                    result.put("status", "ACTIVE");
+                    
+                    // 예약 정보도 포함
+                    Reserver reserver = qrCode.getReserver();
+                    result.put("reserverName", reserver.getName());
+                    result.put("expoTitle", reserver.getReservation().getExpo().getTitle());
+                    result.put("ticketTitle", reserver.getReservation().getTicket().getTitle());
+                }
+                break;
+        }
+        
+        log.info("QR 코드 검증 완료 - token: {}, valid: {}", token, result.get("valid"));
+        return result;
     }
 }
