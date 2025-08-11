@@ -75,4 +75,37 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
             @Param("ticketName") String ticketName,
             Pageable pageable
     );
+
+    @Query("""
+      SELECT NEW com.myce.reservation.dto.ExpoAdminReservationResponse(
+        rv.id,
+        r.reservationCode,
+        rv.name,
+        CASE
+          WHEN rv.gender = com.myce.member.entity.type.Gender.FEMALE THEN '여'
+          WHEN rv.gender = com.myce.member.entity.type.Gender.MALE   THEN '남'
+          ELSE '-'
+        END,
+        rv.phone,
+        rv.email,
+        t.name,
+        qc.usedAt,
+        CASE
+          WHEN qc.status = com.myce.qrcode.entity.code.QrCodeStatus.USED    THEN '입장 완료'
+          WHEN qc.status = com.myce.qrcode.entity.code.QrCodeStatus.EXPIRED THEN '티켓 만료'
+          WHEN qc.id IS NULL
+            OR qc.status IN (
+              com.myce.qrcode.entity.code.QrCodeStatus.APPROVED,
+              com.myce.qrcode.entity.code.QrCodeStatus.ACTIVE
+            ) THEN '입장 전'
+          ELSE '입장 전'
+        END
+      )
+      FROM Reserver rv
+      JOIN rv.reservation r
+      JOIN r.ticket t
+      LEFT JOIN com.myce.qrcode.entity.QrCode qc ON qc.reserver = rv
+      WHERE rv.id = :reserverId
+    """)
+    ExpoAdminReservationResponse findOneResponsesByReserverId(@Param("reserverId") Long reserverId);
 }
