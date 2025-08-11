@@ -1,6 +1,6 @@
-package com.myce.member.mapper;
+package com.myce.member.mapper.expo;
 
-import com.myce.member.dto.ReservedExpoResponse;
+import com.myce.member.dto.expo.ReservedExpoResponse;
 import com.myce.reservation.entity.Reservation;
 import org.springframework.stereotype.Component;
 

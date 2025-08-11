@@ -1,8 +1,8 @@
-package com.myce.member.mapper;
+package com.myce.member.mapper.ad;
 
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.common.entity.BusinessProfile;
-import com.myce.member.dto.AdvertisementRefundReceiptResponse;
+import com.myce.member.dto.ad.AdvertisementRefundReceiptResponse;
 import com.myce.payment.entity.AdPaymentInfo;
 import org.springframework.stereotype.Component;
 

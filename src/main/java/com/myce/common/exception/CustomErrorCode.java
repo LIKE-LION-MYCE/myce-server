@@ -21,6 +21,8 @@ public enum CustomErrorCode {
     MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "M001", "회원정보가 존재하지 않습니다."),
     MEMBER_TYPE_INVALID(HttpStatus.NOT_FOUND, "M002", "존재하지 않는 회원 타입입니다."),
     MEMBER_SETTING_NOT_EXIST(HttpStatus.NOT_FOUND, "M003", "회원의 시스템 설정이 존재하지 않습니다."),
+    CURRENT_PASSWORD_NOT_MATCH(HttpStatus.BAD_REQUEST, "M004", "기존 비밀번호가 일치하지 않습니다."),
+    PASSWORD_CONFIRMATION_MISMATCH(HttpStatus.BAD_REQUEST, "M005", "새로운 비밀번호가 일치하지 않습니다."),
 
     // 비회원 G
     GUEST_NOT_EXIST(HttpStatus.NOT_FOUND, "G001", "비회원 정보가 존재하지 않습니다."),
