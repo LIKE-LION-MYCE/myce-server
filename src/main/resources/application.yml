@@ -13,37 +13,37 @@ spring:
   config: # load .env variables
     import: optional:file:.env[.properties]
   security:
-  #oauth2:
-  #client:
-  #registration:
-  #google:
-  #client-id: ${GOOGLE_CLIENT_ID}
-  #client-secret: ${GOOGLE_CLIENT_SECRET}
-  #redirect-uri: "{baseUrl}/api/oauth/google/callback"
-  #scope:
-  #- openid
-  #- profile
-  #- email
-  #kakao:
-  #client-id: ${KAKAO_CLIENT_ID}
-  #client-secret: ${KAKAO_CLIENT_SECRET}
-  #redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
-  #scope:
-  #- profile_nickname
-  #- profile_image
-  #- account_email
-  #authorization-grant-type: authorization_code
-  #provider:
-  #google:
-  #authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
-  #token-uri: https://oauth2.googleapis.com/token
-  #user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
-  #user-name-attribute: sub
-  #kakao:
-  #authorization-uri: https://kauth.kakao.com/oauth/authorize
-  #token-uri: https://kauth.kakao.com/oauth/token
-  #user-info-uri: https://kapi.kakao.com/v2/user/me
-  #user-name-attribute: id
+    #oauth2:
+      #client:
+        #registration:
+          #google:
+            #client-id: ${GOOGLE_CLIENT_ID}
+            #client-secret: ${GOOGLE_CLIENT_SECRET}
+            #redirect-uri: "{baseUrl}/api/oauth/google/callback"
+            #scope:
+              #- openid
+              #- profile
+              #- email
+          #kakao:
+            #client-id: ${KAKAO_CLIENT_ID}
+            #client-secret: ${KAKAO_CLIENT_SECRET}
+            #redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
+            #scope:
+              #- profile_nickname
+              #- profile_image
+              #- account_email
+            #authorization-grant-type: authorization_code
+        #provider:
+          #google:
+            #authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            #token-uri: https://oauth2.googleapis.com/token
+            #user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            #user-name-attribute: sub
+          #kakao:
+            #authorization-uri: https://kauth.kakao.com/oauth/authorize
+            #token-uri: https://kauth.kakao.com/oauth/token
+            #user-info-uri: https://kapi.kakao.com/v2/user/me
+            #user-name-attribute: id
   logging:
     level:
       root: info
@@ -91,9 +91,9 @@ spring:
     properties:
       mail:
         smtp:
-            auth: true
-            starttls: # isActive
-              enable: true
+          auth: true
+          starttls: # isActive
+            enable: true
 jwt:
   secret: ${JWT_SECRET}
   access-token-validity: 18000000 # 5 hour in milliseconds
@@ -118,6 +118,11 @@ management:
       probes:
         enabled: true  # Enable liveness/readiness probes
       show-details: when-authorized
+      group: # Correct location - under endpoint.health
+        liveness:
+          include: livenessState, ping  # Light & internal checks only
+        readiness:
+          include: readinessState, db, redis, diskSpace  # Heavy checks
     info:
       enabled: true
     prometheus:
@@ -126,7 +131,7 @@ management:
     export:
       prometheus:
         enabled: true
-  # Health check groups - separate liveness from readiness
+  # Health check configuration
   health:
     mail:
       enabled: false  # Exclude mail from all health checks
@@ -135,11 +140,16 @@ management:
         include: livenessState, ping  # Light & internal checks only
       readiness:
         include: readinessState, db, redis, diskSpace  # Heavy checks
-  #port-one:
-  #base-url: ${PORTONE_BASE_URL}
-  #api-key: ${PORTONE_API_KEY}
-  #api-secret: ${PORTONE_API_SECRET}
-  #customer-code: ${PORTONE_CUSTOMER_CODE}
-  #test-mode: false
+port-one:
+  base-url: ${PORTONE_BASE_URL}
+  api-key: ${PORTONE_API_KEY}
+  api-secret: ${PORTONE_API_SECRET}
+  customer-code: ${PORTONE_CUSTOMER_CODE}
+  test-mode: false
 scheduler:
-  test: 0 * * * * * # every minute
+  test: "0 * * * * *" # every minute
+  days: "0 0 0 * * *" # every day
+  qr-code-activate: 0 10 0 * * * # QR 코드 활성화 - 매일 00:10에 실행
+  qr-code-expire: 0 20 0 * * * # QR 코드 만료 처리 - 매일 00:20에 실행
+  expo-qr-generate: 0 0 0 * * * # 박람회 QR코드 일괄 생성 - 매일 00:00에 실행
+  admin-timeout: 0 */1 * * * * # 1분마다 (테스트용) -> 담당자 배졍

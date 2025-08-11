@@ -10,13 +10,12 @@ import com.myce.advertisement.repository.AdvertisementRepository;
 import com.myce.advertisement.service.ManageAdvertisementService;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
-import jakarta.annotation.PostConstruct;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -72,22 +71,45 @@ public class ManageAdvertisementServiceImpl implements ManageAdvertisementServic
                 .collect(Collectors.toList());
     }
 
-    // 게시중인 배너 수집(업데이트 날짜가 오늘이 아니면)
-    @PostConstruct
-    public void checkForBannerUpdates() {
-        LocalDate today = LocalDate.now();
-        String lastUpdateTimeString = (String) redisTemplate.opsForValue().get("banner:lastUpdateTime");
+    // 스케줄러 작업 수행
+    @Transactional
+    public int publishPendingAds() {
+        List<Advertisement> pendingAds = adRepository
+                .findAllByDisplayStartDateLessThanEqualAndStatus(
+                        LocalDate.now(),
+                        AdvertisementStatus.PENDING_PUBLISH);
 
-        if (lastUpdateTimeString == null
-                || today.isAfter(LocalDate.parse(lastUpdateTimeString, DateTimeFormatter.ISO_DATE))) {
-            refreshBannerCache();
+        for (Advertisement ad : pendingAds) {
+            ad.publish();
         }
+        if (!pendingAds.isEmpty()) {
+            adRepository.saveAll(pendingAds);
+        }
+        return pendingAds.size();
     }
 
-    private void refreshBannerCache() {
+    // 게시 종료: 종료일 < 오늘, 상태가 PUBLISHED
+    @Transactional
+    public int closeCompletedAds() {
+        List<Advertisement> endedAds = adRepository
+                .findAllByDisplayEndDateLessThanAndStatus(
+                        LocalDate.now(),
+                        AdvertisementStatus.PUBLISHED);
+
+        for (Advertisement ad : endedAds) {
+            ad.complete();
+        }
+        if (!endedAds.isEmpty()) {
+            adRepository.saveAll(endedAds);
+        }
+        return endedAds.size();
+    }
+
+    // 게시중인 배너 수집(업데이트 날짜가 오늘이 아니면)
+    public void refreshBannerCache() {
         List<AdvertisementStatus> activeStatusList = getActiveStatusList();
         List<Advertisement> allPublishedAds = adRepository
-                .findAllPublishedAdvertisements(activeStatusList);
+                .findAdsActiveTodayAndStatusIn(activeStatusList);
 
         Set<String> keys = redisTemplate.keys("banner:list:*");
         if (!keys.isEmpty()) {

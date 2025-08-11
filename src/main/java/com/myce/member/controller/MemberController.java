@@ -5,6 +5,8 @@ import com.myce.member.dto.*;
 import com.myce.member.dto.ExpoPaymentDetailResponse;
 import com.myce.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -48,6 +50,17 @@ public class MemberController {
         return ResponseEntity.ok(memberInfo);
     }
     
+    @PutMapping("/my-page/info")
+    public ResponseEntity<Void> updateMemberInfo(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @RequestBody MemberInfoUpdateRequest request) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberService.updateMemberInfo(memberId, request);
+        
+        return ResponseEntity.ok().build();
+    }
+    
     @DeleteMapping("/withdraw")
     public ResponseEntity<Void> withdrawMember(
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
@@ -59,11 +72,12 @@ public class MemberController {
     }
     
     @GetMapping("/my-page/payment-history")
-    public ResponseEntity<List<PaymentHistoryResponse>> getPaymentHistory(
-            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+    public ResponseEntity<Page<PaymentHistoryResponse>> getPaymentHistory(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            Pageable pageable) {
         
         Long memberId = customUserDetails.getMemberId();
-        List<PaymentHistoryResponse> paymentHistory = memberService.getPaymentHistory(memberId);
+        Page<PaymentHistoryResponse> paymentHistory = memberService.getPaymentHistory(memberId, pageable);
         
         return ResponseEntity.ok(paymentHistory);
     }

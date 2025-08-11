@@ -11,4 +11,10 @@ public interface ManageAdvertisementService {
             LocalDate startedAt, LocalDate endedAt);
 
     List<MainPageAdInfo> getActiveBanners();
+
+    int publishPendingAds();
+
+    int closeCompletedAds();
+
+    void refreshBannerCache();
 }
