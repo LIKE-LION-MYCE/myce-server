@@ -1,7 +1,8 @@
-# Use OpenJDK 21 slim image
-FROM openjdk:21-jdk-slim
+# Multi-stage build for optimized production image
+# Stage 1: Build environment with AWS CLI (temporary)
+FROM openjdk:21-jdk-slim AS builder
 
-# Install AWS CLI and curl for health checks
+# Install AWS CLI and build tools in builder stage only
 RUN apt-get update && apt-get install -y \
     curl \
     unzip \
@@ -12,10 +13,23 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Stage 2: Runtime image (final, optimized)
+FROM openjdk:21-jre-slim
+
+# Install only essential runtime dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy AWS CLI from builder stage (only necessary components)
+COPY --from=builder /usr/local/aws-cli /usr/local/aws-cli
+COPY --from=builder /usr/local/bin/aws /usr/local/bin/aws
+
 # Set working directory
 WORKDIR /app
 
-# Copy the JAR file and startup script
+# Copy application files
 COPY build/libs/*.jar app.jar
 COPY startup.sh startup.sh
 
