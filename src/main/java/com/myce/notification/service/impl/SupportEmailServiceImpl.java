@@ -1,6 +1,6 @@
 package com.myce.notification.service.impl;
 
-import com.myce.notification.service.EmailSendService;
+import com.myce.notification.service.SupportEmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -14,23 +14,22 @@ import java.io.UnsupportedEncodingException;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class EmailSendServiceImpl implements EmailSendService {
+public class SupportEmailServiceImpl implements SupportEmailService {
 
     private final JavaMailSender mailSender;
 
-    public void sendMail(String to, String subject, String content) {
+    public void sendSupportMail(String to, String subject, String content) {
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         try {
             MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-            messageHelper.setFrom("noreply@myce.live", "MYCE");
+            messageHelper.setFrom("support@myce.live", "MYCE Support");
             messageHelper.setTo(to);
             messageHelper.setSubject(subject);
             messageHelper.setText(content, true);
             mailSender.send(mimeMessage);
-            log.info("System email sent successfully. from=noreply@myce.live, to={}, subject={}", to, subject);
+            log.info("Support email sent successfully. from=support@myce.live, to={}, subject={}", to, subject);
         } catch (MessagingException | UnsupportedEncodingException me) {
-            log.error("Failed to send system email. from=noreply@myce.live, to={}, subject={}", to, subject, me);
+            log.error("Failed to send support email. from=support@myce.live, to={}, subject={}", to, subject, me);
         }
     }
-
 }

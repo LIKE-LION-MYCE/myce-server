@@ -84,9 +84,9 @@ spring:
           media: ${S3_MEDIA_BUCKET_NAME}
           cloudfront-domain: ${CLOUDFRONT_DOMAIN}
   mail:
-    host: smtp.gmail.com
+    host: ${MAIL_HOST}
     port: 587
-    username: chldlghk@gmail.com
+    username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
     properties:
       mail:
