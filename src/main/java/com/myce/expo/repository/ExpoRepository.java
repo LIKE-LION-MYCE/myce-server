@@ -33,5 +33,42 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
     
     // QR코드 일괄 생성용 - 시작일이 특정 날짜이고 게시된 박람회 조회
     List<Expo> findByStartDateAndStatus(LocalDate startDate, ExpoStatus status);
+    
+    // 플랫폼 관리자용 - 상태별 박람회 조회
+    Page<Expo> findByStatusOrderByCreatedAtDesc(ExpoStatus status, Pageable pageable);
+    Page<Expo> findByStatusOrderByCreatedAtAsc(ExpoStatus status, Pageable pageable);
+    
+    // 플랫폼 관리자용 - 전체 박람회 조회 (정렬 옵션)
+    Page<Expo> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    Page<Expo> findAllByOrderByCreatedAtAsc(Pageable pageable);
+    
+    // 플랫폼 관리자용 - 키워드 검색 + 상태 필터링
+    Page<Expo> findByTitleContainingAndStatusOrderByCreatedAtDesc(String keyword, ExpoStatus status, Pageable pageable);
+    Page<Expo> findByTitleContainingAndStatusOrderByCreatedAtAsc(String keyword, ExpoStatus status, Pageable pageable);
+    
+    // 플랫폼 관리자용 - 키워드 검색 (상태 무관)
+    Page<Expo> findByTitleContainingOrderByCreatedAtDesc(String keyword, Pageable pageable);
+    Page<Expo> findByTitleContainingOrderByCreatedAtAsc(String keyword, Pageable pageable);
+    
+    // 현재 박람회 관리용 - 상태별 조회 (정렬 옵션 포함)
+    Page<Expo> findByStatus(ExpoStatus status, Pageable pageable);
+    
+    // 현재 박람회 관리용 - 키워드 검색 + 상태 필터링 (대소문자 구분 없음)
+    Page<Expo> findByStatusAndTitleContainingIgnoreCase(ExpoStatus status, String keyword, Pageable pageable);
+    
+    // 현재 박람회 관리용 - 키워드 검색 (대소문자 구분 없음)
+    Page<Expo> findByTitleContainingIgnoreCase(String keyword, Pageable pageable);
+    
+    // 스케줄러용 - 게시 대기 중인 박람회 중 게시 시작일이 오늘 이전인 것들 조회
+    List<Expo> findAllByDisplayStartDateLessThanEqualAndStatus(LocalDate date, ExpoStatus status);
+    
+    // 스케줄러용 - 게시 중인 박람회 중 게시 종료일이 오늘 이전인 것들 조회  
+    List<Expo> findAllByDisplayEndDateLessThanAndStatus(LocalDate date, ExpoStatus status);
+    
+    // 현재 박람회 관리용 - 여러 상태 조회
+    Page<Expo> findByStatusIn(List<ExpoStatus> statuses, Pageable pageable);
+    
+    // 현재 박람회 관리용 - 키워드 검색 + 여러 상태 조회
+    Page<Expo> findByTitleContainingIgnoreCaseAndStatusIn(String keyword, List<ExpoStatus> statuses, Pageable pageable);
 }
 
