@@ -1,13 +1,15 @@
 package com.myce.qrcode.dto;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import org.hibernate.event.spi.ClearEventListener;
 
 import java.time.LocalDateTime;
 
 @Getter
-@AllArgsConstructor
+@Builder(access = AccessLevel.PRIVATE)
 public class QrVerifyResponse {
     private boolean valid;
     private String message;
@@ -17,18 +19,24 @@ public class QrVerifyResponse {
     private String ticketTitle;
     private LocalDateTime activatedAt;
 
-    public QrVerifyResponse (String message, String reserverName,
+    public static QrVerifyResponse success(String message, String reserverName,
                              String expoTitle, String ticketTitle, String status) {
-        this.valid = true;
-        this.message = message;
-        this.reserverName = reserverName;
-        this.expoTitle = expoTitle;
-        this.ticketTitle = ticketTitle;
-        this.status = status;
+        return builder()
+                .valid(true)
+                .message(message)
+                .reserverName(reserverName)
+                .expoTitle(expoTitle)
+                .ticketTitle(ticketTitle)
+                .status(status)
+                .build();
     }
-    public QrVerifyResponse (String message, String status) {
-        this.valid = false;
-        this.message = message;
-        this.status = status;
+
+    public static QrVerifyResponse fail(String message, String status) {
+
+        return builder()
+                .valid(false)
+                .message(message)
+                .status(status)
+                .build();
     }
 }
