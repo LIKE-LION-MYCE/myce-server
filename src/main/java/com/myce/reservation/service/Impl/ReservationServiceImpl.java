@@ -1,11 +1,14 @@
 package com.myce.reservation.service.Impl;
 
+import com.myce.auth.dto.CustomUserDetails;
+import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.reservation.dto.ReservationDetailResponse;
 import com.myce.reservation.dto.ReserverBulkUpdateRequest;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.Reserver;
+import com.myce.reservation.entity.code.UserType;
 import com.myce.reservation.service.mapper.ReservationDetailMapper;
 import com.myce.reservation.repository.ReservationRepository;
 import com.myce.reservation.repository.ReserverRepository;
@@ -28,9 +31,12 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationDetailMapper reservationDetailMapper;
     
     @Override
-    public ReservationDetailResponse getReservationDetail(String reservationCode) {
-        Reservation reservation = reservationRepository.findByReservationCodeWithExpoAndTicket(reservationCode)
+    public ReservationDetailResponse getReservationDetail(Long reservationId, CustomUserDetails currentUser) {
+        Reservation reservation = reservationRepository.findByIdWithExpoAndTicket(reservationId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+        
+        // 예약 소유권 검증
+        validateReservationOwnership(reservation, currentUser);
         
         List<Reserver> reservers = reserverRepository.findByReservation(reservation);
         
@@ -39,9 +45,12 @@ public class ReservationServiceImpl implements ReservationService {
     
     @Override
     @Transactional
-    public void updateReservers(String reservationCode, ReserverBulkUpdateRequest request) {
-        Reservation reservation = reservationRepository.findByReservationCode(reservationCode)
+    public void updateReservers(Long reservationId, ReserverBulkUpdateRequest request, CustomUserDetails currentUser) {
+        Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+        
+        // 예약 소유권 검증
+        validateReservationOwnership(reservation, currentUser);
         
         List<Reserver> existingReservers = reserverRepository.findByReservation(reservation);
         
@@ -63,6 +72,19 @@ public class ReservationServiceImpl implements ReservationService {
                 reserverInfo.getPhone(),
                 reserverInfo.getEmail()
             );
+        }
+    }
+    
+    private void validateReservationOwnership(Reservation reservation, CustomUserDetails currentUser) {
+        // LoginType이 MEMBER인 경우만 처리 (일반 회원)
+        if (currentUser.getLoginType() != LoginType.MEMBER) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+        
+        // 예약의 UserType과 userId가 현재 사용자와 일치하는지 확인
+        if (reservation.getUserType() != UserType.MEMBER || 
+            !reservation.getUserId().equals(currentUser.getMemberId())) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
         }
     }
 }
