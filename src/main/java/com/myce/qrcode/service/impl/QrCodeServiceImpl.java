@@ -7,10 +7,13 @@ import com.google.zxing.common.BitMatrix;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.service.S3Service;
+import com.myce.qrcode.dto.QrUseResponse;
+import com.myce.qrcode.dto.QrVerifyResponse;
 import com.myce.qrcode.entity.QrCode;
 import com.myce.qrcode.entity.code.QrCodeStatus;
 import com.myce.qrcode.repository.QrCodeRepository;
 import com.myce.qrcode.service.QrCodeService;
+import com.myce.qrcode.service.mapper.QrResponseMapper;
 import com.myce.reservation.entity.Reserver;
 import com.myce.reservation.repository.ReserverRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -33,6 +34,7 @@ public class QrCodeServiceImpl implements QrCodeService {
     private final QrCodeRepository qrCodeRepository;
     private final ReserverRepository reserverRepository;
     private final S3Service s3Service;
+    private final QrResponseMapper qrResponseMapper;
 
     @Override
     @Transactional
@@ -90,7 +92,7 @@ public class QrCodeServiceImpl implements QrCodeService {
 
     @Override
     @Transactional
-    public void markQrAsUsed(String qrToken, Long adminMemberId) {
+    public QrUseResponse markQrAsUsed(String qrToken, Long adminMemberId) {
         log.info("QR 코드 사용 처리 시작 - 토큰: {}, 관리자 ID: {}", qrToken, adminMemberId);
         
         QrCode qr = qrCodeRepository.findByQrToken(qrToken)
@@ -113,6 +115,9 @@ public class QrCodeServiceImpl implements QrCodeService {
         qr.markAsUsed();
         log.info("QR 코드 사용 처리 완료 - QR ID: {}, 예약자 ID: {}", 
                 qr.getId(), qr.getReserver().getId());
+
+        // 매퍼를 통해 성공 응답 생성
+        return qrResponseMapper.toUseSuccessResponse(qr);
     }
 
     @Override
@@ -221,63 +226,17 @@ public class QrCodeServiceImpl implements QrCodeService {
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> verifyQrCode(String token) {
+    public QrVerifyResponse verifyQrCode(String token) {
         log.info("QR 코드 검증 시작 - token: {}", token);
-        
-        Map<String, Object> result = new HashMap<>();
         
         QrCode qrCode = qrCodeRepository.findByQrToken(token)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.QR_NOT_FOUND));
         
-        LocalDateTime now = LocalDateTime.now();
+        // 매퍼를 통해 응답 생성 (상태만 체크)
+        QrVerifyResponse response = qrResponseMapper.toVerifyResponse(qrCode);
         
-        // QR 코드 상태별 검증
-        switch (qrCode.getStatus()) {
-            case USED:
-                result.put("valid", false);
-                result.put("message", "이미 사용된 QR 코드입니다.");
-                result.put("status", "USED");
-                break;
-                
-            case EXPIRED:
-                result.put("valid", false);
-                result.put("message", "만료된 QR 코드입니다.");
-                result.put("status", "EXPIRED");
-                break;
-                
-            case APPROVED:
-                if (now.isBefore(qrCode.getActivatedAt())) {
-                    result.put("valid", false);
-                    result.put("message", "아직 활성화되지 않은 QR 코드입니다.");
-                    result.put("status", "NOT_ACTIVE");
-                    result.put("activatedAt", qrCode.getActivatedAt());
-                } else {
-                    result.put("valid", false);
-                    result.put("message", "활성화가 필요한 QR 코드입니다.");
-                    result.put("status", "APPROVED");
-                }
-                break;
-                
-            case ACTIVE:
-                if (now.isAfter(qrCode.getExpiredAt())) {
-                    result.put("valid", false);
-                    result.put("message", "만료된 QR 코드입니다.");
-                    result.put("status", "EXPIRED");
-                } else {
-                    result.put("valid", true);
-                    result.put("message", "유효한 QR 코드입니다.");
-                    result.put("status", "ACTIVE");
-                    
-                    // 예약 정보도 포함
-                    Reserver reserver = qrCode.getReserver();
-                    result.put("reserverName", reserver.getName());
-                    result.put("expoTitle", reserver.getReservation().getExpo().getTitle());
-                    result.put("ticketTitle", reserver.getReservation().getTicket().getTitle());
-                }
-                break;
-        }
-        
-        log.info("QR 코드 검증 완료 - token: {}, valid: {}", token, result.get("valid"));
-        return result;
+        log.info("QR 코드 검증 완료 - token: {}, 상태: {}, 유효성: {}", 
+                token, qrCode.getStatus(), response.isValid());
+        return response;
     }
 }
