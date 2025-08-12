@@ -5,7 +5,8 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
-import com.myce.reservation.dto.ExpoAdminExcelDownloadResponse;
+import com.myce.member.entity.type.Gender;
+import com.myce.reservation.dto.ExcelReservationInfoData;
 import com.myce.reservation.repository.ReserverRepository;
 import com.myce.reservation.service.ExpoAdminExcelDownloadService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,9 @@ public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownload
     private final AdminPermissionRepository adminPermissionRepository;
     private final ReserverRepository reserverRepository;
 
+    private final String[] HEADERS = {"번호", "예약 코드", "이름", "성별", "생년월일", "전화번호", "이메일", "티켓 이름"};
+    private final String SHEET_NAME = "예약자_명단";
+
     @Override
     @Transactional(readOnly = true)
     public void downloadMyReservationExcelFile(Long expoId, Long memberId, LoginType loginType, OutputStream outputStream) {
@@ -41,7 +45,7 @@ public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownload
 
         try {
             // 1) 시트 생성
-            SXSSFSheet sheet = workbook.createSheet("예약자_명단");
+            SXSSFSheet sheet = workbook.createSheet(SHEET_NAME);
             sheet.trackAllColumnsForAutoSizing();
 
             // 2) 스타일 생성
@@ -50,15 +54,14 @@ public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownload
             CellStyle dateCellStyle = createDateCellStyle(workbook);
 
             // 3) 헤더 생성
-            String[] headers = {"번호", "예약 코드", "이름", "성별", "생년월일", "전화번호", "이메일", "티켓 이름"};
-            createHeaderRow(sheet, headers, headerStyle);
+            createHeaderRow(sheet, HEADERS, headerStyle);
 
             // 4) 헤더 고정 및 필터
             sheet.createFreezePane(0, 1);
-            sheet.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, headers.length - 1));
+            sheet.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, HEADERS.length - 1));
 
             // 5) DB 스트림으로 데이터 채우기
-            try (Stream<ExpoAdminExcelDownloadResponse> data = reserverRepository.streamAllForExcel(expoId)) {
+            try (Stream<ExcelReservationInfoData> data = reserverRepository.streamAllForExcel(expoId)) {
                 AtomicInteger rowNum = new AtomicInteger(1);
                 data.forEach(dto -> {
                     Row row = sheet.createRow(rowNum.get());
@@ -124,44 +127,39 @@ public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownload
     }
     
     // 행 생성
-    private void fillDataRow(ExpoAdminExcelDownloadResponse dto,
+    private void fillDataRow(ExcelReservationInfoData dto,
                              Row row,
                              int rowNum,
                              CellStyle bodyStyle,
                              CellStyle dateCellStyle) {
-        Cell cell0 = row.createCell(0);
-        cell0.setCellValue(rowNum);
-        cell0.setCellStyle(bodyStyle);
+        int index = 0;
+        setCell(row, index++, rowNum, bodyStyle);
+        setCell(row, index++, dto.getReservationCode(), bodyStyle);
+        setCell(row, index++, dto.getName(), bodyStyle);
+        setCell(row, index++, Gender.toLabel(dto.getGender()), bodyStyle);
+        setCell(row, index++, dto.getBirthday(), bodyStyle, dateCellStyle);
+        setCell(row, index++, dto.getPhone(), bodyStyle);
+        setCell(row, index++, dto.getEmail(), bodyStyle);
+        setCell(row, index, dto.getTicketName(), bodyStyle);
+    }
 
-        Cell cell1 = row.createCell(1);
-        cell1.setCellValue(dto.getReservationCode());
-        cell1.setCellStyle(bodyStyle);
+    private void setCell(Row row, int index, String value, CellStyle bodyStyle) {
+        Cell cell = row.createCell(index);
+        cell.setCellValue(value);
+        cell.setCellStyle(bodyStyle);
+    }
 
-        Cell cell2 = row.createCell(2);
-        cell2.setCellValue(dto.getName());
-        cell2.setCellStyle(bodyStyle);
+    private void setCell(Row row, int index, int value, CellStyle bodyStyle) {
+        Cell cell = row.createCell(index);
+        cell.setCellValue(value);
+        cell.setCellStyle(bodyStyle);
+    }
 
-        Cell cell3 = row.createCell(3);
-        cell3.setCellValue(dto.getGender());
-        cell3.setCellStyle(bodyStyle);
-
-        // 생년월일
-        Cell cell4 = row.createCell(4);
-        LocalDate birthDate = dto.getBirthday();
-        cell4.setCellValue(birthDate);
-        cell4.setCellStyle(dateCellStyle);
-
-        Cell cell5 = row.createCell(5);
-        cell5.setCellValue(dto.getPhone());
-        cell5.setCellStyle(bodyStyle);
-
-        Cell cell6 = row.createCell(6);
-        cell6.setCellValue(dto.getEmail());
-        cell6.setCellStyle(bodyStyle);
-
-        Cell cell7 = row.createCell(7);
-        cell7.setCellValue(dto.getTicketName());
-        cell7.setCellStyle(bodyStyle);
+    private void setCell(Row row, int index, LocalDate value, CellStyle bodyStyle, CellStyle dateCellStyle) {
+        Cell cell = row.createCell(index);
+        cell.setCellValue(value);
+        cell.setCellStyle(bodyStyle);
+        cell.setCellStyle(dateCellStyle);
     }
 
     // 고정 컬럼 폭 적용

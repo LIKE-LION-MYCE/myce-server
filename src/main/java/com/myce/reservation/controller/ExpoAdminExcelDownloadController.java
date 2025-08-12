@@ -19,6 +19,7 @@ import java.io.IOException;
 public class ExpoAdminExcelDownloadController {
 
     private final ExpoAdminExcelDownloadService service;
+    private final String EXCEL_FILE_NAME = "예약자_명단_xlsx";
 
     @GetMapping
     public void downloadMyReservationExcelFile (
@@ -29,10 +30,8 @@ public class ExpoAdminExcelDownloadController {
         Long memberId = customUserDetails.getMemberId();
         LoginType loginType = customUserDetails.getLoginType();
 
-        String fileName = "예약자_명단.xlsx";
-
         httpResponse.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        httpResponse.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+        httpResponse.setHeader("Content-Disposition", "attachment; filename=\"" + EXCEL_FILE_NAME + "\"");
 
         service.downloadMyReservationExcelFile(
                 expoId,

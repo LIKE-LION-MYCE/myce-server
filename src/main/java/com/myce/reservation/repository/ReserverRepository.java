@@ -1,6 +1,6 @@
 package com.myce.reservation.repository;
 
-import com.myce.reservation.dto.ExpoAdminExcelDownloadResponse;
+import com.myce.reservation.dto.ExcelReservationInfoData;
 import com.myce.reservation.dto.ExpoAdminReservationResponse;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.Reserver;
@@ -127,14 +127,10 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
     @Transactional(readOnly = true)
     @QueryHints(value = @QueryHint(name = "org.hibernate.fetchSize", value = "1000"))
     @Query("""
-          SELECT NEW com.myce.reservation.dto.ExpoAdminExcelDownloadResponse(
+          SELECT NEW com.myce.reservation.dto.ExcelReservationInfoData(
             r.reservationCode,
             rv.name,
-            CASE
-              WHEN rv.gender = com.myce.member.entity.type.Gender.FEMALE THEN '여'
-              WHEN rv.gender = com.myce.member.entity.type.Gender.MALE   THEN '남'
-              ELSE '-'
-            END,
+            rv.gender,
             rv.birth,
             rv.phone,
             rv.email,
@@ -149,5 +145,5 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
               rv.createdAt ASC,
               rv.id ASC
     """)
-    Stream<ExpoAdminExcelDownloadResponse> streamAllForExcel(@Param("expoId") Long expoId);
+    Stream<ExcelReservationInfoData> streamAllForExcel(@Param("expoId") Long expoId);
 }
