@@ -2,8 +2,10 @@ package com.myce.member.service.impl;
 
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.member.dto.MemberInfoResponse;
 import com.myce.member.dto.PasswordChangeRequest;
 import com.myce.member.entity.Member;
+import com.myce.member.mapper.MemberInfoMapper;
 import com.myce.member.repository.MemberRepository;
 import com.myce.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ public class MemberServiceImpl implements MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MemberInfoMapper memberInfoMapper;
 
     @Override
     @Transactional
@@ -50,5 +53,11 @@ public class MemberServiceImpl implements MemberService {
     private Member findMemberById(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+    }
+
+    @Override
+    public MemberInfoResponse getMyInfo(Long memberId) {
+        Member member = findMemberById(memberId);
+        return memberInfoMapper.toResponseDto(member);
     }
 }

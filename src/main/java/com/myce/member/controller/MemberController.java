@@ -1,6 +1,7 @@
 package com.myce.member.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.member.dto.MemberInfoResponse;
 import com.myce.member.dto.PasswordChangeRequest;
 import com.myce.member.service.MemberService;
 import jakarta.validation.Valid;
@@ -8,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
 
 @RestController
 @RequestMapping("/api/members")
@@ -35,5 +35,13 @@ public class MemberController {
         memberService.changePassword(memberId, request);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<MemberInfoResponse> getMemberInfo(
+        @AuthenticationPrincipal CustomUserDetails customUserDetails){
+        Long memberId = customUserDetails.getMemberId();
+
+        return ResponseEntity.ok(memberService.getMyInfo(memberId));
     }
 }
