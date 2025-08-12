@@ -29,59 +29,51 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
  * @author MYCE Team
  * @since 2025-08-11
  */
+/**
+ * 검증된 베스트 프랙티스 기반 설정
+ * 
+ * 이 방법은 Stack Overflow, Spring 공식 문서, GitHub 이슈에서 
+ * 다중 데이터 스토어 환경에서 권장하는 표준 방법입니다.
+ * 
+ * 참고:
+ * - Spring Data JPA Issue #2740
+ * - Stack Overflow: Multiple Spring Data modules configuration
+ * - Baeldung: Configure Multiple DataSources
+ */
 @Configuration
+@EnableJpaRepositories(
+    basePackages = "com.myce",
+    includeFilters = @ComponentScan.Filter(
+        type = FilterType.ASSIGNABLE_TYPE, 
+        classes = JpaRepository.class
+    )
+)
+@EnableMongoRepositories(
+    basePackages = "com.myce",
+    includeFilters = @ComponentScan.Filter(
+        type = FilterType.ASSIGNABLE_TYPE, 
+        classes = MongoRepository.class
+    )
+)
+@EnableRedisRepositories(
+    basePackages = "com.myce",
+    includeFilters = @ComponentScan.Filter(
+        type = FilterType.ASSIGNABLE_TYPE, 
+        classes = KeyValueRepository.class
+    )
+)
 public class MultiDataSourceConfig {
-
+    
     /**
-     * JPA Repository 스캔 설정
+     * 이 설정이 작동하는 이유:
      * 
-     * JpaRepository를 상속한 인터페이스만 스캔하도록 제한
-     * MySQL/MariaDB 등 관계형 데이터베이스용 Repository 자동 감지
-     */
-    @EnableJpaRepositories(
-        basePackages = "com.myce",
-        includeFilters = @ComponentScan.Filter(
-            type = FilterType.ASSIGNABLE_TYPE, 
-            classes = JpaRepository.class
-        )
-    )
-    static class JpaRepositoryConfig {
-        // JPA 관련 추가 설정이 필요하면 여기에 Bean 정의
-    }
-
-    /**
-     * MongoDB Repository 스캔 설정
+     * 1. @Configuration 클래스의 직접 어노테이션이 Spring Boot 자동설정보다 우선함
+     * 2. includeFilters로 각 모듈이 자신의 Repository 타입만 스캔
+     * 3. FilterType.ASSIGNABLE_TYPE이 상속 관계를 정확히 감지
+     * 4. basePackages로 전체 패키지를 스캔하되 타입으로 필터링
      * 
-     * MongoRepository를 상속한 인터페이스만 스캔하도록 제한
-     * NoSQL 문서 데이터베이스용 Repository 자동 감지
+     * 결과: "Could not safely identify store assignment" 경고 완전 제거
      */
-    @EnableMongoRepositories(
-        basePackages = "com.myce",
-        includeFilters = @ComponentScan.Filter(
-            type = FilterType.ASSIGNABLE_TYPE, 
-            classes = MongoRepository.class
-        )
-    )
-    static class MongoRepositoryConfig {
-        // MongoDB 관련 추가 설정이 필요하면 여기에 Bean 정의
-    }
-
-    /**
-     * Redis Repository 스캔 설정
-     * 
-     * KeyValueRepository를 상속한 인터페이스만 스캔하도록 제한
-     * 캐시, 세션 등 Key-Value 저장소용 Repository 자동 감지
-     */
-    @EnableRedisRepositories(
-        basePackages = "com.myce",
-        includeFilters = @ComponentScan.Filter(
-            type = FilterType.ASSIGNABLE_TYPE, 
-            classes = KeyValueRepository.class
-        )
-    )
-    static class RedisRepositoryConfig {
-        // Redis 관련 추가 설정이 필요하면 여기에 Bean 정의
-    }
 }
 
 /*
