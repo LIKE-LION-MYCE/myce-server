@@ -28,7 +28,6 @@ public class SseServiceImpl implements SseService {
 
         sseEmitter.onTimeout(() -> {
             log.info("sseEmitter timeout, emitterId: {}", emitterId);
-            sendMessage(sseEmitter, "connectionTimeout");
             sseEmitter.complete();
         });
         sseEmitter.onCompletion(() ->
