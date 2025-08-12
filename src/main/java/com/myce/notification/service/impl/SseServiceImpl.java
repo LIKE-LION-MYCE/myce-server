@@ -19,7 +19,7 @@ import java.util.List;
 public class SseServiceImpl implements SseService {
     private final EmitterRepository emitterRepository;
     private final ReservationRepository reservationRepository;
-    private static final Long DEFAULT_TIMEOUT = 10L * 1000;
+    private static final Long DEFAULT_TIMEOUT = 60L * 1000 * 3;
 
     public SseEmitter subscribe(Long memberId) {
         String emitterId = memberId + "_" + System.currentTimeMillis();
