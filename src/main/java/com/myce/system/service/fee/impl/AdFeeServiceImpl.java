@@ -4,15 +4,21 @@ import com.myce.advertisement.entity.AdPosition;
 import com.myce.advertisement.repository.AdPositionRepository;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.system.dto.fee.AdFeeListResponse;
 import com.myce.system.dto.fee.AdFeeRequest;
 import com.myce.system.entity.AdFeeSetting;
 import com.myce.system.repository.AdFeeSettingRepository;
 import com.myce.system.service.fee.AdFeeService;
 import com.myce.system.service.mapper.AdFeeMapper;
 import jakarta.transaction.Transactional;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 
@@ -38,6 +44,19 @@ public class AdFeeServiceImpl implements AdFeeService {
 
         AdFeeSetting adFeeSetting = adFeeMapper.getAdFeeSetting(request, adPosition);
         adFeeSettingRepository.save(adFeeSetting);
+    }
+
+    @Override
+    public AdFeeListResponse getAdFeeList(int page, Long positionId) {
+        Sort sort = Sort.by("createdAt").descending();
+        Pageable pageable = PageRequest.of(page, 10, sort);
+        Page<AdFeeSetting> adFeeSettings;
+
+        if(positionId != null) adFeeSettings =
+                adFeeSettingRepository.findAllByAdPosition_Id(positionId, pageable);
+        else adFeeSettings= adFeeSettingRepository.findAll(pageable);
+
+        return adFeeMapper.toListResponse(adFeeSettings);
     }
 
     private void updateAlreadyActiveSetting(Long adPositionId) {

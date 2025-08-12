@@ -39,6 +39,9 @@ public class AdFeeSetting {
     @JoinColumn(name = "ad_position_id", referencedColumnName = "ad_position_id", nullable = false)
     private AdPosition adPosition;
 
+    @Column(name="name", nullable = false, length = 30)
+    private String name;
+
     @Column(name = "fee_per_day", nullable = false)
     private Integer feePerDay;
 
@@ -54,8 +57,9 @@ public class AdFeeSetting {
     private LocalDateTime updatedAt;
 
     @Builder
-    public AdFeeSetting(AdPosition adPosition, Integer feePerDay, Boolean isActive) {
+    public AdFeeSetting(AdPosition adPosition, String name, Integer feePerDay, Boolean isActive) {
         this.adPosition = adPosition;
+        this.name = name;
         this.feePerDay = feePerDay;
         this.isActive = isActive;
     }

@@ -23,14 +23,14 @@ public class ExpoFeeServiceImpl implements ExpoFeeService {
     @Transactional
     public void saveExpoFee(ExpoFeeRequest request) {
         if(request.getIsActive()) {
-            updateInactiveExpoFee();
+            updateAlreadyActiveSetting();
         }
 
         ExpoFeeSetting expoFeeSetting = expoFeeMapper.toExpoFeeSetting(request);
         expoFeeSettingRepository.save(expoFeeSetting);
     }
 
-    private void updateInactiveExpoFee() {
+    private void updateAlreadyActiveSetting() {
         Optional<ExpoFeeSetting> expoFeeSettingOptional = expoFeeSettingRepository.findByIsActiveTrue();
         if(expoFeeSettingOptional.isEmpty()) return;
 
