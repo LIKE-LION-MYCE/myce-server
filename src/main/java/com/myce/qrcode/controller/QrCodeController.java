@@ -38,7 +38,7 @@ public class QrCodeController {
     public ResponseEntity<QrUseResponse> useByToken(@PathVariable String token,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         Long adminId = customUserDetails.getMemberId();
-        QrUseResponse response = qrCodeService.markQrAsUsed(token, adminId);
+        QrUseResponse response = qrCodeService.updateQrAsUsed(token, adminId);
         return ResponseEntity.ok(response);
     }
 

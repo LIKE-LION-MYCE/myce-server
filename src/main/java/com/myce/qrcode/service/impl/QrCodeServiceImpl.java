@@ -92,7 +92,7 @@ public class QrCodeServiceImpl implements QrCodeService {
 
     @Override
     @Transactional
-    public QrUseResponse markQrAsUsed(String qrToken, Long adminMemberId) {
+    public QrUseResponse updateQrAsUsed(String qrToken, Long adminMemberId) {
         log.info("QR 코드 사용 처리 시작 - 토큰: {}, 관리자 ID: {}", qrToken, adminMemberId);
         
         QrCode qr = qrCodeRepository.findByQrToken(qrToken)

@@ -7,7 +7,7 @@ public interface QrCodeService {
 
     void issueQr(Long reserverId);
     void reissueQr(Long reserverId, Long adminMemberId);
-    QrUseResponse markQrAsUsed(String qrToken, Long adminMemberId);
+    QrUseResponse updateQrAsUsed(String qrToken, Long adminMemberId);
     String getQrImageUrlByReserverId(Long reserverId);
     String getQrImageUrlByToken(String token);
     QrVerifyResponse verifyQrCode(String token);

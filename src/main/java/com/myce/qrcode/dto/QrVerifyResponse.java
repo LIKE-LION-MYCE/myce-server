@@ -34,13 +34,4 @@ public class QrVerifyResponse {
                 .status(status)
                 .build();
     }
-    
-    public static QrVerifyResponse notActive(String message, LocalDateTime activatedAt) {
-        return QrVerifyResponse.builder()
-                .valid(false)
-                .message(message)
-                .status("NOT_ACTIVE")
-                .activatedAt(activatedAt)
-                .build();
-    }
 }
