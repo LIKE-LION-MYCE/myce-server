@@ -37,11 +37,19 @@ public class MemberController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<MemberInfoResponse> getMemberInfo(
+    @GetMapping("/my-info")
+    public ResponseEntity<MemberInfoResponse> getMyInfo(
         @AuthenticationPrincipal CustomUserDetails customUserDetails){
         Long memberId = customUserDetails.getMemberId();
 
         return ResponseEntity.ok(memberService.getMyInfo(memberId));
+    }
+
+    @GetMapping("/my-mileage")
+    public ResponseEntity<Integer> getMyMileage(
+        @AuthenticationPrincipal CustomUserDetails customUserDetails){
+        Long memberId = customUserDetails.getMemberId();
+
+        return  ResponseEntity.ok(memberService.getMyMileage(memberId));
     }
 }

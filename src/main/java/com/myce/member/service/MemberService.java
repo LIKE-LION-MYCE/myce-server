@@ -10,4 +10,6 @@ public interface MemberService {
     void changePassword(Long memberId, PasswordChangeRequest request);
 
     MemberInfoResponse getMyInfo(Long memberId);
+
+    Integer getMyMileage(Long memberId);
 }

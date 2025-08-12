@@ -60,4 +60,10 @@ public class MemberServiceImpl implements MemberService {
         Member member = findMemberById(memberId);
         return memberInfoMapper.toResponseDto(member);
     }
+
+    @Override
+    public Integer getMyMileage(Long memberId) {
+        Member member = findMemberById(memberId);
+        return member.getMileage();
+    }
 }
