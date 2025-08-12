@@ -78,7 +78,8 @@ public class SecurityConfig {
                                 "/actuator/health/liveness",  // ALB health checks
                                 "/actuator/health/readiness", // Optional readiness checks
                                 "/actuator/info",
-                                "/ws/**" // WebSocket 엔드포인트 허용
+                                "/ws/**", // WebSocket 엔드포인트 허용
+                                "/api/ai/test/**" // AI 테스트 엔드포인트 허용
                         ).permitAll()
                         .anyRequest()
                         .authenticated());
