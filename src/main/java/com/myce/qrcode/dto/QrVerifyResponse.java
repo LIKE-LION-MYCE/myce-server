@@ -17,7 +17,6 @@ public class QrVerifyResponse {
     private String ticketTitle;
     private LocalDateTime activatedAt;
 
-    @Builder
     public QrVerifyResponse (String message, String reserverName,
                              String expoTitle, String ticketTitle, String status) {
         this.valid = true;
@@ -27,7 +26,6 @@ public class QrVerifyResponse {
         this.ticketTitle = ticketTitle;
         this.status = status;
     }
-    @Builder
     public QrVerifyResponse (String message, String status) {
         this.valid = false;
         this.message = message;
