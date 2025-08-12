@@ -1,5 +1,11 @@
 server:
 # port: 8081
+
+logging:
+  level:
+    root: info
+    com.myce: debug
+
 spring:
   profiles:
     active: ${PROFILE} # local | product
@@ -45,10 +51,6 @@ spring:
             #token-uri: https://kauth.kakao.com/oauth/token
             #user-info-uri: https://kapi.kakao.com/v2/user/me
             #user-name-attribute: id
-  logging:
-    level:
-      root: info
-      com.myce: debug
   datasource: # MySQL
     url: ${DB_URL}
     username: ${DB_USERNAME}
