@@ -100,24 +100,15 @@ public class QrCodeServiceImpl implements QrCodeService {
 
         validateExpoManager(adminMemberId, qr.getReserver());
 
-        if (qr.getStatus() == QrCodeStatus.USED) {
-            throw new CustomException(CustomErrorCode.QR_ALREADY_USED);
+        // ACTIVE인 경우만 상태 변경
+        if (qr.getStatus() == QrCodeStatus.ACTIVE) {
+            qr.markAsUsed();
         }
-        
-        if (qr.getStatus() == QrCodeStatus.EXPIRED) {
-            throw new CustomException(CustomErrorCode.QR_EXPIRED);
-        }
-
-        if (qr.getStatus() == QrCodeStatus.APPROVED) {
-            throw new CustomException(CustomErrorCode.QR_APPROVED);
-        }
-
-        qr.markAsUsed();
         log.info("QR 코드 사용 처리 완료 - QR ID: {}, 예약자 ID: {}", 
                 qr.getId(), qr.getReserver().getId());
 
         // 매퍼를 통해 성공 응답 생성
-        return qrResponseMapper.toUseSuccessResponse(qr);
+        return qrResponseMapper.toUseResponse(qr);
     }
 
     @Override

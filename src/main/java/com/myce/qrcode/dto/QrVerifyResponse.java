@@ -1,12 +1,13 @@
 package com.myce.qrcode.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
 
 @Getter
-@Builder
+@AllArgsConstructor
 public class QrVerifyResponse {
     private boolean valid;
     private String message;
@@ -15,23 +16,21 @@ public class QrVerifyResponse {
     private String expoTitle;
     private String ticketTitle;
     private LocalDateTime activatedAt;
-    
-    public static QrVerifyResponse valid(String message, String reserverName, String expoTitle, String ticketTitle, String status) {
-        return QrVerifyResponse.builder()
-                .valid(true)
-                .message(message)
-                .status(status)
-                .reserverName(reserverName)
-                .expoTitle(expoTitle)
-                .ticketTitle(ticketTitle)
-                .build();
+
+    @Builder
+    public QrVerifyResponse (String message, String reserverName,
+                             String expoTitle, String ticketTitle, String status) {
+        this.valid = true;
+        this.message = message;
+        this.reserverName = reserverName;
+        this.expoTitle = expoTitle;
+        this.ticketTitle = ticketTitle;
+        this.status = status;
     }
-    
-    public static QrVerifyResponse invalid(String message, String status) {
-        return QrVerifyResponse.builder()
-                .valid(false)
-                .message(message)
-                .status(status)
-                .build();
+    @Builder
+    public QrVerifyResponse (String message, String status) {
+        this.valid = false;
+        this.message = message;
+        this.status = status;
     }
 }
