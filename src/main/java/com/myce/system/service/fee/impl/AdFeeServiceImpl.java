@@ -6,12 +6,12 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.system.dto.fee.AdFeeListResponse;
 import com.myce.system.dto.fee.AdFeeRequest;
+import com.myce.system.dto.fee.FeeActiveRequest;
 import com.myce.system.entity.AdFeeSetting;
 import com.myce.system.repository.AdFeeSettingRepository;
 import com.myce.system.service.fee.AdFeeService;
 import com.myce.system.service.mapper.AdFeeMapper;
 import jakarta.transaction.Transactional;
-import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,6 +64,23 @@ public class AdFeeServiceImpl implements AdFeeService {
         return adFeeMapper.toListResponse(adFeeSettings);
     }
 
+    @Override
+    @Transactional
+    public void updateAdFeeActivation(Long targetId, FeeActiveRequest request) {
+        AdFeeSetting adFeeSetting = adFeeSettingRepository.findById(targetId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_AD_FEE_SETTING));
+
+        boolean isActive = request.getIsActive();
+        if(isActive == adFeeSetting.getIsActive())
+            throw new CustomException(CustomErrorCode.ALREADY_SET_ACTIVATION);
+
+
+        if(isActive) {
+            updateAlreadyActiveSetting(adFeeSetting.getAdPosition().getId());
+            adFeeSetting.active();
+        } else adFeeSetting.inactive();
+    }
+
     private void updateAlreadyActiveSetting(Long adPositionId) {
         Optional<AdFeeSetting> optionalAdFeeSetting =
                 adFeeSettingRepository.findByAdPositionIdAndIsActiveTrue(adPositionId);
@@ -72,7 +89,5 @@ public class AdFeeServiceImpl implements AdFeeService {
         AdFeeSetting adFeeSetting = optionalAdFeeSetting.get();
         log.debug("Change ad fee active status to inactive. adFeeId={}", adFeeSetting.getId());
         adFeeSetting.inactive();
-        adFeeSettingRepository.save(adFeeSetting);
-        adFeeSettingRepository.flush();
     }
 }

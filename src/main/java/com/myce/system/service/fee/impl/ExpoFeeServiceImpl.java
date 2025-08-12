@@ -1,7 +1,10 @@
 package com.myce.system.service.fee.impl;
 
+import com.myce.common.exception.CustomErrorCode;
+import com.myce.common.exception.CustomException;
 import com.myce.system.dto.fee.ExpoFeeListResponse;
 import com.myce.system.dto.fee.ExpoFeeRequest;
+import com.myce.system.dto.fee.FeeActiveRequest;
 import com.myce.system.entity.ExpoFeeSetting;
 import com.myce.system.repository.ExpoFeeSettingRepository;
 import com.myce.system.service.fee.ExpoFeeService;
@@ -44,6 +47,19 @@ public class ExpoFeeServiceImpl implements ExpoFeeService {
         else expoFeeSettings = expoFeeSettingRepository.findAll(pageable);
 
         return expoFeeMapper.toListResponse(expoFeeSettings);
+    }
+
+    @Override
+    @Transactional
+    public void updateExpoFeeActivation(Long targetId, FeeActiveRequest request) {
+        ExpoFeeSetting expoFeeSetting = expoFeeSettingRepository.findById(targetId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_EXPO_FEE_SETTING));
+
+        boolean isActive = request.getIsActive();
+        if(isActive) {
+            updateAlreadyActiveSetting();
+            expoFeeSetting.active();
+        } else expoFeeSetting.inactive();
     }
 
     private void updateAlreadyActiveSetting() {
