@@ -7,11 +7,11 @@ import lombok.Getter;
 @Getter
 @Builder
 public class AdFeeResponse {
-    private Long id;
-    private String position;
-    private String name;
-    private int feePerDay;
-    private boolean isActive;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private final Long id;
+    private final String position;
+    private final String name;
+    private final int feePerDay;
+    private final boolean isActive;
+    private final LocalDateTime createdAt;
+    private final LocalDateTime updatedAt;
 }

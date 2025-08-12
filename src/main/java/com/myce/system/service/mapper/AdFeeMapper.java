@@ -5,7 +5,6 @@ import com.myce.system.dto.fee.AdFeeListResponse;
 import com.myce.system.dto.fee.AdFeeRequest;
 import com.myce.system.dto.fee.AdFeeResponse;
 import com.myce.system.entity.AdFeeSetting;
-import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
@@ -22,8 +21,9 @@ public class AdFeeMapper {
     }
 
     public AdFeeListResponse toListResponse(Page<AdFeeSetting> adFeeSettingList) {
-        AdFeeListResponse adFeeListResponse =
-                new AdFeeListResponse(adFeeSettingList.getNumber(), adFeeSettingList.getTotalPages());
+        int currentPage = adFeeSettingList.getNumber() + 1;
+        int totalPages = adFeeSettingList.getTotalPages();
+        AdFeeListResponse adFeeListResponse = new AdFeeListResponse(currentPage, totalPages);
         adFeeSettingList.forEach(adFeeSetting -> {
             AdFeeResponse response = toAdFeeResponse(adFeeSetting);
             adFeeListResponse.addAdFee(response);
