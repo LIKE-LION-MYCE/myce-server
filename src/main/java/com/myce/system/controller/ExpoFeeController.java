@@ -21,6 +21,6 @@ public class ExpoFeeController {
     @PostMapping
     public ResponseEntity<Void> save (@RequestBody @Valid ExpoFeeRequest request) {
         expoFeeService.saveExpoFee(request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.noContent().build();
     }
 }
