@@ -11,7 +11,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,11 +21,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity @Getter
 @NoArgsConstructor
-@Table(name = "ad_fee_setting",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_ad_position_active",
-                        columnNames = {"ad_position_id", "is_active"})
-        })
+@Table(name = "ad_fee_setting")
 @EntityListeners(AuditingEntityListener.class)
 public class AdFeeSetting {
 
@@ -38,6 +33,9 @@ public class AdFeeSetting {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ad_position_id", referencedColumnName = "ad_position_id", nullable = false)
     private AdPosition adPosition;
+
+    @Column(name="name", nullable = false, length = 30)
+    private String name;
 
     @Column(name = "fee_per_day", nullable = false)
     private Integer feePerDay;
@@ -54,9 +52,18 @@ public class AdFeeSetting {
     private LocalDateTime updatedAt;
 
     @Builder
-    public AdFeeSetting(AdPosition adPosition, Integer feePerDay, Boolean isActive) {
+    public AdFeeSetting(AdPosition adPosition, String name, Integer feePerDay, Boolean isActive) {
         this.adPosition = adPosition;
+        this.name = name;
         this.feePerDay = feePerDay;
         this.isActive = isActive;
+    }
+
+    public void active() {
+        this.isActive = true;
+    }
+
+    public void inactive() {
+        this.isActive = false;
     }
 }

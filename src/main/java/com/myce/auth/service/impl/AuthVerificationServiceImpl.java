@@ -10,8 +10,8 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.util.RandomCodeGenerateUtil;
 import com.myce.notification.service.EmailSendService;
-import com.myce.system.dto.MessageTemplate;
-import com.myce.system.service.MessageTemplateService;
+import com.myce.system.dto.message.MessageTemplate;
+import com.myce.system.service.message.GenerateMessageService;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +27,7 @@ public class AuthVerificationServiceImpl implements AuthVerificationService {
 
     private final EmailSendService emailSendService;
     private final RandomCodeGenerateUtil randomCodeGenerateUtil;
-    private final MessageTemplateService messageTemplateService;
+    private final GenerateMessageService messageTemplateService;
     private final EmailVerificationRepository emailVerificationRepository;
 
     @Override
