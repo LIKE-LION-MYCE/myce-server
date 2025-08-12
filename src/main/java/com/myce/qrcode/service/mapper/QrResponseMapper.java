@@ -37,39 +37,16 @@ public class QrResponseMapper {
 
         QrCodeStatus status = qrCode.getStatus();
 
-        switch (status) {
-            case APPROVED:
-                return QrVerifyResponse.invalid(VerificationType.APPROVED.getMessage(), "APPROVED");
-                
-            case USED:
-                return QrVerifyResponse.invalid(VerificationType.USED.getMessage(), "USED");
-                
-            case EXPIRED:
-                return QrVerifyResponse.invalid(VerificationType.EXPIRED.getMessage(), "EXPIRED");
-                
-            case ACTIVE:
+        return switch (status) {
+            case APPROVED, USED, EXPIRED -> QrVerifyResponse.invalid( status.getMessage(), status.name());
+            case ACTIVE -> {
                 // 유효한 QR 코드 - 예약자 정보와 함께 반환
                 Reserver reserver = qrCode.getReserver();
-                return QrVerifyResponse.valid(
-                        reserver.getName(),
+                yield QrVerifyResponse.valid(status.getMessage(), reserver.getName(),
                         reserver.getReservation().getExpo().getTitle(),
-                        reserver.getReservation().getTicket().getName()
-                );
-                
-            default:
-                log.error("알 수 없는 QR 코드 상태 - status: {}", status);
-                throw new CustomException(CustomErrorCode.QR_INVALID_STATUS);
-        }
+                        reserver.getReservation().getTicket().getName(), status.name());
+            }
+        };
     }
 
-    @Getter
-    @AllArgsConstructor
-    public enum VerificationType {
-
-        APPROVED("QR 코드가 활성화 되지 않았습니다."),
-        USED("이미 사용된 QR 코드 입니다."),
-        EXPIRED("만료된 QR 코드 입니다.");
-
-        private final String message;
-    }
 }

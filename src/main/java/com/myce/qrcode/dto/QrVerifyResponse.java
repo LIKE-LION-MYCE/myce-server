@@ -16,11 +16,11 @@ public class QrVerifyResponse {
     private String ticketTitle;
     private LocalDateTime activatedAt;
     
-    public static QrVerifyResponse valid(String reserverName, String expoTitle, String ticketTitle) {
+    public static QrVerifyResponse valid(String message, String reserverName, String expoTitle, String ticketTitle, String status) {
         return QrVerifyResponse.builder()
                 .valid(true)
-                .message("유효한 QR 코드입니다.")
-                .status("ACTIVE")
+                .message(message)
+                .status(status)
                 .reserverName(reserverName)
                 .expoTitle(expoTitle)
                 .ticketTitle(ticketTitle)
