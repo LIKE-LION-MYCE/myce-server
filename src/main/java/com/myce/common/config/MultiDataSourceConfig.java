@@ -55,6 +55,10 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
         classes = MongoRepository.class
     )
 )
+// Redis Repository 설정 (현재 비활성화)
+// 팀에서 현재 RedisTemplate만 사용 중, Repository 패턴은 미사용
+// Redis Repository 도입 시 아래 주석 해제 + application.yml에서 enabled: true 설정
+/*
 @EnableRedisRepositories(
     basePackages = "com.myce",
     includeFilters = @ComponentScan.Filter(
@@ -62,6 +66,7 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
         classes = KeyValueRepository.class
     )
 )
+*/
 public class MultiDataSourceConfig {
     
     /**
@@ -91,11 +96,15 @@ public class MultiDataSourceConfig {
    
    public interface ChatMessageRepository extends MongoRepository<ChatMessage, String> { ... }
 
-3. Redis Entity & Repository:
+3. Redis Entity & Repository (미래 사용시):
    @RedisHash("email_verification")
    public class EmailVerification { ... }
    
    public interface EmailVerificationRepository extends KeyValueRepository<EmailVerification, String> { ... }
+
+Redis Repository 활성화 방법:
+1. 위 @EnableRedisRepositories 주석 해제
+2. application.yml에서 spring.data.redis.repositories.enabled: true 설정
 
 장점:
 ✅ 새 Repository 추가시 자동 감지 (설정 파일 수정 불필요)
