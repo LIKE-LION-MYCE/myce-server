@@ -7,5 +7,5 @@ public interface AdFeeService {
 
     void saveAdFee(AdFeeRequest request);
 
-    AdFeeListResponse getAdFeeList(int page, Long positionId);
+    AdFeeListResponse getAdFeeList(int page, Long positionId, String name);
 }

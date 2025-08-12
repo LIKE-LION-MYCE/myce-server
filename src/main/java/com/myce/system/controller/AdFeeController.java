@@ -29,8 +29,9 @@ public class AdFeeController {
     @GetMapping
     public ResponseEntity<AdFeeListResponse> getAdFeeSettings(
             @RequestParam(name = "page", defaultValue = "0", required = false)int page,
-            @RequestParam(value = "position", required = false) Long positionId) {
-        AdFeeListResponse response = adFeeService.getAdFeeList(page, positionId);
+            @RequestParam(value = "position", required = false) Long positionId,
+            @RequestParam(value = "name", required = false) String name) {
+        AdFeeListResponse response = adFeeService.getAdFeeList(page, positionId, name);
         return ResponseEntity.ok(response);
     }
 }
