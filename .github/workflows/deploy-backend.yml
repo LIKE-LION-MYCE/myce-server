@@ -5,6 +5,11 @@ on:
     branches:
       - develop  # Production deployment branch
 
+# Prevent concurrent deployments to the same environment
+concurrency:
+  group: deploy-backend-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DOCKER_IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/myce-backend
   DOCKER_TAG: ${{ github.sha }}
