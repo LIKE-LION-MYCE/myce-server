@@ -52,4 +52,12 @@ public class ExpoFeeSetting {
         this.dailyUsageFee = dailyUsageFee;
         this.isActive = isActive;
     }
+
+    public void inactive() {
+        this.isActive = false;
+    }
+
+    public void active() {
+        this.isActive = true;
+    }
 }
