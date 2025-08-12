@@ -1,5 +1,6 @@
 package com.myce.system.service.fee.impl;
 
+import com.myce.system.dto.fee.ExpoFeeListResponse;
 import com.myce.system.dto.fee.ExpoFeeRequest;
 import com.myce.system.entity.ExpoFeeSetting;
 import com.myce.system.repository.ExpoFeeSettingRepository;
@@ -9,6 +10,10 @@ import jakarta.transaction.Transactional;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -23,14 +28,25 @@ public class ExpoFeeServiceImpl implements ExpoFeeService {
     @Transactional
     public void saveExpoFee(ExpoFeeRequest request) {
         if(request.getIsActive()) {
-            updateInactiveExpoFee();
+            updateAlreadyActiveSetting();
         }
 
         ExpoFeeSetting expoFeeSetting = expoFeeMapper.toExpoFeeSetting(request);
         expoFeeSettingRepository.save(expoFeeSetting);
     }
 
-    private void updateInactiveExpoFee() {
+    @Override
+    public ExpoFeeListResponse getExpoFeeList(int page, String name) {
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        Pageable pageable = PageRequest.of(page, 10, sort);
+        Page<ExpoFeeSetting> expoFeeSettings;
+        if(name != null) expoFeeSettings = expoFeeSettingRepository.findAllByNameContaining(name, pageable);
+        else expoFeeSettings = expoFeeSettingRepository.findAll(pageable);
+
+        return expoFeeMapper.toListResponse(expoFeeSettings);
+    }
+
+    private void updateAlreadyActiveSetting() {
         Optional<ExpoFeeSetting> expoFeeSettingOptional = expoFeeSettingRepository.findByIsActiveTrue();
         if(expoFeeSettingOptional.isEmpty()) return;
 
