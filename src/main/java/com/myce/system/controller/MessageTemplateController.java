@@ -20,7 +20,7 @@ public class MessageTemplateController {
     private final MessageTemplateService messageTemplateService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('EXPO_ADMIN')")
+    @PreAuthorize("hasAuthority('PLATFORM_ADMIN')")
     public ResponseEntity<MessageTemplatesResponse> getMessageTemplates(
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "") String keyword) {
@@ -29,7 +29,7 @@ public class MessageTemplateController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('EXPO_ADMIN')")
+    @PreAuthorize("hasAuthority('PLATFORM_ADMIN')")
     public ResponseEntity<MessageTemplateResponse> getMessageTemplate(@PathVariable long id) {
         MessageTemplateResponse response = messageTemplateService.getMessageTemplateById(id);
         return ResponseEntity.ok(response);
