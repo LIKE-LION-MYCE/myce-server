@@ -6,7 +6,7 @@ import com.myce.common.exception.CustomException;
 import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.member.entity.type.Gender;
-import com.myce.reservation.dto.ReservationListInfoData;
+import com.myce.reservation.dto.ExcelReservationInfoData;
 import com.myce.reservation.repository.ReserverRepository;
 import com.myce.reservation.service.ExpoAdminExcelDownloadService;
 import lombok.RequiredArgsConstructor;
@@ -61,7 +61,7 @@ public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownload
             sheet.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, HEADERS.length - 1));
 
             // 5) DB 스트림으로 데이터 채우기
-            try (Stream<ReservationListInfoData> data = reserverRepository.streamAllForExcel(expoId)) {
+            try (Stream<ExcelReservationInfoData> data = reserverRepository.streamAllForExcel(expoId)) {
                 AtomicInteger rowNum = new AtomicInteger(1);
                 data.forEach(dto -> {
                     Row row = sheet.createRow(rowNum.get());
@@ -127,7 +127,7 @@ public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownload
     }
     
     // 행 생성
-    private void fillDataRow(ReservationListInfoData dto,
+    private void fillDataRow(ExcelReservationInfoData dto,
                              Row row,
                              int rowNum,
                              CellStyle bodyStyle,

@@ -8,7 +8,7 @@ import java.time.LocalDate;
 
 @Getter
 @Builder
-public class ReservationListInfoData {
+public class ExcelReservationInfoData {
     private String reservationCode;
     private String name;
     private Gender gender;
