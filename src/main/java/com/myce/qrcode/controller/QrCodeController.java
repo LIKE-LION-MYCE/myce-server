@@ -1,6 +1,7 @@
 package com.myce.qrcode.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.qrcode.dto.QrTokenRequest;
 import com.myce.qrcode.dto.QrUseResponse;
 import com.myce.qrcode.dto.QrVerifyResponse;
 import com.myce.qrcode.service.QrCodeService;
@@ -10,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,11 +36,11 @@ public class QrCodeController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/token/{token}/use")
-    public ResponseEntity<QrUseResponse> useByToken(@PathVariable String token,
+    @PostMapping("/use")
+    public ResponseEntity<QrUseResponse> useQrCode(@RequestBody QrTokenRequest request,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         Long adminId = customUserDetails.getMemberId();
-        QrUseResponse response = qrCodeService.updateQrAsUsed(token, adminId);
+        QrUseResponse response = qrCodeService.updateQrAsUsed(request.getToken(), adminId);
         return ResponseEntity.ok(response);
     }
 
@@ -54,9 +56,9 @@ public class QrCodeController {
         return ResponseEntity.ok(url);
     }
 
-    @PostMapping("/token/{token}/verify")
-    public ResponseEntity<QrVerifyResponse> verifyQrCode(@PathVariable String token) {
-        QrVerifyResponse result = qrCodeService.verifyQrCode(token);
+    @PostMapping("/verify")
+    public ResponseEntity<QrVerifyResponse> verifyQrCode(@RequestBody QrTokenRequest request) {
+        QrVerifyResponse result = qrCodeService.verifyQrCode(request.getToken());
         return ResponseEntity.ok(result);
     }
 
