@@ -59,4 +59,12 @@ public class AdFeeSetting {
         this.feePerDay = feePerDay;
         this.isActive = isActive;
     }
+
+    public void active() {
+        this.isActive = true;
+    }
+
+    public void inactive() {
+        this.isActive = false;
+    }
 }
