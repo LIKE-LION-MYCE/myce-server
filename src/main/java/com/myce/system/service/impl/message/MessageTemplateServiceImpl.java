@@ -1,5 +1,8 @@
 package com.myce.system.service.impl.message;
 
+import com.myce.common.exception.CustomErrorCode;
+import com.myce.common.exception.CustomException;
+import com.myce.system.dto.message.MessageTemplateResponse;
 import com.myce.system.dto.message.MessageTemplatesResponse;
 import com.myce.system.entity.MessageTemplateSetting;
 import com.myce.system.repository.MessageTemplateSettingRepository;
@@ -27,5 +30,13 @@ public class MessageTemplateServiceImpl implements MessageTemplateService {
                 templateSettingRepository.findAll(pageable) :
                 templateSettingRepository.findAllByNameContains(keyword, pageable);
         return messageTemplateMapper.toTemplatesResponse(templates);
+    }
+
+    @Override
+    public MessageTemplateResponse getMessageTemplateById(long id) {
+        MessageTemplateSetting templateSetting = templateSettingRepository.findById(id)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_MESSAGE_TEMPLATE));
+
+        return messageTemplateMapper.toTemplateResponse(templateSetting);
     }
 }

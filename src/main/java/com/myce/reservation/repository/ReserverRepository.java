@@ -38,6 +38,7 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
               WHEN rv.gender = com.myce.member.entity.type.Gender.MALE   THEN '남'
               ELSE '-'
             END,
+            rv.birth,
             rv.phone,
             rv.email,
             t.name,
@@ -99,6 +100,7 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
           WHEN rv.gender = com.myce.member.entity.type.Gender.MALE   THEN '남'
           ELSE '-'
         END,
+        rv.birth,
         rv.phone,
         rv.email,
         t.name,
