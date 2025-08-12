@@ -98,6 +98,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return true;
     }
 
+    // ASYNC 디스패치는 필터 비활성화
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
     private void setErrorResponse(HttpServletResponse response, String code) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json;charset=UTF-8");

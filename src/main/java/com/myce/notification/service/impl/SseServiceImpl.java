@@ -26,12 +26,15 @@ public class SseServiceImpl implements SseService {
         SseEmitter sseEmitter = new SseEmitter(DEFAULT_TIMEOUT);
         emitterRepository.save(emitterId, sseEmitter);
 
+        sseEmitter.onCompletion(() -> {
+            log.info("sseEmitter completion, emitterId: {}", emitterId);
+            emitterRepository.removeSseEmitter(emitterId);
+        });
+
         sseEmitter.onTimeout(() -> {
             log.info("sseEmitter timeout, emitterId: {}", emitterId);
-            sseEmitter.complete();
+            emitterRepository.removeSseEmitter(emitterId);
         });
-        sseEmitter.onCompletion(() ->
-            emitterRepository.removeSseEmitter(emitterId));
 
         sendMessage(sseEmitter, "SSE connected, emitterId: " + emitterId);
 
@@ -41,8 +44,8 @@ public class SseServiceImpl implements SseService {
     public void notifyToExpoClient(Long expoId, String content) {
         List<Long> allReservationMemberId = reservationRepository
                 .findAllMemberIdByExpoIdAndStatusAndUserType(
-                expoId, ReservationStatus.CONFIRMED, UserType.MEMBER
-        );
+                        expoId, ReservationStatus.CONFIRMED, UserType.MEMBER
+                );
         log.info("send notice to Expo Client: {}", allReservationMemberId);
         for (Long id : allReservationMemberId) {
             notifyMemberViaSseEmitters(id, content);
@@ -57,12 +60,13 @@ public class SseServiceImpl implements SseService {
         });
     }
 
-    private static void sendMessage(SseEmitter sseEmitter, String content) {
+    private void sendMessage(SseEmitter sseEmitter, String content) {
         try {
             sseEmitter.send(SseEmitter.event()
                     .data(content));
         } catch (IOException e) {
-            sseEmitter.complete();
+            log.error("Failed to send SSE message, sseEmitter complete with error.", e);
+            sseEmitter.completeWithError(e);
         }
     }
 
