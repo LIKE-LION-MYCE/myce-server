@@ -11,7 +11,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,11 +21,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity @Getter
 @NoArgsConstructor
-@Table(name = "ad_fee_setting",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_ad_position_active",
-                        columnNames = {"ad_position_id", "is_active"})
-        })
+@Table(name = "ad_fee_setting")
 @EntityListeners(AuditingEntityListener.class)
 public class AdFeeSetting {
 
