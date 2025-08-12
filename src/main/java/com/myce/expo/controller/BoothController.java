@@ -25,9 +25,8 @@ public class BoothController {
     public ResponseEntity<BoothResponse> saveBooth(
             @PathVariable Long expoId,
             @Valid @RequestBody BoothRequest request,
-            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
-        Long memberId = customUserDetails.getMemberId();
-        BoothResponse response = boothService.saveBooth(expoId, request, memberId);
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        BoothResponse response = boothService.saveBooth(expoId, request, userDetails.getLoginType(), userDetails.getMemberId());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -37,7 +36,7 @@ public class BoothController {
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        List<BoothResponse> booths = boothService.getMyBooths(expoId, userDetails.getMemberId());
+        List<BoothResponse> booths = boothService.getMyBooths(expoId, userDetails.getLoginType(), userDetails.getMemberId());
         return ResponseEntity.ok(booths);
     }
 
@@ -49,7 +48,7 @@ public class BoothController {
             @Valid @RequestBody BoothRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        BoothResponse response = boothService.updateBooth(expoId, boothId, request, userDetails.getMemberId());
+        BoothResponse response = boothService.updateBooth(expoId, boothId, request, userDetails.getLoginType(), userDetails.getMemberId());
         return ResponseEntity.ok(response);
     }
 
@@ -60,7 +59,7 @@ public class BoothController {
             @PathVariable Long boothId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        boothService.deleteBooth(expoId, boothId, userDetails.getMemberId());
+        boothService.deleteBooth(expoId, boothId, userDetails.getLoginType(), userDetails.getMemberId());
         return ResponseEntity.noContent().build();
     }
 }

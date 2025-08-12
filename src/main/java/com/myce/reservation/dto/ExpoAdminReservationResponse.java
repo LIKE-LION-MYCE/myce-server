@@ -3,6 +3,7 @@ package com.myce.reservation.dto;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -12,6 +13,7 @@ public class ExpoAdminReservationResponse {
     private String reservationCode;
     private String name;
     private String gender;
+    private LocalDate birth;
     private String phone;
     private String email;
     private String ticketName;
