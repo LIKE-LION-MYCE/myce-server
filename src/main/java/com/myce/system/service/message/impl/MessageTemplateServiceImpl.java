@@ -1,4 +1,4 @@
-package com.myce.system.service.impl.message;
+package com.myce.system.service.message.impl;
 
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
