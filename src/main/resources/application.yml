@@ -66,6 +66,8 @@ spring:
       uri: ${MONGODB_URI}
     redis:
       url: ${REDIS_URL}
+      repositories:
+        enabled: false  # Disable Redis repository auto-configuration (using RedisTemplate only)
 
   jpa:
     hibernate:
