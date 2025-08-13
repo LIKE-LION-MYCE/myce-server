@@ -107,6 +107,7 @@ public enum CustomErrorCode {
     // 예약 R
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "해당 예약 정보를 조회 할수 없습니다."),
     RESERVATION_STATUS_INVALID(HttpStatus.BAD_REQUEST, "R002", "유효하지 않은 예약 상태값입니다."),
+    RESERVER_INFO_NOT_FOUND(HttpStatus.BAD_REQUEST, "R003", "예매자 개인정보들은 비어 있을 수 없습니다."),
 
     // 정산 S
 
