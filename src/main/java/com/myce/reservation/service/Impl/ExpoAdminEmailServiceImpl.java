@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -46,7 +47,12 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
     public void sendMail(Long memberId, LoginType loginType, Long expoId, ExpoAdminEmailRequest dto) {
         validateMyAccess(expoId, memberId, loginType);
         String html = renderEmailHtml(expoId,dto);
-        emailSendService.sendMailToMultiple(dto.getRecipients(), dto.getSubject(), html);
+
+        List<String> emails = dto.getRecipientInfos().stream()
+                        .map(info -> info.getEmail())
+                        .toList();
+        emailSendService.sendMailToMultiple(emails, dto.getSubject(), html);
+
         emailLogRepository.save(mapper.toDocument(expoId,dto));
     }
     private String renderEmailHtml(Long expoId, ExpoAdminEmailRequest dto){

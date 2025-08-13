@@ -10,8 +10,7 @@ public class ExpoAdminEmailMapper {
         return EmailLog.builder()
                 .expoId(expoId)
                 .subject(dto.getSubject())
-                .recipientNames(dto.getRecipients())
-                .recipientCount(dto.getRecipients().size())
+                .recipientInfos(dto.getRecipientInfos())
                 .content(dto.getContent())
                 .build();
     }
