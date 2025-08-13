@@ -30,6 +30,7 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
     private final ExpoRepository expoRepository;
     private final BusinessProfileRepository businessProfileRepository;
     private final AdminPermissionRepository adminPermissionRepository;
+
     private final EmailLogRepository emailLogRepository;
     private final EmailSendService emailSendService;
     private final SpringTemplateEngine templateEngine;
@@ -44,10 +45,8 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
     @Transactional
     public void sendMail(Long memberId, LoginType loginType, Long expoId, ExpoAdminEmailRequest dto) {
         validateMyAccess(expoId, memberId, loginType);
-
         String html = renderEmailHtml(expoId,dto);
         emailSendService.sendMailToMultiple(dto.getRecipients(), dto.getSubject(), html);
-
         emailLogRepository.save(mapper.toDocument(expoId,dto));
     }
     private String renderEmailHtml(Long expoId, ExpoAdminEmailRequest dto){
