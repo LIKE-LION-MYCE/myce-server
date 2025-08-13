@@ -17,6 +17,7 @@ import com.myce.payment.repository.PaymentRepository;
 import com.myce.payment.repository.RefundRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -25,6 +26,7 @@ import java.time.temporal.ChronoUnit;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
     private final AdRepository adRepository;
     private final AdPaymentInfoRepository adPaymentInfoRepository;
@@ -43,6 +45,8 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
         long remainDays = LocalDate.now().until(ad.getDisplayEndDate(), ChronoUnit.DAYS);
         Integer totalAmount = (int) remainDays * adPayment.getFeePerDay();
+
+        log.info("generateCancelCheck - Advertisement : {}, Payment : {}", ad, payment);
         return AdInfoMapper.getAdCancelInfoCheck(payment, ad, totalAmount);
     }
 
@@ -68,6 +72,8 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
                 .status(RefundStatus.PENDING)
                 .build();
         refundRepository.save(refund);
+
+        log.info("cancelCurrent - Advertisement : {}, Payment : {}", ad, payment);
 
         ad.cancel();
     }
