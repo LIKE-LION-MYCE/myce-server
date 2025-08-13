@@ -4,11 +4,11 @@ import com.myce.advertisement.dto.*;
 import com.myce.common.dto.PageResponse;
 
 public interface PlatformAdService {
-    PageResponse<AdSimpleResponse> getAllAdList(
+    PageResponse<AdResponse> getAdList(
             int page, int pageSize,
             boolean latestFirst, boolean isApply);
 
-    PageResponse<AdSimpleResponse> getFilteredAdListByKeyword(
+    PageResponse<AdResponse> getFilteredAdListByKeyword(
             String keyword, String status,
             int page, int pageSize, boolean latestFirst, boolean isApply);
 }

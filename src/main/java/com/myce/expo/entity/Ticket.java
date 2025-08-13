@@ -97,4 +97,8 @@ public class Ticket {
         this.useStartDate = useStartDate;
         this.useEndDate = useEndDate;
     }
+
+    public void updateRemainingQuantity(Integer quantity){
+        this.remainingQuantity = quantity;
+    }
 }

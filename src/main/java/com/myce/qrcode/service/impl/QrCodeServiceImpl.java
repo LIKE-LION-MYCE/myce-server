@@ -4,14 +4,25 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
+import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.service.S3Service;
+import com.myce.expo.entity.AdminCode;
+import com.myce.expo.entity.Expo;
+import com.myce.expo.repository.AdminCodeRepository;
+import com.myce.notification.service.NotificationService;
+import com.myce.notification.service.SseService;
+import com.myce.qrcode.dto.QrUseResponse;
+import com.myce.qrcode.dto.QrVerifyResponse;
 import com.myce.qrcode.entity.QrCode;
 import com.myce.qrcode.entity.code.QrCodeStatus;
 import com.myce.qrcode.repository.QrCodeRepository;
 import com.myce.qrcode.service.QrCodeService;
+import com.myce.qrcode.service.mapper.QrResponseMapper;
 import com.myce.reservation.entity.Reserver;
+import com.myce.reservation.entity.Reservation;
+import com.myce.reservation.entity.code.UserType;
 import com.myce.reservation.repository.ReserverRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +41,11 @@ public class QrCodeServiceImpl implements QrCodeService {
 
     private final QrCodeRepository qrCodeRepository;
     private final ReserverRepository reserverRepository;
+    private final AdminCodeRepository adminCodeRepository;
     private final S3Service s3Service;
+    private final QrResponseMapper qrResponseMapper;
+    private final SseService sseService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -48,6 +63,9 @@ public class QrCodeServiceImpl implements QrCodeService {
         try {
             createAndSaveQrCode(reserver);
             log.info("QR 코드 발급 완료 - 예약자 ID: {}", reserverId);
+            
+            // QR 발급 성공 알림 전송
+            sendQrIssuedNotification(reserver, false);
         } catch (Exception e) {
             log.error("QR 코드 발급 실패 - 예약자 ID: {}, 오류: {}", reserverId, e.getMessage(), e);
             throw new CustomException(CustomErrorCode.QR_GENERATION_FAILED);
@@ -56,18 +74,18 @@ public class QrCodeServiceImpl implements QrCodeService {
 
     @Override
     @Transactional
-    public void reissueQr(Long reserverId, Long adminMemberId) {
+    public void reissueQr(Long reserverId, Long adminMemberId, LoginType loginType) {
         log.info("QR 코드 재발급 시작 - 예약자 ID: {}, 관리자 ID: {}", reserverId, adminMemberId);
 
         Reserver reserver = reserverRepository.findById(reserverId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVER_NOT_FOUND));
 
-        validateExpoManager(adminMemberId, reserver);
+        validateAdminPermission(adminMemberId, reserver, loginType);
 
         QrCode existing = qrCodeRepository.findByReserver(reserver)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.QR_NOT_FOUND));
 
-        if (existing.getStatus() != QrCodeStatus.ACTIVE) {
+        if (existing.getStatus() != QrCodeStatus.ACTIVE && existing.getStatus() != QrCodeStatus.APPROVED) {
             throw new CustomException(CustomErrorCode.QR_INVALID_STATUS);
         }
 
@@ -78,6 +96,9 @@ public class QrCodeServiceImpl implements QrCodeService {
 
             createAndSaveQrCode(reserver);
             log.info("QR 코드 재발급 완료 - 예약자 ID: {}", reserverId);
+            
+            // QR 재발급 성공 알림 전송
+            sendQrIssuedNotification(reserver, true);
         } catch (Exception e) {
             log.error("QR 코드 재발급 실패 - 예약자 ID: {}, 관리자 ID: {}, 오류: {}",
                     reserverId, adminMemberId, e.getMessage(), e);
@@ -88,29 +109,23 @@ public class QrCodeServiceImpl implements QrCodeService {
 
     @Override
     @Transactional
-    public void markQrAsUsed(String qrToken, Long adminMemberId) {
-        log.info("QR 코드 사용 처리 시작 - 토큰: {}, 관리자 ID: {}", qrToken, adminMemberId);
+    public QrUseResponse updateQrAsUsed(String qrToken, Long adminMemberId, LoginType loginType) {
+        log.info("QR 코드 사용 처리 시작 - 토큰: {}, 관리자 ID: {}, 로그인 타입: {}", qrToken, adminMemberId, loginType);
         
         QrCode qr = qrCodeRepository.findByQrToken(qrToken)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.QR_NOT_FOUND));
 
-        validateExpoManager(adminMemberId, qr.getReserver());
+        validateAdminPermission(adminMemberId, qr.getReserver(), loginType);
 
-        if (qr.getStatus() == QrCodeStatus.USED) {
-            throw new CustomException(CustomErrorCode.QR_ALREADY_USED);
+        // ACTIVE인 경우만 상태 변경
+        if (qr.getStatus() == QrCodeStatus.ACTIVE) {
+            qr.markAsUsed();
         }
-        
-        if (qr.getStatus() == QrCodeStatus.EXPIRED) {
-            throw new CustomException(CustomErrorCode.QR_EXPIRED);
-        }
-
-        if (qr.getStatus() == QrCodeStatus.APPROVED) {
-            throw new CustomException(CustomErrorCode.QR_APPROVED);
-        }
-
-        qr.markAsUsed();
         log.info("QR 코드 사용 처리 완료 - QR ID: {}, 예약자 ID: {}", 
                 qr.getId(), qr.getReserver().getId());
+
+        // 매퍼를 통해 성공 응답 생성
+        return qrResponseMapper.toUseResponse(qr);
     }
 
     @Override
@@ -148,14 +163,28 @@ public class QrCodeServiceImpl implements QrCodeService {
         return url;
     }
 
-    private void validateExpoManager(Long adminId, Reserver reserver) {
-        Long managerId = reserver.getReservation()
-                .getExpo()
-                .getMember()
-                .getId();
-
-        if (!managerId.equals(adminId)) {
-            throw new CustomException(CustomErrorCode.QR_UNAUTHORIZED);
+    private void validateAdminPermission(Long adminId, Reserver reserver, LoginType loginType) {
+        Long expoId = reserver.getReservation().getExpo().getId();
+        
+        switch (loginType) {
+            case MEMBER -> {
+                // Member 테이블의 PK로 전시회 소유자 확인
+                Long managerId = reserver.getReservation()
+                        .getExpo()
+                        .getMember()
+                        .getId();
+                if (!managerId.equals(adminId)) {
+                    throw new CustomException(CustomErrorCode.QR_UNAUTHORIZED);
+                }
+            }
+            case ADMIN_CODE -> {
+                // AdminCode 테이블의 PK로 전시회 권한 확인
+                AdminCode adminCode = adminCodeRepository.findById(adminId)
+                        .orElseThrow(() -> new CustomException(CustomErrorCode.ADMIN_CODE_NOT_FOUND));
+                if (!adminCode.getExpoId().equals(expoId)) {
+                    throw new CustomException(CustomErrorCode.QR_UNAUTHORIZED);
+                }
+            }
         }
     }
 
@@ -215,5 +244,70 @@ public class QrCodeServiceImpl implements QrCodeService {
     private LocalDateTime calculateExpiredAt(Reserver reserver) {
         LocalDate ticketUseEndDate = reserver.getReservation().getTicket().getUseEndDate();
         return ticketUseEndDate.plusDays(1).atStartOfDay();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QrVerifyResponse verifyQrCode(String token, Long adminMemberId, LoginType loginType) {
+        log.info("QR 코드 검증 시작 - token: {}, adminId: {}, 로그인 타입: {}", token, adminMemberId, loginType);
+        
+        QrCode qrCode = qrCodeRepository.findByQrToken(token)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.QR_NOT_FOUND));
+        
+        // 관리자 권한 검증
+        validateAdminPermission(adminMemberId, qrCode.getReserver(), loginType);
+        
+        // 매퍼를 통해 응답 생성 (상태만 체크)
+        QrVerifyResponse response = qrResponseMapper.toVerifyResponse(qrCode);
+        
+        log.info("QR 코드 검증 완료 - token: {}, 상태: {}, 유효성: {}", 
+                token, qrCode.getStatus(), response.isValid());
+        return response;
+    }
+
+    /**
+     * QR 발급/재발급 시 SSE 알림 전송
+     */
+    private void sendQrIssuedNotification(Reserver reserver, boolean isReissue) {
+        try {
+            Reservation reservation = reserver.getReservation();
+            
+            // MEMBER 타입인 경우에만 알림 전송
+            if (reservation.getUserType() != UserType.MEMBER) {
+                log.debug("SSE 알림 건너뜀 - 회원이 아닌 예약자 (UserType: {}, 예약자 ID: {})", 
+                        reservation.getUserType(), reserver.getId());
+                return;
+            }
+            
+            Long memberId = reservation.getUserId();
+            Long expoId = reservation.getExpo().getId();
+            String expoTitle = reservation.getExpo().getTitle();
+            
+            String message = String.format(
+                "{\"type\":\"%s\",\"expoTitle\":\"%s\",\"message\":\"%s\"}",
+                isReissue ? "QR_REISSUED" : "QR_ISSUED",
+                expoTitle,
+                isReissue ? "QR코드가 재발급되었습니다." : "QR코드가 발급되었습니다. 박람회 입장 시 사용하세요!"
+            );
+            
+            // 1. SSE 실시간 알림 전송
+            notifyMemberViaSseEmitters(memberId, message);
+            
+            // 2. MongoDB에 알림 저장
+            notificationService.saveQrIssuedNotification(memberId, expoId, expoTitle, isReissue);
+            
+            log.info("QR {} 알림 전송 및 저장 완료 - 예약자 ID: {}, 회원 ID: {}", 
+                    isReissue ? "재발급" : "발급", reserver.getId(), memberId);
+        } catch (Exception e) {
+            log.error("QR 발급 알림 전송 실패 - 예약자 ID: {}, 오류: {}", 
+                    reserver.getId(), e.getMessage(), e);
+            // 알림 실패가 주 기능에 영향을 주지 않도록 예외를 던지지 않음
+        }
+    }
+    /**
+     * 특정 회원에게 SSE 알림 전송
+     */
+    private void notifyMemberViaSseEmitters(Long memberId, String content) {
+        sseService.notifyMemberViaSseEmitters(memberId, content);
     }
 }

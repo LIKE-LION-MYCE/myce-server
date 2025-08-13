@@ -2,10 +2,10 @@ package com.myce.advertisement.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myce.advertisement.dto.AdMainPageInfo;
-import com.myce.advertisement.entity.AdPosition;
+import com.myce.system.entity.AdPosition;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
-import com.myce.advertisement.repository.AdPositionRepository;
+import com.myce.system.repository.AdPositionRepository;
 import com.myce.advertisement.repository.AdRepository;
 import com.myce.advertisement.service.SystemAdService;
 import com.myce.common.exception.CustomErrorCode;

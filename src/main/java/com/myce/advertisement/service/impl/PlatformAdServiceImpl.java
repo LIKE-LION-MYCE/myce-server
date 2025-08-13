@@ -1,6 +1,6 @@
 package com.myce.advertisement.service.impl;
 
-import com.myce.advertisement.dto.AdSimpleResponse;
+import com.myce.advertisement.dto.AdResponse;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.advertisement.repository.AdRepository;
@@ -13,6 +13,7 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,12 +24,13 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PlatformAdServiceImpl implements PlatformAdService {
 
     private final AdRepository adRepository;
     private final BusinessProfileRepository businessProfileRepository;
 
-    public PageResponse<AdSimpleResponse> getAllAdList(
+    public PageResponse<AdResponse> getAdList(
             int page, int pageSize,
             boolean latestFirst, boolean isApply) {
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
@@ -38,11 +40,12 @@ public class PlatformAdServiceImpl implements PlatformAdService {
 
         Page<Advertisement> bannerEntityPage = adRepository
                 .findByStatusIn(applyStatusList, pageable);
+        log.info("PlatformAdServiceImpl.getAdList: {}", bannerEntityPage.getTotalElements());
 
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
-    public PageResponse<AdSimpleResponse> getFilteredAdListByKeyword(
+    public PageResponse<AdResponse> getFilteredAdListByKeyword(
             String keyword, String statusText,
             int page, int pageSize, boolean latestFirst, boolean isApply) {
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
@@ -60,7 +63,7 @@ public class PlatformAdServiceImpl implements PlatformAdService {
             bannerEntityPage = adRepository
                     .findByTitleContainingAndStatusIn(keyword, applyStatusList, pageable);
         }
-
+        log.info("PlatformAdServiceImpl.getFilteredAdListByKeyword: {}", bannerEntityPage.getTotalElements());
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
@@ -79,7 +82,7 @@ public class PlatformAdServiceImpl implements PlatformAdService {
     }
 
     // DTO 변환
-    private AdSimpleResponse getSimpleApplyAdvertisement(Advertisement advertisement) {
+    private AdResponse getSimpleApplyAdvertisement(Advertisement advertisement) {
         BusinessProfile businessProfile = businessProfileRepository
                 .findByTargetIdAndTargetType(advertisement.getId(), TargetType.ADVERTISEMENT)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));

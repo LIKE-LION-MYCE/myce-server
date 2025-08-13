@@ -30,6 +30,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatWebSocketController {
 
+    private static final String ADMIN_ROOM_PREFIX = "admin-";
+    private static final String ROOM_DELIMITER = "-";
+    private static final String ADMIN_CODE_TYPE = "ADMIN_CODE";
+    private static final String USER_ERROR_TOPIC_PREFIX = "/topic/user/";
+    private static final String ERROR_CHANNEL_SUFFIX = "/errors";
+
     private final ChatWebSocketService chatWebSocketService;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
@@ -215,7 +221,7 @@ public class ChatWebSocketController {
             ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
                     .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
             
-            String adminCode = chatWebSocketService.determineAdminCode(userId, "ADMIN_CODE");
+            String adminCode = chatWebSocketService.determineAdminCode(userId, ADMIN_CODE_TYPE);
             
             chatWebSocketService.assignAdminIfNeeded(chatRoom, adminCode);
             chatRoomRepository.save(chatRoom);
@@ -246,7 +252,7 @@ public class ChatWebSocketController {
             
             // 관리자 메시지 직접 생성 및 저장
             ChatMessage adminMessage = ChatMessage.createAdminMessage(
-                roomCode, content, userId, adminCode, "ADMIN_CODE", 
+                roomCode, content, userId, adminCode, ADMIN_CODE_TYPE, 
                 chatRoom.getAdminDisplayName()
             );
             ChatMessage savedMessage = chatMessageRepository.save(adminMessage);
@@ -295,7 +301,7 @@ public class ChatWebSocketController {
                     
             String sessionId = headerAccessor.getSessionId();
             try {
-                String userErrorChannel = "/topic/user/" + sessionId + "/errors";
+                String userErrorChannel = USER_ERROR_TOPIC_PREFIX + sessionId + ERROR_CHANNEL_SUFFIX;
                 messagingTemplate.convertAndSend(userErrorChannel, error);
             } catch (Exception sendException) {
                 log.error("에러 메시지 전송 실패", sendException);
@@ -361,8 +367,8 @@ public class ChatWebSocketController {
      */
     private Long extractExpoIdFromRoomCode(String roomCode) {
         try {
-            if (roomCode != null && roomCode.startsWith("admin-")) {
-                String[] parts = roomCode.split("-");
+            if (roomCode != null && roomCode.startsWith(ADMIN_ROOM_PREFIX)) {
+                String[] parts = roomCode.split(ROOM_DELIMITER);
                 if (parts.length >= 3) {
                     return Long.parseLong(parts[1]);
                 }
