@@ -23,6 +23,7 @@ import com.myce.member.entity.Member;
 import com.myce.member.repository.FavoriteRepository;
 import com.myce.member.repository.MemberRepository;
 import com.myce.qrcode.repository.QrCodeRepository;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -132,7 +133,11 @@ public class ExpoServiceImpl implements ExpoService {
     @Override
     public List<ExpoCardResponse> getExpoCards(Long memberId) {
         List<ExpoCardResponse> expoCards = new ArrayList<>();
-        List<Expo> expos = expoRepository.findAll();
+        LocalDate today = LocalDate.now();
+        // 노출 구간에 있는 것만 조회
+        List<Expo> expos = expoRepository
+            .findAllByDisplayStartDateLessThanOrEqualToAndDisplayEndDateGreaterThanOrEqualTo(today, today);
+
         for(Expo expo : expos) {
             // 남은 티켓 수 합산
             List<Ticket> tickets = ticketRepository.findByExpoId(expo.getId());
