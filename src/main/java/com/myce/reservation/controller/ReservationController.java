@@ -1,6 +1,7 @@
 package com.myce.reservation.controller;
 
 import com.myce.reservation.dto.ReservationDetailResponse;
+import com.myce.reservation.dto.ReservationPendingRequest;
 import com.myce.reservation.dto.ReserverBulkUpdateRequest;
 import com.myce.reservation.dto.ResolveReserversRequest;
 import com.myce.reservation.dto.ResolveReserversResponse;
@@ -8,6 +9,7 @@ import com.myce.reservation.service.ReservationService;
 import com.myce.reservation.service.ReserverResolveService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,5 +50,12 @@ public class ReservationController {
     ) {
         ResolveReserversResponse response = reserverResolveService.resolve(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/pending")
+    public ResponseEntity<Long> saveReservationPending(
+        @Valid @RequestBody ReservationPendingRequest request
+    ){
+        return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.saveReservationPending(request));
     }
 }

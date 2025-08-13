@@ -2,14 +2,21 @@ package com.myce.reservation.service.Impl;
 
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.expo.entity.Expo;
+import com.myce.expo.entity.Ticket;
+import com.myce.expo.repository.ExpoRepository;
+import com.myce.expo.repository.TicketRepository;
 import com.myce.reservation.dto.ReservationDetailResponse;
+import com.myce.reservation.dto.ReservationPendingRequest;
 import com.myce.reservation.dto.ReserverBulkUpdateRequest;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.Reserver;
+import com.myce.reservation.entity.code.ReservationStatus;
 import com.myce.reservation.service.mapper.ReservationDetailMapper;
 import com.myce.reservation.repository.ReservationRepository;
 import com.myce.reservation.repository.ReserverRepository;
 import com.myce.reservation.service.ReservationService;
+import com.myce.reservation.service.mapper.ReservationMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +33,9 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationRepository reservationRepository;
     private final ReserverRepository reserverRepository;
     private final ReservationDetailMapper reservationDetailMapper;
+    private final TicketRepository ticketRepository;
+    private final ReservationMapper reservationMapper;
+    private final ExpoRepository expoRepository;
     
     @Override
     public ReservationDetailResponse getReservationDetail(String reservationCode) {
@@ -64,5 +74,28 @@ public class ReservationServiceImpl implements ReservationService {
                 reserverInfo.getEmail()
             );
         }
+    }
+
+    @Transactional
+    @Override
+    public Long saveReservationPending(ReservationPendingRequest request) {
+        // 티켓 가져오기
+        Ticket ticket = ticketRepository.findById(request.getTicketId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
+
+        // 티켓 재고 검증
+        if(ticket.getRemainingQuantity() < request.getQuantity()){
+            throw new CustomException(CustomErrorCode.TICKET_SOLD_OUT);
+        }
+
+        // 예약 엔티티 생성
+        String reservationCode = "";
+        Expo expo = expoRepository.findById(request.getExpoId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
+
+        Reservation reservation = reservationMapper.toEntity(expo, ticket, request,
+            reservationCode, ReservationStatus.CONFIRMED_PENDING);
+
+        return reservationRepository.save(reservation).getId();
     }
 }
