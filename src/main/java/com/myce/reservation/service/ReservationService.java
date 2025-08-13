@@ -11,4 +11,6 @@ public interface ReservationService {
     void updateReservers(String reservationCode, ReserverBulkUpdateRequest request);
 
     Long saveReservationPending(ReservationPendingRequest request);
+
+    void updateStatusToConfirm(Long reservationId);
 }

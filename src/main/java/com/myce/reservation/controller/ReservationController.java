@@ -58,4 +58,10 @@ public class ReservationController {
     ){
         return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.saveReservationPending(request));
     }
+
+    @PatchMapping("/{reservationId}/confirm")
+    public ResponseEntity<Void> updateReservationStatusConfirm(@PathVariable Long reservationId){
+        reservationService.updateStatusToConfirm(reservationId);
+        return ResponseEntity.noContent().build();
+    }
 }

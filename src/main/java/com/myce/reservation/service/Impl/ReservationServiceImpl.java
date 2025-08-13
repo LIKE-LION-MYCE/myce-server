@@ -100,4 +100,13 @@ public class ReservationServiceImpl implements ReservationService {
 
         return reservationRepository.save(reservation).getId();
     }
+
+    @Transactional
+    @Override
+    public void updateStatusToConfirm(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+            .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+
+        reservation.updateStatus(ReservationStatus.CONFIRMED);
+    }
 }
