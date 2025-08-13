@@ -2,7 +2,9 @@ package com.myce.member.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.member.dto.MemberInfoResponse;
+import com.myce.member.dto.MileageUpdateRequest;
 import com.myce.member.dto.PasswordChangeRequest;
+import com.myce.member.service.MemberMileageService;
 import com.myce.member.service.MemberService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 public class MemberController {
     
     private final MemberService memberService;
+    private final MemberMileageService memberMileageService;
 
     @DeleteMapping("/withdraw")
     public ResponseEntity<Void> withdrawMember(
@@ -51,5 +54,15 @@ public class MemberController {
         Long memberId = customUserDetails.getMemberId();
 
         return  ResponseEntity.ok(memberService.getMyMileage(memberId));
+    }
+
+    @PatchMapping("/my-mileage")
+    public ResponseEntity<Void> updateMileageForReservation(
+        @AuthenticationPrincipal CustomUserDetails customUserDetails,
+        @RequestBody  @Valid MileageUpdateRequest request
+        ){
+        Long memberId = customUserDetails.getMemberId();
+        memberMileageService.updateMileageForReservation(memberId, request);
+        return ResponseEntity.noContent().build();
     }
 }

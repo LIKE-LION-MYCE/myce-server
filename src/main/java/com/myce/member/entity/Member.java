@@ -109,5 +109,9 @@ public class Member {
             this.email = email;
         }
     }
+
+    public void updateMileage(Integer mileage) {
+        this.mileage = mileage;
+    }
 }
 
