@@ -64,7 +64,7 @@ public class SecurityConfig {
                 LoginFilter.class).addFilterAt(loginFilter, UsernamePasswordAuthenticationFilter.class);
 
         http.authorizeHttpRequests(auth ->
-                auth.requestMatchers(HttpMethod.POST, "/api/auth/**")
+                                auth.requestMatchers(HttpMethod.POST, "/api/auth/**", "/api/test/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/**")
                         .permitAll()
