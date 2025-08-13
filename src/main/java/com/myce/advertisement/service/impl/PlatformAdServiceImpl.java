@@ -1,6 +1,6 @@
 package com.myce.advertisement.service.impl;
 
-import com.myce.advertisement.dto.AdSimpleResponse;
+import com.myce.advertisement.dto.AdResponse;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.advertisement.repository.AdRepository;
@@ -28,7 +28,7 @@ public class PlatformAdServiceImpl implements PlatformAdService {
     private final AdRepository adRepository;
     private final BusinessProfileRepository businessProfileRepository;
 
-    public PageResponse<AdSimpleResponse> getAllAdList(
+    public PageResponse<AdResponse> getAdList(
             int page, int pageSize,
             boolean latestFirst, boolean isApply) {
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
@@ -42,7 +42,7 @@ public class PlatformAdServiceImpl implements PlatformAdService {
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
-    public PageResponse<AdSimpleResponse> getFilteredAdListByKeyword(
+    public PageResponse<AdResponse> getFilteredAdListByKeyword(
             String keyword, String statusText,
             int page, int pageSize, boolean latestFirst, boolean isApply) {
         Sort sort = latestFirst ? Sort.by("createdAt").descending()
@@ -79,7 +79,7 @@ public class PlatformAdServiceImpl implements PlatformAdService {
     }
 
     // DTO 변환
-    private AdSimpleResponse getSimpleApplyAdvertisement(Advertisement advertisement) {
+    private AdResponse getSimpleApplyAdvertisement(Advertisement advertisement) {
         BusinessProfile businessProfile = businessProfileRepository
                 .findByTargetIdAndTargetType(advertisement.getId(), TargetType.ADVERTISEMENT)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));

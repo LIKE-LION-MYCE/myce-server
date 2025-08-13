@@ -4,6 +4,7 @@ import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.member.entity.Member;
+import com.myce.system.entity.AdPosition;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;

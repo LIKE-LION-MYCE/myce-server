@@ -1,9 +1,9 @@
 package com.myce.advertisement.service.impl;
 
 import com.myce.advertisement.dto.AdRegistrationRequest;
-import com.myce.advertisement.entity.AdPosition;
+import com.myce.system.entity.AdPosition;
 import com.myce.advertisement.entity.Advertisement;
-import com.myce.advertisement.repository.AdPositionRepository;
+import com.myce.system.repository.AdPositionRepository;
 import com.myce.advertisement.repository.AdRepository;
 import com.myce.advertisement.service.UserAdService;
 import com.myce.advertisement.service.mapper.AdRegistrationMapper;

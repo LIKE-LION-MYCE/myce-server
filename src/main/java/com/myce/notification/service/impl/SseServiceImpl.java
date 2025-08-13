@@ -52,7 +52,7 @@ public class SseServiceImpl implements SseService {
         }
     }
 
-    public void notifyMemberViaSseEmitters(Long memberId, String content) {
+    private void notifyMemberViaSseEmitters(Long memberId, String content) {
         List<SseEmitter> emitters = emitterRepository
                 .findAllSseEmitterByMemberId(String.valueOf(memberId));
         emitters.forEach(sseEmitter -> {

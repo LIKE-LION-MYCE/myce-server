@@ -1,4 +1,4 @@
-package com.myce.advertisement.entity;
+package com.myce.system.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -45,6 +45,16 @@ public class AdPosition {
     @Builder
     public AdPosition(String name, Integer imageWidth, Integer imageHeight,
                      Integer maxCount, Boolean isActive) {
+        this.name = name;
+        this.imageWidth = imageWidth;
+        this.imageHeight = imageHeight;
+        this.maxCount = maxCount;
+        this.isActive = isActive;
+    }
+
+    public void update(String name, Integer imageWidth,
+                       Integer imageHeight, Integer maxCount,
+                       boolean isActive, LocalDateTime updatedAt) {
         this.name = name;
         this.imageWidth = imageWidth;
         this.imageHeight = imageHeight;
