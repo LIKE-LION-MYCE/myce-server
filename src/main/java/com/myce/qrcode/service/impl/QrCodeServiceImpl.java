@@ -9,7 +9,10 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.service.S3Service;
 import com.myce.expo.entity.AdminCode;
+import com.myce.expo.entity.Expo;
 import com.myce.expo.repository.AdminCodeRepository;
+import com.myce.notification.service.NotificationService;
+import com.myce.notification.service.SseService;
 import com.myce.qrcode.dto.QrUseResponse;
 import com.myce.qrcode.dto.QrVerifyResponse;
 import com.myce.qrcode.entity.QrCode;
@@ -18,6 +21,8 @@ import com.myce.qrcode.repository.QrCodeRepository;
 import com.myce.qrcode.service.QrCodeService;
 import com.myce.qrcode.service.mapper.QrResponseMapper;
 import com.myce.reservation.entity.Reserver;
+import com.myce.reservation.entity.Reservation;
+import com.myce.reservation.entity.code.UserType;
 import com.myce.reservation.repository.ReserverRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +44,8 @@ public class QrCodeServiceImpl implements QrCodeService {
     private final AdminCodeRepository adminCodeRepository;
     private final S3Service s3Service;
     private final QrResponseMapper qrResponseMapper;
+    private final SseService sseService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -56,6 +63,9 @@ public class QrCodeServiceImpl implements QrCodeService {
         try {
             createAndSaveQrCode(reserver);
             log.info("QR 코드 발급 완료 - 예약자 ID: {}", reserverId);
+            
+            // QR 발급 성공 알림 전송
+            sendQrIssuedNotification(reserver, false);
         } catch (Exception e) {
             log.error("QR 코드 발급 실패 - 예약자 ID: {}, 오류: {}", reserverId, e.getMessage(), e);
             throw new CustomException(CustomErrorCode.QR_GENERATION_FAILED);
@@ -75,7 +85,7 @@ public class QrCodeServiceImpl implements QrCodeService {
         QrCode existing = qrCodeRepository.findByReserver(reserver)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.QR_NOT_FOUND));
 
-        if (existing.getStatus() != QrCodeStatus.ACTIVE) {
+        if (existing.getStatus() != QrCodeStatus.ACTIVE && existing.getStatus() != QrCodeStatus.APPROVED) {
             throw new CustomException(CustomErrorCode.QR_INVALID_STATUS);
         }
 
@@ -86,6 +96,9 @@ public class QrCodeServiceImpl implements QrCodeService {
 
             createAndSaveQrCode(reserver);
             log.info("QR 코드 재발급 완료 - 예약자 ID: {}", reserverId);
+            
+            // QR 재발급 성공 알림 전송
+            sendQrIssuedNotification(reserver, true);
         } catch (Exception e) {
             log.error("QR 코드 재발급 실패 - 예약자 ID: {}, 관리자 ID: {}, 오류: {}",
                     reserverId, adminMemberId, e.getMessage(), e);
@@ -250,5 +263,51 @@ public class QrCodeServiceImpl implements QrCodeService {
         log.info("QR 코드 검증 완료 - token: {}, 상태: {}, 유효성: {}", 
                 token, qrCode.getStatus(), response.isValid());
         return response;
+    }
+
+    /**
+     * QR 발급/재발급 시 SSE 알림 전송
+     */
+    private void sendQrIssuedNotification(Reserver reserver, boolean isReissue) {
+        try {
+            Reservation reservation = reserver.getReservation();
+            
+            // MEMBER 타입인 경우에만 알림 전송
+            if (reservation.getUserType() != UserType.MEMBER) {
+                log.debug("SSE 알림 건너뜀 - 회원이 아닌 예약자 (UserType: {}, 예약자 ID: {})", 
+                        reservation.getUserType(), reserver.getId());
+                return;
+            }
+            
+            Long memberId = reservation.getUserId();
+            Long expoId = reservation.getExpo().getId();
+            String expoTitle = reservation.getExpo().getTitle();
+            
+            String message = String.format(
+                "{\"type\":\"%s\",\"expoTitle\":\"%s\",\"message\":\"%s\"}",
+                isReissue ? "QR_REISSUED" : "QR_ISSUED",
+                expoTitle,
+                isReissue ? "QR코드가 재발급되었습니다." : "QR코드가 발급되었습니다. 박람회 입장 시 사용하세요!"
+            );
+            
+            // 1. SSE 실시간 알림 전송
+            notifyMemberViaSseEmitters(memberId, message);
+            
+            // 2. MongoDB에 알림 저장
+            notificationService.saveQrIssuedNotification(memberId, expoId, expoTitle, isReissue);
+            
+            log.info("QR {} 알림 전송 및 저장 완료 - 예약자 ID: {}, 회원 ID: {}", 
+                    isReissue ? "재발급" : "발급", reserver.getId(), memberId);
+        } catch (Exception e) {
+            log.error("QR 발급 알림 전송 실패 - 예약자 ID: {}, 오류: {}", 
+                    reserver.getId(), e.getMessage(), e);
+            // 알림 실패가 주 기능에 영향을 주지 않도록 예외를 던지지 않음
+        }
+    }
+    /**
+     * 특정 회원에게 SSE 알림 전송
+     */
+    private void notifyMemberViaSseEmitters(Long memberId, String content) {
+        sseService.notifyMemberViaSseEmitters(memberId, content);
     }
 }

@@ -1,6 +1,7 @@
 package com.myce.member.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.member.dto.ad.AdRefundRequest;
 import com.myce.member.dto.ad.AdvertisementDetailResponse;
 import com.myce.member.dto.ad.AdvertisementPaymentDetailResponse;
 import com.myce.member.dto.ad.AdvertisementRefundReceiptResponse;
@@ -50,6 +51,29 @@ public class MemberAdController {
         
         Long memberId = customUserDetails.getMemberId();
         memberAdService.cancelAdvertisement(memberId, advertisementId);
+        
+        return ResponseEntity.noContent().build();
+    }
+    
+    @PostMapping("/{advertisementId}/cancel-by-status")
+    public ResponseEntity<Void> cancelByStatus(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberAdService.cancelByStatus(memberId, advertisementId);
+        
+        return ResponseEntity.noContent().build();
+    }
+    
+    @PostMapping("/{advertisementId}/refund-request-by-status")
+    public ResponseEntity<Void> requestRefundByStatus(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId,
+            @RequestBody AdRefundRequest request) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberAdService.requestRefundByStatus(memberId, advertisementId, request);
         
         return ResponseEntity.noContent().build();
     }
