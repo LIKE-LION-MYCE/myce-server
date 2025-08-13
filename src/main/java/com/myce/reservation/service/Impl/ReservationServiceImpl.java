@@ -12,6 +12,7 @@ import com.myce.reservation.dto.ReserverBulkUpdateRequest;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.Reserver;
 import com.myce.reservation.entity.code.ReservationStatus;
+import com.myce.reservation.service.ReservationCodeService;
 import com.myce.reservation.service.mapper.ReservationDetailMapper;
 import com.myce.reservation.repository.ReservationRepository;
 import com.myce.reservation.repository.ReserverRepository;
@@ -36,6 +37,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final TicketRepository ticketRepository;
     private final ReservationMapper reservationMapper;
     private final ExpoRepository expoRepository;
+    private final ReservationCodeService reservationCodeService;
     
     @Override
     public ReservationDetailResponse getReservationDetail(String reservationCode) {
@@ -89,7 +91,7 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         // 예약 엔티티 생성
-        String reservationCode = "";
+        String reservationCode = reservationCodeService.generate(request.getExpoId());
         Expo expo = expoRepository.findById(request.getExpoId())
             .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
 

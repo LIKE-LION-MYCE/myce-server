@@ -82,4 +82,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     );
 
     Optional<Reservation> findByReservationCode(String reservationCode);
+
+    // reservation code 이미 있는지 확인
+    boolean existsByReservationCode(String reservationCode);
 }
