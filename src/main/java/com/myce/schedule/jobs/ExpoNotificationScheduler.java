@@ -73,15 +73,6 @@ public class ExpoNotificationScheduler implements TaskScheduler {
         sendNotificationsForExpos(exposStartingTomorrow);
     }
 
-    // 테스트 알림 전송 메소드
-    @Transactional
-    public void testSendNotificationForExpo(Long expoId) {
-        Expo expo = expoRepository.findById(expoId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-        sendNotificationsForExpos(List.of(expo));
-        log.info("[Scheduler] 테스트 알림 전송 완료. 박람회 ID: {}", expoId);
-    }
-
     // 알림 전송 저장
     private void sendNotificationsForExpos(List<Expo> expos) {
         // 메세지 템플릿 조회
