@@ -107,4 +107,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> findByExpo(com.myce.expo.entity.Expo expo);
 
     List<Reservation> findByExpoIn(List<Expo> expos);
+
+    // reservation code 이미 있는지 확인
+    boolean existsByReservationCode(String reservationCode);
 }

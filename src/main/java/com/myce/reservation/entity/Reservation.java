@@ -88,4 +88,8 @@ public class Reservation {
         this.quantity = quantity;
         this.status = status;
     }
+
+    public void updateStatus(ReservationStatus status) {
+        this.status = status;
+    }
 }

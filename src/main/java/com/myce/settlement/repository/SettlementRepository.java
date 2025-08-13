@@ -19,5 +19,8 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
             @Param("status") SettlementStatus status,
             @Param("timestamp") LocalDateTime timestamp
     );
-
+    
+    Optional<Settlement> findByExpoId(Long expoId);
+    
+    boolean existsByExpoId(Long expoId);
 }

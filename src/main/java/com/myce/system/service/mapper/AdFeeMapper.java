@@ -1,6 +1,6 @@
 package com.myce.system.service.mapper;
 
-import com.myce.advertisement.entity.AdPosition;
+import com.myce.system.entity.AdPosition;
 import com.myce.system.dto.fee.AdFeeListResponse;
 import com.myce.system.dto.fee.AdFeeRequest;
 import com.myce.system.dto.fee.AdFeeResponse;
