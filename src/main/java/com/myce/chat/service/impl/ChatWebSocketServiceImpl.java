@@ -191,23 +191,23 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
             }
         }
         
-        // 기존 박람회 방 형식: admin-{expoId}-{memberId}
-        if (roomId.startsWith(ADMIN_ROOM_PREFIX)) {
-            String[] parts = roomId.split(ROOM_DELIMITER);
-            if (parts.length != 3) {
-                return false;
-            }
-            
-            try {
-                Long.parseLong(parts[1]); // expoId
-                Long.parseLong(parts[2]); // userId
-                return true;
-            } catch (NumberFormatException e) {
-                return false;
-            }
+        // 기존 박람회 방 형식: admin-{expoId}-{memberId} (원래 로직 유지)
+        if (!roomId.startsWith(ADMIN_ROOM_PREFIX)) {
+            return false;
         }
         
-        return false;
+        String[] parts = roomId.split(ROOM_DELIMITER);
+        if (parts.length != 3) {
+            return false;
+        }
+        
+        try {
+            Long.parseLong(parts[1]); // expoId
+            Long.parseLong(parts[2]); // userId
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     /**

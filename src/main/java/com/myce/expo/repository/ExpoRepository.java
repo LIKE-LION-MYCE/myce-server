@@ -70,5 +70,8 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
     
     // 현재 박람회 관리용 - 키워드 검색 + 여러 상태 조회
     Page<Expo> findByTitleContainingIgnoreCaseAndStatusIn(String keyword, List<ExpoStatus> statuses, Pageable pageable);
+    
+    // AI 상담용 - 최신 박람회 5개 조회
+    List<Expo> findTop5ByOrderByCreatedAtDesc();
 }
 

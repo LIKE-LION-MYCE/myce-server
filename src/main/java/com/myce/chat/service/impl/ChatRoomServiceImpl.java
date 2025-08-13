@@ -174,6 +174,19 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     private ChatRoomListResponse.ChatRoomInfo convertToChatRoomInfo(
             ChatRoom chatRoom, Long currentMemberId, String currentMemberRole) {
         
+        // 플랫폼 채팅방인지 확인 (expoId가 null인 경우)
+        if (chatRoom.getExpoId() == null) {
+            // 플랫폼 채팅방 처리
+            return ChatRoomMapper.toDto(
+                    chatRoom,
+                    -1L,  // AI 상담사 ID
+                    "AI 상담사",  // AI 상담사 이름
+                    "AI",  // AI 역할
+                    chatRoom.getExpoTitle(),  // "플랫폼 상담"
+                    0  // 읽지 않은 메시지 수
+            );
+        }
+        
         // 1. 상대방 정보 조회 (역할에 따라 다름)
         Member otherMember;
         String otherMemberRole;

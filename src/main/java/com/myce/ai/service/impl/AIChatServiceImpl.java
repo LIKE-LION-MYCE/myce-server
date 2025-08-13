@@ -128,7 +128,6 @@ public class AIChatServiceImpl implements AIChatService {
                 .senderId(AI_SENDER_ID)
                 .senderName(AI_SENDER_NAME)
                 .content(aiResponse)
-                .sentAt(LocalDateTime.now())
                 .build();
             
             ChatMessage savedMessage = chatMessageRepository.save(aiMessage);
@@ -170,7 +169,6 @@ public class AIChatServiceImpl implements AIChatService {
                         .senderId(AI_SENDER_ID)
                         .senderName("AI 상담사 (인계 요약)")
                         .content(conversationSummary)
-                        .sentAt(LocalDateTime.now())
                         .build();
                     
                     ChatMessage savedSummary = chatMessageRepository.save(summaryMessage);
@@ -182,7 +180,6 @@ public class AIChatServiceImpl implements AIChatService {
                         .senderId(AI_SENDER_ID)
                         .senderName(AI_SENDER_NAME)
                         .content("찍찍! 상담원님께 인계해드렸습니다. 곧 전문적인 도움을 받으실 수 있어요!")
-                        .sentAt(LocalDateTime.now())
                         .build();
                     
                     chatMessageRepository.save(handoffCompleteMessage);
@@ -287,7 +284,6 @@ public class AIChatServiceImpl implements AIChatService {
                     .senderId(AI_SENDER_ID)
                     .senderName(AI_SENDER_NAME)
                     .content("찍찍! 상담원을 찾고 있어요. 잠시만 기다려주세요! 그동안 다른 궁금한 점이 있으시면 언제든 말씀해주세요.")
-                    .sentAt(LocalDateTime.now())
                     .build();
                 
                 ChatMessage savedMessage = chatMessageRepository.save(waitingMessage);
@@ -325,7 +321,6 @@ public class AIChatServiceImpl implements AIChatService {
                     .senderId(AI_SENDER_ID)
                     .senderName(AI_SENDER_NAME)
                     .content("찍찍! 상담원 연결 요청을 취소했어요. 제가 계속 도와드리겠습니다!")
-                    .sentAt(LocalDateTime.now())
                     .build();
                 
                 ChatMessage savedMessage = chatMessageRepository.save(cancelMessage);
@@ -362,7 +357,6 @@ public class AIChatServiceImpl implements AIChatService {
                     .senderId(AI_SENDER_ID)
                     .senderName(AI_SENDER_NAME)
                     .content("찍찍! 다시 제가 도와드리게 되었어요. 어떤 도움이 필요하신가요?")
-                    .sentAt(LocalDateTime.now())
                     .build();
                 
                 ChatMessage savedMessage = chatMessageRepository.save(returnMessage);
@@ -401,7 +395,7 @@ public class AIChatServiceImpl implements AIChatService {
             
             return new UserContext(
                 user.getName(),
-                user.getMemberGrade() != null ? user.getMemberGrade().getName() : "일반",
+                user.getMemberGrade() != null ? user.getMemberGrade().getGradeCode().getName() : "일반",
                 recentReservations,
                 paymentStatus,
                 userId

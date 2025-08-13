@@ -27,9 +27,9 @@ public class AITestController {
                     .defaultSystem("You are a helpful MYCE exhibition assistant. " +
                                   "Respond in Korean for Korean questions, English for English questions.")
                     .build();
-            log.info("✅ ChatClient successfully initialized with Nova Lite");
+            log.info("ChatClient successfully initialized with Nova Lite");
         } else {
-            log.warn("❌ ChatClient.Builder not available - check AWS Bedrock configuration");
+            log.warn("ChatClient.Builder not available - check AWS Bedrock configuration");
         }
     }
 
