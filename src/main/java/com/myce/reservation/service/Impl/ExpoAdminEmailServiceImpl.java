@@ -73,7 +73,6 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
 
         return templateEngine.process("mail/mail-basic",ctx);
     }
-
     private String toPreheader(String html, int maxLen) {
         if (html == null) return "";
         String text = html.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ").trim();
