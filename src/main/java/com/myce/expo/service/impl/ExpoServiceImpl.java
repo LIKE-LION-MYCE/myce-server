@@ -8,17 +8,23 @@ import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.common.service.mapper.BusinessProfileMapper;
 import com.myce.expo.dto.CongestionResponse;
+import com.myce.expo.dto.ExpoCardResponse;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.ExpoCategory;
+import com.myce.expo.entity.Ticket;
 import com.myce.expo.repository.CategoryRepository;
 import com.myce.expo.repository.ExpoRepository;
+import com.myce.expo.repository.TicketRepository;
 import com.myce.expo.service.ExpoService;
 import com.myce.expo.service.mapper.ExpoMapper;
 import com.myce.member.entity.Member;
+import com.myce.member.repository.FavoriteRepository;
 import com.myce.member.repository.MemberRepository;
 import com.myce.qrcode.repository.QrCodeRepository;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,6 +43,9 @@ public class ExpoServiceImpl implements ExpoService {
     private final CategoryRepository categoryRepository;
     private final BusinessProfileRepository businessProfileRepository;
     private final QrCodeRepository qrCodeRepository;
+    private final ExpoMapper expoMapper;
+    private final TicketRepository ticketRepository;
+    private final FavoriteRepository favoriteRepository;
 
     @Override
     public void saveExpo(Long memberId, ExpoRegistrationRequest request) {
@@ -95,7 +104,7 @@ public class ExpoServiceImpl implements ExpoService {
         return CongestionResponse.of(expoId, expo.getTitle(),
                 hourlyVisitors, hourlyCapacity);
     }
-    
+
     /**
      * 시간당 수용 인원 계산
      * = 총 수용인원 / 박람회 기간(일) / 하루 운영시간
@@ -117,5 +126,28 @@ public class ExpoServiceImpl implements ExpoService {
                 expoDays, dailyHours, totalOperatingHours, hourlyCapacity);
                 
         return hourlyCapacity;
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<ExpoCardResponse> getExpoCards(Long memberId) {
+        List<ExpoCardResponse> expoCards = new ArrayList<>();
+        List<Expo> expos = expoRepository.findAll();
+        for(Expo expo : expos) {
+            // 남은 티켓 수 합산
+            List<Ticket> tickets = ticketRepository.findByExpoId(expo.getId());
+            Integer remainingTickets = 0;
+            for(Ticket ticket : tickets) {
+                remainingTickets += ticket.getRemainingQuantity();
+            }
+
+            // 회원일 경우에만 찜 확인 가능
+            boolean isBookmark = false;
+            if(memberId != null){
+                isBookmark = favoriteRepository.existsByMemberIdAndExpoId(memberId, expo.getId());
+            }
+            expoCards.add(expoMapper.toCards(expo, remainingTickets, isBookmark));
+        }
+        return expoCards;
     }
 }

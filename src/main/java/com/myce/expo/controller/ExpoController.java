@@ -2,6 +2,7 @@ package com.myce.expo.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.expo.dto.CongestionResponse;
+import com.myce.expo.dto.ExpoCardResponse;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.dto.TicketSummaryResponse;
 import com.myce.expo.entity.Ticket;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -43,5 +45,23 @@ public class ExpoController {
     @GetMapping("/{expoId}/tickets/reservations")
     public ResponseEntity<List<TicketSummaryResponse>> getTickets(@PathVariable Long expoId) {
         return ResponseEntity.ok(ticketService.getTickets(expoId));
+    }
+
+    // 박람회 카드 리스트 조회
+    @GetMapping()
+    public ResponseEntity<List<ExpoCardResponse>> getExpoCards() {
+        Long memberId = getCurrentMemberIdOrNull();
+        List<ExpoCardResponse> expoCards = exposervice.getExpoCards(memberId);
+        return ResponseEntity.ok(expoCards);
+    }
+
+    private Long getCurrentMemberIdOrNull(){
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !auth.isAuthenticated()) return null;
+        Object principal = auth.getPrincipal();
+        if(principal instanceof CustomUserDetails user) {
+            return user.getMemberId();
+        }
+        return null;
     }
 }
