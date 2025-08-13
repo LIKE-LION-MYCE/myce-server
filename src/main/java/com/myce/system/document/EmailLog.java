@@ -17,18 +17,26 @@ public class EmailLog {
     private String id;
     private Long expoId;
     private String subject;
-    private List<String> recipientNames;
+    private List<RecipientInfo> recipientInfos;
     private Integer recipientCount;
     private String content;
     private LocalDateTime createdAt;
 
     @Builder
-    public EmailLog(Long expoId, String subject, List<String> recipientNames, Integer recipientCount, String content) {
+    public EmailLog(Long expoId, String subject, List<RecipientInfo> recipientInfos, String content) {
         this.expoId = expoId;
         this.subject = subject;
-        this.recipientCount = recipientCount;
-        this.recipientNames = recipientNames;
+        this.recipientInfos = recipientInfos;
+        this.recipientCount = recipientInfos.size();
         this.content = content;
         this.createdAt = LocalDateTime.now();
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RecipientInfo {
+        private String email;
+        private String name;
     }
 }
