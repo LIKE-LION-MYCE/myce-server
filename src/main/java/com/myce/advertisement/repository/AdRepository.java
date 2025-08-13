@@ -2,6 +2,7 @@ package com.myce.advertisement.repository;
 
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
+
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -54,4 +55,6 @@ public interface AdRepository extends JpaRepository<Advertisement, Long> {
             " AND a.displayEndDate >= CURRENT_DATE")
     List<Advertisement> findAdsActiveTodayAndStatusIn(
             @Param("status") List<AdvertisementStatus> status);
+
+    Optional<Advertisement> findByIdAndMemberId(Long advertisementId, Long memberId);
 }

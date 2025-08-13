@@ -5,6 +5,7 @@ import com.myce.member.dto.expo.ExpoAdminCodeResponse;
 import com.myce.member.dto.expo.ExpoPaymentDetailResponse;
 import com.myce.member.dto.expo.ExpoRefundReceiptResponse;
 import com.myce.member.dto.expo.ExpoSettlementReceiptResponse;
+import com.myce.member.dto.expo.ExpoSettlementRequest;
 import com.myce.member.dto.expo.MemberExpoDetailResponse;
 import com.myce.member.dto.expo.MemberExpoResponse;
 import com.myce.member.service.MemberExpoService;
@@ -99,5 +100,17 @@ public class MemberExpoController {
         ExpoRefundReceiptResponse refundReceipt = memberExpoService.getExpoRefundReceipt(memberId, expoId);
         
         return ResponseEntity.ok(refundReceipt);
+    }
+    
+    @PostMapping("/{expoId}/settlement")
+    public ResponseEntity<Void> requestExpoSettlement(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId,
+            @RequestBody ExpoSettlementRequest request) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberExpoService.requestExpoSettlement(memberId, expoId, request);
+        
+        return ResponseEntity.ok().build();
     }
 }

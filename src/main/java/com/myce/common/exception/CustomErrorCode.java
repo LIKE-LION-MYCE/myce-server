@@ -123,6 +123,7 @@ public enum CustomErrorCode {
 
     // 정산 S
     FEE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F001" , "요금 설정이 없습니다"),
+    SETTLEMENT_ALREADY_REQUESTED(HttpStatus.BAD_REQUEST, "F002" , "이미 정산 요청이 존재합니다."),
 
     // 환경 Y
 
