@@ -63,6 +63,7 @@ public enum CustomErrorCode {
     TICKET_NOT_EXIST(HttpStatus.NOT_FOUND, "T001", "티켓이 존재하지 않습니다."),
     TICKET_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "T002", "해당 티켓은 현재 박람회에 속하지 않습니다."),
     TICKET_TYPE_INVALID(HttpStatus.BAD_REQUEST, "T003", "유효하지 않은 티켓 타입입니다."),
+    TICKET_SOLD_OUT(HttpStatus.CONFLICT, "T004", "티켓이 매진되었습니다."),
 
     // 채팅 C
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "채팅방을 찾을 수 없습니다."),
@@ -115,6 +116,9 @@ public enum CustomErrorCode {
     // 예약 R
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "해당 예약 정보를 조회 할수 없습니다."),
     RESERVATION_STATUS_INVALID(HttpStatus.BAD_REQUEST, "R002", "유효하지 않은 예약 상태값입니다."),
+    RESERVER_INFO_NOT_FOUND(HttpStatus.BAD_REQUEST, "R003", "예매자 개인정보들은 비어 있을 수 없습니다."),
+    RESERVATION_CODE_INVALID_INPUT(HttpStatus.BAD_REQUEST, "R004", "예매 코드를 만들기 위한 값이 유효하지 않습니다."),
+    RESERVATION_CODE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "R005", "예매 코드 생성에 실패했습니다."),
 
     // 정산 S
     FEE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F001" , "요금 설정이 없습니다"),
