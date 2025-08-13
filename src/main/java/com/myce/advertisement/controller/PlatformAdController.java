@@ -23,15 +23,15 @@ public class PlatformAdController {
     private final int PAGE_SIZE = 10;
 
     @GetMapping
-    public PageResponse<AdSimpleResponse> getAdList(
+    public PageResponse<AdResponse> getAdList(
             @RequestParam int page,
             @RequestParam(defaultValue = "true") boolean latestFirst,
             @RequestParam(defaultValue = "true") boolean isApply) {
-        return service.getAllAdList(page, PAGE_SIZE, latestFirst, isApply);
+        return service.getAdList(page, PAGE_SIZE, latestFirst, isApply);
     }
 
     @GetMapping("/filter")
-    public PageResponse<AdSimpleResponse> filterAdList(
+    public PageResponse<AdResponse> filterAdList(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
