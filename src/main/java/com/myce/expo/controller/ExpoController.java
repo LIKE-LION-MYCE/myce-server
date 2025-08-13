@@ -68,8 +68,8 @@ public class ExpoController {
         // 기간 from/to 자동 계산 (from/to 없을 때만)
         if (period != null && from == null && to == null) {
             int months = switch (period) { case 1,3,6,12 -> period; default -> 3; };
-            LocalDate end = LocalDate.now(ZoneId.of("Asia/Seoul"));
-            LocalDate start = end.minusMonths(months);
+            LocalDate start = LocalDate.now(ZoneId.of("Asia/Seoul")); // Today
+            LocalDate end = start.plusMonths(months); // Future date
             from = start;
             to   = end;
         }
