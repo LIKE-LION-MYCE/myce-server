@@ -33,6 +33,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ChatWebSocketServiceImpl implements ChatWebSocketService {
 
+    private static final String ADMIN_ROOM_PREFIX = "admin-";
+    private static final String ROOM_DELIMITER = "-";
+
     private final JwtUtil jwtUtil;
     private final MemberRepository memberRepository;
     private final AdminCodeRepository adminCodeRepository;
@@ -74,7 +77,7 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
             throw new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
         }
         
-        String[] parts = roomId.split("-");
+        String[] parts = roomId.split(ROOM_DELIMITER);
         Long expoId = Long.parseLong(parts[1]);
         Long participantId = Long.parseLong(parts[2]);
         
@@ -112,7 +115,7 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
     @Override
     @Transactional
     public MessageResponse sendMessage(Long userId, String roomId, String content) {
-        String[] parts = roomId.split("-");
+        String[] parts = roomId.split(ROOM_DELIMITER);
         Long expoId = Long.parseLong(parts[1]);
         
         String senderRole;
@@ -156,11 +159,11 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
      * roomId 형식 검증
      */
     private boolean isValidRoomIdFormat(String roomId) {
-        if (roomId == null || !roomId.startsWith("admin-")) {
+        if (roomId == null || !roomId.startsWith(ADMIN_ROOM_PREFIX)) {
             return false;
         }
         
-        String[] parts = roomId.split("-");
+        String[] parts = roomId.split(ROOM_DELIMITER);
         if (parts.length != 3) {
             return false;
         }

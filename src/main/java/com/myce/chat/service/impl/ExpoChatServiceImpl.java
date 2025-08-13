@@ -42,6 +42,9 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ExpoChatServiceImpl implements ExpoChatService {
 
+    private static final String ADMIN_ROOM_PREFIX = "admin-";
+    private static final String ROOM_DELIMITER = "-";
+
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final AdminCodeRepository adminCodeRepository;
@@ -487,8 +490,8 @@ public class ExpoChatServiceImpl implements ExpoChatService {
      */
     private Long extractExpoIdFromRoomCode(String roomCode) {
         try {
-            if (roomCode != null && roomCode.startsWith("admin-")) {
-                String[] parts = roomCode.split("-");
+            if (roomCode != null && roomCode.startsWith(ADMIN_ROOM_PREFIX)) {
+                String[] parts = roomCode.split(ROOM_DELIMITER);
                 if (parts.length >= 3) {
                     return Long.parseLong(parts[1]);
                 }

@@ -143,4 +143,70 @@ public class Expo {
         }
         this.status = ExpoStatus.CANCELLED;
     }
+    
+    /**
+     * 박람회 승인 처리
+     * PENDING_APPROVAL -> PENDING_PAYMENT
+     */
+    public void approve() {
+        if (this.status != ExpoStatus.PENDING_APPROVAL) {
+            throw new IllegalStateException("승인 대기 상태의 박람회만 승인할 수 있습니다: " + this.status);
+        }
+        this.status = ExpoStatus.PENDING_PAYMENT;
+    }
+    
+    /**
+     * 박람회 거절 처리
+     * PENDING_APPROVAL -> REJECTED
+     */
+    public void reject() {
+        if (this.status != ExpoStatus.PENDING_APPROVAL) {
+            throw new IllegalStateException("승인 대기 상태의 박람회만 거절할 수 있습니다: " + this.status);
+        }
+        this.status = ExpoStatus.REJECTED;
+    }
+    
+    /**
+     * 박람회 취소 승인 처리
+     * PENDING_CANCEL -> CANCELLED
+     */
+    public void approveCancellation() {
+        if (this.status != ExpoStatus.PENDING_CANCEL) {
+            throw new IllegalStateException("취소 대기 상태의 박람회만 취소 승인할 수 있습니다: " + this.status);
+        }
+        this.status = ExpoStatus.CANCELLED;
+    }
+    
+    /**
+     * 박람회 자동 게시 처리 (스케줄러용)
+     * PENDING_PUBLISH -> PUBLISHED
+     */
+    public void publish() {
+        if (this.status != ExpoStatus.PENDING_PUBLISH) {
+            throw new IllegalStateException("게시 대기 상태의 박람회만 게시할 수 있습니다: " + this.status);
+        }
+        this.status = ExpoStatus.PUBLISHED;
+    }
+    
+    /**
+     * 박람회 자동 게시 종료 처리 (스케줄러용)
+     * PUBLISHED -> PUBLISH_ENDED
+     */
+    public void complete() {
+        if (this.status != ExpoStatus.PUBLISHED) {
+            throw new IllegalStateException("게시 중인 박람회만 종료할 수 있습니다: " + this.status);
+        }
+        this.status = ExpoStatus.PUBLISH_ENDED;
+    }
+    
+    /**
+     * 박람회 정산 승인 처리 (플랫폼 관리자용)
+     * SETTLEMENT_REQUESTED -> COMPLETED
+     */
+    public void approveSettlement() {
+        if (this.status != ExpoStatus.SETTLEMENT_REQUESTED) {
+            throw new IllegalStateException("정산 요청 상태의 박람회만 정산 승인할 수 있습니다: " + this.status);
+        }
+        this.status = ExpoStatus.COMPLETED;
+    }
 }
