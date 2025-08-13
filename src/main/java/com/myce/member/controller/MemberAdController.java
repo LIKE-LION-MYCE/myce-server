@@ -1,5 +1,6 @@
 package com.myce.member.controller;
 
+import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.member.dto.ad.AdRefundRequest;
 import com.myce.member.dto.ad.AdvertisementDetailResponse;
@@ -98,5 +99,16 @@ public class MemberAdController {
         AdvertisementRefundReceiptResponse refundReceipt = memberAdService.getAdvertisementRefundReceipt(memberId, advertisementId);
         
         return ResponseEntity.ok(refundReceipt);
+    }
+    
+    @GetMapping("/{advertisementId}/reject-info")
+    public ResponseEntity<AdRejectInfoResponse> getAdvertisementRejectInfo(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        AdRejectInfoResponse rejectInfo = memberAdService.getAdvertisementRejectInfo(memberId, advertisementId);
+        
+        return ResponseEntity.ok(rejectInfo);
     }
 }

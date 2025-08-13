@@ -1,13 +1,16 @@
 package com.myce.member.service.impl;
 
+import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.advertisement.repository.AdRepository;
 import com.myce.common.entity.BusinessProfile;
+import com.myce.common.entity.RejectInfo;
 import com.myce.common.entity.type.TargetType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
+import com.myce.common.repository.RejectInfoRepository;
 import com.myce.member.dto.ad.AdRefundRequest;
 import com.myce.member.dto.ad.AdvertisementDetailResponse;
 import com.myce.member.dto.ad.AdvertisementPaymentDetailResponse;
@@ -28,6 +31,7 @@ import com.myce.payment.repository.AdPaymentInfoRepository;
 import com.myce.payment.repository.PaymentRepository;
 import com.myce.payment.repository.RefundRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -37,6 +41,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -51,6 +56,7 @@ public class MemberAdServiceImpl implements MemberAdService {
     private final AdPaymentInfoRepository adPaymentInfoRepository;
     private final PaymentRepository paymentRepository;
     private final RefundRepository refundRepository;
+    private final RejectInfoRepository rejectInfoRepository;
 
     @Override
     public Page<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId, Pageable pageable) {
@@ -89,15 +95,42 @@ public class MemberAdServiceImpl implements MemberAdService {
         Advertisement advertisement = adRepository.findByIdAndMemberIdWithAdPosition(advertisementId, memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
         
-        // 상태별 취소 처리
         AdvertisementStatus currentStatus = advertisement.getStatus();
-        advertisement.cancelByStatus();
         
-        // PENDING_PAYMENT 상태였다면 AdPaymentInfo도 REFUNDED로 변경
-        if (currentStatus == AdvertisementStatus.PENDING_PAYMENT) {
-            AdPaymentInfo adPaymentInfo = adPaymentInfoRepository.findByAdvertisementId(advertisementId)
-                    .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
-            adPaymentInfo.setStatus(PaymentStatus.REFUNDED);
+        // 상태별 취소 처리
+        switch (currentStatus) {
+            case PENDING_APPROVAL:
+                // 승인대기 상태: status만 CANCELLED로 변경 (AdPaymentInfo 없음)
+                advertisement.updateStatus(AdvertisementStatus.CANCELLED);
+                log.info("승인대기 취소 - 광고 상태만 변경: 광고 ID {}", advertisementId);
+                break;
+                
+            case PENDING_PAYMENT:
+                // 결제대기 상태: status CANCELLED + AdPaymentInfo 삭제
+                advertisement.updateStatus(AdvertisementStatus.CANCELLED);
+                AdPaymentInfo adPaymentInfo = adPaymentInfoRepository.findByAdvertisementId(advertisementId)
+                        .orElse(null);
+                if (adPaymentInfo != null) {
+                    adPaymentInfoRepository.delete(adPaymentInfo);
+                    log.info("결제대기 취소 - AdPaymentInfo 삭제됨: 광고 ID {}", advertisementId);
+                }
+                break;
+                
+            case PENDING_PUBLISH:
+                // 게시예정 상태: status CANCELLED + AdPaymentInfo 삭제
+                advertisement.updateStatus(AdvertisementStatus.CANCELLED);
+                AdPaymentInfo pendingPublishPaymentInfo = adPaymentInfoRepository.findByAdvertisementId(advertisementId)
+                        .orElse(null);
+                if (pendingPublishPaymentInfo != null) {
+                    adPaymentInfoRepository.delete(pendingPublishPaymentInfo);
+                    log.info("게시예정 취소 - AdPaymentInfo 삭제됨: 광고 ID {}", advertisementId);
+                }
+                break;
+                
+            default:
+                // 기존 로직 (다른 상태들)
+                advertisement.cancelByStatus();
+                break;
         }
     }
     
@@ -137,14 +170,17 @@ public class MemberAdServiceImpl implements MemberAdService {
             case PUBLISHED:
                 // 게시 중 - 부분 환불 (남은 일수만큼)
                 LocalDate today = LocalDate.now();
-                LocalDate endDate = advertisement.getDisplayEndDate();
-                long remainingDays = ChronoUnit.DAYS.between(today, endDate);
+                LocalDate startDate = advertisement.getDisplayStartDate();
                 
-                if (remainingDays < 0) {
-                    remainingDays = 0;
-                }
+                // 영수증과 동일한 계산 방식: 사용한 일수 계산 후 차감
+                int usedDays = (int) ChronoUnit.DAYS.between(startDate, today) + 1; // +1은 시작일 포함
+                if (usedDays < 0) usedDays = 0;
                 
-                refundAmount = (int) (remainingDays * adPaymentInfo.getFeePerDay());
+                // 남은 일수 계산
+                int remainingDays = adPaymentInfo.getTotalDay() - usedDays;
+                if (remainingDays < 0) remainingDays = 0;
+                
+                refundAmount = remainingDays * adPaymentInfo.getFeePerDay();
                 isPartial = true;
                 break;
             default:
@@ -200,5 +236,21 @@ public class MemberAdServiceImpl implements MemberAdService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
 
         return advertisementRefundReceiptMapper.toRefundReceiptDto(advertisement, businessProfile, adPaymentInfo);
+    }
+    
+    @Override
+    public AdRejectInfoResponse getAdvertisementRejectInfo(Long memberId, Long advertisementId) {
+        // 광고가 해당 회원의 것인지 확인
+        Advertisement advertisement = adRepository.findByIdAndMemberId(advertisementId, memberId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
+        
+        // 거절 정보 조회
+        RejectInfo rejectInfo = rejectInfoRepository.findByTargetIdAndTargetType(advertisementId, TargetType.ADVERTISEMENT)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.REJECT_INFO_NOT_FOUND));
+        
+        return AdRejectInfoResponse.builder()
+                .description(rejectInfo.getDescription())
+                .rejectedAt(rejectInfo.getCreatedAt())
+                .build();
     }
 }

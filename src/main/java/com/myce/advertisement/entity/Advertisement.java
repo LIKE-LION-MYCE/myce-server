@@ -166,6 +166,11 @@ public class Advertisement {
         this.status = AdvertisementStatus.CANCELLED;
     }
     
+    // 상태 직접 변경 메서드
+    public void updateStatus(AdvertisementStatus newStatus) {
+        this.status = newStatus;
+    }
+    
     public void requestRefund() {
         if (this.status != AdvertisementStatus.PENDING_PUBLISH) {
             throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);

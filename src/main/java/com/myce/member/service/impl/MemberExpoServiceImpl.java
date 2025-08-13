@@ -15,6 +15,7 @@ import com.myce.member.dto.expo.ExpoAdminCodeResponse;
 import com.myce.member.dto.expo.ExpoPaymentDetailResponse;
 import com.myce.member.dto.expo.ExpoRefundReceiptResponse;
 import com.myce.member.dto.expo.ExpoSettlementReceiptResponse;
+import com.myce.member.dto.expo.ExpoSettlementRequest;
 import com.myce.member.dto.expo.MemberExpoDetailResponse;
 import com.myce.member.dto.expo.MemberExpoResponse;
 import com.myce.member.mapper.expo.ExpoAdminCodeMapper;
@@ -26,7 +27,12 @@ import com.myce.member.mapper.expo.MemberExpoMapper;
 import com.myce.member.service.MemberExpoService;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
+import com.myce.settlement.entity.Settlement;
+import com.myce.settlement.entity.code.SettlementStatus;
+import com.myce.settlement.repository.SettlementRepository;
+import com.myce.expo.entity.type.ExpoStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -34,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -50,6 +57,7 @@ public class MemberExpoServiceImpl implements MemberExpoService {
     private final TicketRepository ticketRepository;
     private final AdminCodeRepository adminCodeRepository;
     private final ExpoRefundReceiptMapper expoRefundReceiptMapper;
+    private final SettlementRepository settlementRepository;
 
     @Override
     public Page<MemberExpoResponse> getMemberExpos(Long memberId, Pageable pageable) {
@@ -91,7 +99,30 @@ public class MemberExpoServiceImpl implements MemberExpoService {
             throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
         }
 
-        expo.cancel();
+        ExpoStatus currentStatus = expo.getStatus();
+        
+        // 상태별 취소 처리
+        switch (currentStatus) {
+            case PENDING_APPROVAL:
+                // 승인대기 상태: status만 CANCELLED로 변경 (ExpoPaymentInfo 없음)
+                expo.updateStatus(ExpoStatus.CANCELLED);
+                log.info("박람회 승인대기 취소 - 상태만 변경: 박람회 ID {}", expoId);
+                break;
+                
+            case PENDING_PAYMENT:
+                // 결제대기 상태: status CANCELLED + ExpoPaymentInfo 삭제
+                expo.updateStatus(ExpoStatus.CANCELLED);
+                ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
+                        .orElse(null);
+                if (expoPaymentInfo != null) {
+                    expoPaymentInfoRepository.delete(expoPaymentInfo);
+                    log.info("박람회 결제대기 취소 - ExpoPaymentInfo 삭제됨: 박람회 ID {}", expoId);
+                }
+                break;
+                
+            default:
+                throw new CustomException(CustomErrorCode.INVALID_EXPO_STATUS);
+        }
     }
 
     @Override
@@ -174,5 +205,56 @@ public class MemberExpoServiceImpl implements MemberExpoService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
 
         return expoRefundReceiptMapper.toRefundReceiptDto(expo, businessProfile, expoPaymentInfo);
+    }
+    
+    @Override
+    @Transactional
+    public void requestExpoSettlement(Long memberId, Long expoId, ExpoSettlementRequest request) {
+        // 박람회가 해당 회원의 것인지 확인
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+        
+        if (!expo.getMember().getId().equals(memberId)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+        
+        // 박람회 상태가 COMPLETED인지 확인
+        if (expo.getStatus() != ExpoStatus.COMPLETED) {
+            throw new CustomException(CustomErrorCode.INVALID_EXPO_STATUS);
+        }
+        
+        // 이미 정산 신청이 되었는지 확인
+        if (settlementRepository.existsByExpoId(expoId)) {
+            throw new CustomException(CustomErrorCode.SETTLEMENT_ALREADY_REQUESTED);
+        }
+        
+        // 박람회 상태를 PUBLISH_ENDED로 변경
+        expo.updateStatus(ExpoStatus.PUBLISH_ENDED);
+        
+        // 정산 정보 조회
+        ExpoSettlementReceiptResponse settlementReceipt = getExpoSettlementReceipt(memberId, expoId);
+        
+        // 사업자 정보 조회 (계좌 정보 포함)
+        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(expoId, TargetType.EXPO)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
+        
+        // Settlement 엔티티 생성
+        Settlement settlement = Settlement.builder()
+                .expo(expo)
+                .adminMember(null) // 관리자는 나중에 할당
+                .totalAmount(settlementReceipt.getTotalRevenue())
+                .supplyAmount(settlementReceipt.getCommissionAmount()) // 수수료 금액
+                .settleAmount(settlementReceipt.getNetProfit()) // 순수익
+                .settlementStatus(SettlementStatus.PENDING)
+                .settlementAt(null) // 정산 완료 시 설정
+                .receiverName(request.getReceiverName())
+                .bankName(request.getBankName())
+                .bankAccount(request.getBankAccount())
+                .build();
+        
+        settlementRepository.save(settlement);
+        
+        log.info("정산 신청 완료 - 박람회 ID: {}, 회원 ID: {}, 정산 금액: {}", 
+                expoId, memberId, settlementReceipt.getNetProfit());
     }
 }

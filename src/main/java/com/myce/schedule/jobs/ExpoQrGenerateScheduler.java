@@ -86,6 +86,8 @@ public class ExpoQrGenerateScheduler implements TaskScheduler {
         for (Reserver reserver : reservers) {
             try {
                 qrCodeService.issueQr(reserver.getId());
+                log.debug("QR코드 발급 완료 및 SSE 알림 전송 - 예약자 ID: {}, 회원 ID: {}", 
+                        reserver.getId(), reserver.getReservation().getUserId());
                 successCount++;
             } catch (Exception e) {
                 log.error("QR코드 생성 실패 - 예약자 ID: {}, 오류: {}", 
