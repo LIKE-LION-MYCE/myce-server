@@ -1,0 +1,25 @@
+package com.myce.system.service.mapper;
+
+import com.myce.common.dto.PageResponse;
+import com.myce.system.dto.adposition.AdPositionDropdownResponse;
+import com.myce.system.dto.adposition.AdPositionResponse;
+import com.myce.system.entity.AdPosition;
+import org.springframework.data.domain.Page;
+
+public class AdPositionMapper {
+  public static AdPositionDropdownResponse toDto(AdPosition adPosition) {
+    return new AdPositionDropdownResponse(adPosition.getId(), adPosition.getName());
+  }
+
+  public static Page<AdPositionResponse> toListDto(Page<AdPosition> adPositions) {
+      return adPositions.map(
+              adPosition -> AdPositionResponse.builder()
+                      .id(adPosition.getId())
+                      .name(adPosition.getName())
+                      .createdAt(adPosition.getCreatedAt())
+                      .updatedAt(adPosition.getUpdatedAt())
+                      .isActive(adPosition.getIsActive())
+                      .build()
+      );
+  }
+}

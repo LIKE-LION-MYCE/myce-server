@@ -1,6 +1,5 @@
 package com.myce.system.entity;
 
-import com.myce.advertisement.entity.AdPosition;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
