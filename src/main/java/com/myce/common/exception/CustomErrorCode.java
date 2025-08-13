@@ -129,6 +129,9 @@ public enum CustomErrorCode {
 
     // 시스템 설정 에러
     NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다."),
+    NOT_EXIST_AD_FEE_SETTING(HttpStatus.NOT_FOUND, "SY002", "광고 요금제가 존재하지 않습니다."),
+    NOT_EXIST_EXPO_FEE_SETTING(HttpStatus.NOT_FOUND, "SY003", "박람회 요금제가 존재하지 않습니다."),
+    ALREADY_SET_ACTIVATION(HttpStatus.BAD_REQUEST, "SY004", "이미 설정되어있는 활성화 값입니다."),
 
     // 엑셀 EX
     EXCEL_EXPORT_FAILED(HttpStatus.NOT_FOUND, "EX001", "엑셀 추출에 실패하였습니다.");

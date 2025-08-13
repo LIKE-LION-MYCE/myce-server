@@ -19,6 +19,7 @@ public class ReservedExpoMapper {
                         .ticketPrice(reservation.getTicket().getPrice())
                         .ticketCount(reservation.getQuantity())
                         .ticketName(reservation.getTicket().getName())
+                        .reservationId(reservation.getId())
                         .reservationCode(reservation.getReservationCode())
                         .build())
                 .collect(Collectors.toList());

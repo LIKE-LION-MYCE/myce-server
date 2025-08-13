@@ -31,6 +31,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             "WHERE r.reservationCode = :reservationCode")
     Optional<Reservation> findByReservationCodeWithExpoAndTicket(@Param("reservationCode") String reservationCode);
 
+    @Query("SELECT r FROM Reservation r " +
+            "JOIN FETCH r.expo e " +
+            "JOIN FETCH r.ticket t " +
+            "WHERE r.id = :reservationId")
+    Optional<Reservation> findByIdWithExpoAndTicket(@Param("reservationId") Long reservationId);
+
     @Query("""
             SELECT new com.myce.reservation.dto.ExpoAdminPaymentBasicResponse(
                 r.reservationCode,
