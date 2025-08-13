@@ -14,6 +14,7 @@ import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.ExpoCategory;
 import com.myce.expo.entity.Ticket;
+import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.CategoryRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
@@ -28,6 +29,8 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -131,17 +134,38 @@ public class ExpoServiceImpl implements ExpoService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<ExpoCardResponse> getExpoCards(Long memberId) {
-        List<ExpoCardResponse> expoCards = new ArrayList<>();
-        LocalDate today = LocalDate.now();
-        // 노출 구간에 있는 것만 조회
-        List<Expo> expos = expoRepository
-            .findAllByDisplayStartDateLessThanOrEqualToAndDisplayEndDateGreaterThanOrEqualTo(today, today);
+    public List<ExpoCardResponse> getExpoCardsFiltered(Long memberId,
+        String categoryName,
+        LocalDate from,
+        LocalDate to,
+        String keyword,
+        Pageable pageable) {
 
-        for(Expo expo : expos) {
+        Long categoryId = null;
+        if (categoryName != null && !categoryName.isBlank()) {
+            Category category = categoryRepository.findByName(categoryName)
+                .orElseThrow(()-> new CustomException(CustomErrorCode.CATEGORY_NOT_EXIST));
+            if (category != null) {
+                categoryId = category.getId();
+            }
+        }
+
+        String kw = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+
+        Page<Expo> exposPage = expoRepository.findPublishedExposFiltered(
+            ExpoStatus.PUBLISHED,
+            categoryId,
+            kw,
+            from,
+            to,
+            pageable
+        );
+
+        List<ExpoCardResponse> expoCards = new ArrayList<>(exposPage.getContent().size());
+        for(Expo expo : exposPage.getContent()) {
             // 남은 티켓 수 합산
             List<Ticket> tickets = ticketRepository.findByExpoId(expo.getId());
-            Integer remainingTickets = 0;
+            int remainingTickets = 0;
             for(Ticket ticket : tickets) {
                 remainingTickets += ticket.getRemainingQuantity();
             }

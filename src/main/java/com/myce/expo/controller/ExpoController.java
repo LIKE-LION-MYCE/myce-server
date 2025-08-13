@@ -9,7 +9,11 @@ import com.myce.expo.entity.Ticket;
 import com.myce.expo.service.ExpoService;
 import com.myce.expo.service.TicketService;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,7 +26,7 @@ import java.util.List;
 @RequestMapping("/api/expos")
 @RequiredArgsConstructor
 public class ExpoController {
-    private final ExpoService exposervice;
+    private final ExpoService expoService;
     private final TicketService ticketService;
 
     // 박람회 등록
@@ -30,14 +34,14 @@ public class ExpoController {
     public ResponseEntity<Long> saveExpo(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                          @RequestBody @Valid ExpoRegistrationRequest expoRegistrationRequest) {
         Long memberId = customUserDetails.getMemberId();
-        exposervice.saveExpo(memberId, expoRegistrationRequest);
+        expoService.saveExpo(memberId, expoRegistrationRequest);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
     
     // 박람회 실시간 혼잡도 조회
     @GetMapping("/{expoId}/congestion")
     public ResponseEntity<CongestionResponse> getCongestionLevel(@PathVariable Long expoId) {
-        CongestionResponse congestionResponse = exposervice.getCongestionLevel(expoId);
+        CongestionResponse congestionResponse = expoService.getCongestionLevel(expoId);
         return ResponseEntity.ok(congestionResponse);
     }
 
@@ -49,9 +53,28 @@ public class ExpoController {
 
     // 박람회 카드 리스트 조회
     @GetMapping()
-    public ResponseEntity<List<ExpoCardResponse>> getExpoCards() {
+    public ResponseEntity<List<ExpoCardResponse>> getExpoCards(
+        @RequestParam(required=false) String keyword,   // 검색
+        @RequestParam(required=false) String category,  // 카테고리
+        @RequestParam(required=false) Integer period,   // 기간(1,3,6,12개월)
+        @RequestParam(required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,  // 사용자 지정 시작일
+        @RequestParam(required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,     // 사용자 지정 종료일
+        Pageable pageable // 페이지네이션
+    ) {
         Long memberId = getCurrentMemberIdOrNull();
-        List<ExpoCardResponse> expoCards = exposervice.getExpoCards(memberId);
+
+        // 기간 from/to 자동 계산 (from/to 없을 때만)
+        if (period != null && from == null && to == null) {
+            int months = switch (period) { case 1,3,6,12 -> period; default -> 3; };
+            LocalDate end = LocalDate.now(ZoneId.of("Asia/Seoul"));
+            LocalDate start = end.minusMonths(months);
+            from = start;
+            to   = end;
+        }
+
+        List<ExpoCardResponse> expoCards = expoService.getExpoCardsFiltered(memberId, category, from, to, keyword, pageable);
         return ResponseEntity.ok(expoCards);
     }
 

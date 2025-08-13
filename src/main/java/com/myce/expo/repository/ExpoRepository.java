@@ -71,7 +71,28 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
     // 현재 박람회 관리용 - 키워드 검색 + 여러 상태 조회
     Page<Expo> findByTitleContainingIgnoreCaseAndStatusIn(String keyword, List<ExpoStatus> statuses, Pageable pageable);
 
-    // 게시 기간 안에 있는 박람회만 조회
-    List<Expo> findAllByDisplayStartDateLessThanOrEqualToAndDisplayEndDateGreaterThanOrEqualTo(LocalDate today1, LocalDate today2);
+    // 카테고리 필터링
+    @Query("SELECT e FROM Expo e JOIN e.expoCategories ec WHERE ec.category.id = :categoryId")
+    Page<Expo> findByCategoryId(@Param("categoryId") Long categoryId, Pageable pageable);
+
+    // PUBLISHED + 카테고리/기간/검색
+    @Query("SELECT DISTINCT e FROM Expo e " +
+           "JOIN e.expoCategories ec " +
+           "JOIN ec.category c " +
+           "WHERE e.status = :status " +
+           "AND (:categoryId IS NULL OR c.id = :categoryId) " +
+           "AND (:keyword IS NULL OR LOWER(e.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(e.location) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(e.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+           "AND (:startDate IS NULL OR e.startDate >= :startDate) " +
+           "AND (:endDate IS NULL OR e.endDate <= :endDate)")
+    Page<Expo> findPublishedExposFiltered(
+        @Param("status") ExpoStatus status,
+        @Param("categoryId") Long categoryId,
+        @Param("keyword") String keyword,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        Pageable pageable
+    );
 }
 
