@@ -42,6 +42,7 @@ public class ReservationDetailResponse {
     @AllArgsConstructor
     @Builder
     public static class ReservationInfo {
+        private Long reservationId;
         private String reservationCode;
         private Integer quantity;
         private LocalDateTime createdAt;

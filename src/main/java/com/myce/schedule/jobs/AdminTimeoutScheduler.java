@@ -1,18 +1,24 @@
 package com.myce.schedule.jobs;
 
 import com.myce.chat.document.ChatRoom;
+import com.myce.chat.dto.WebSocketMessage;
 import com.myce.chat.repository.ChatRoomRepository;
+import com.myce.chat.type.WebSocketMessageType;
 import com.myce.schedule.TaskScheduler;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 채팅 관리자 담당자 타임아웃 스케줄러
@@ -24,9 +30,10 @@ import java.util.List;
 public class AdminTimeoutScheduler implements TaskScheduler {
 
     private final ChatRoomRepository chatRoomRepository;
+    private final SimpMessagingTemplate messagingTemplate;
     
-    // 운영 환경: 5분간 비활성시 해제
-    private static final int TIMEOUT_MINUTES = 5;
+    // 테스트 환경: 1분간 비활성시 해제 (원래 5분)
+    private static final int TIMEOUT_MINUTES = 1;
     
     @PostConstruct
     public void init() {
@@ -57,7 +64,7 @@ public class AdminTimeoutScheduler implements TaskScheduler {
         }
         
         // List로 모아서 일괄 처리
-        List<ChatRoom> roomsToUpdate = new ArrayList<>();
+        List<ChatRoom> rooms = new ArrayList<>();
         
         for (ChatRoom room : inactiveRooms) {
             String releasedAdmin = room.getCurrentAdminCode();
@@ -65,15 +72,55 @@ public class AdminTimeoutScheduler implements TaskScheduler {
             
             // 담당자 해제
             room.releaseAdmin();
-            roomsToUpdate.add(room);
+            rooms.add(room);
             
             log.info("비활성 담당자 해제 예정: [{}] {} ({}분간 비활성)", 
                     room.getRoomCode(), adminDisplayName, TIMEOUT_MINUTES);
         }
         
         // 한번에 saveAll
-        chatRoomRepository.saveAll(roomsToUpdate);
+        chatRoomRepository.saveAll(rooms);
         
-        log.info("담당자 타임아웃 처리 완료: {}건 일괄 업데이트됨", roomsToUpdate.size());
+        // 배치로 WebSocket 알림 전송 (엑스포별 그룹핑)
+        if (!rooms.isEmpty()) {
+            sendBatchReleaseNotifications(rooms);
+        }
+        
+        log.info("담당자 타임아웃 처리 완료: {}건 일괄 업데이트됨", rooms.size());
+    }
+    
+    /**
+     * 담당자 해제 알림을 배치로 전송
+     * 엑스포별로 그룹핑하여 효율적으로 전송
+     * 
+     * @param releasedRooms 해제된 채팅방 목록
+     */
+    private void sendBatchReleaseNotifications(List<ChatRoom> releasedRooms) {
+        // 엑스포별로 채팅방 코드 그룹핑
+        Map<Long, List<String>> expoRoomCodes = releasedRooms.stream()
+            .collect(Collectors.groupingBy(
+                ChatRoom::getExpoId,
+                Collectors.mapping(ChatRoom::getRoomCode, Collectors.toList())
+            ));
+        
+        // 각 엑스포별로 배치 메시지 전송
+        for (Map.Entry<Long, List<String>> entry : expoRoomCodes.entrySet()) {
+            Long expoId = entry.getKey();
+            List<String> roomCodes = entry.getValue();
+            
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("roomCodes", roomCodes);
+            payload.put("message", "담당자가 자동 해제되었습니다.");
+            payload.put("timestamp", LocalDateTime.now());
+            
+            WebSocketMessage batchMessage = WebSocketMessage.builder()
+                    .type(WebSocketMessageType.ADMIN_RELEASED)
+                    .payload(payload)
+                    .build();
+            
+            // 해당 엑스포의 관리자들에게 배치 전송
+            String destination = "/topic/expo/" + expoId + "/admin-updates";
+            messagingTemplate.convertAndSend(destination, batchMessage);
+        }
     }
 }

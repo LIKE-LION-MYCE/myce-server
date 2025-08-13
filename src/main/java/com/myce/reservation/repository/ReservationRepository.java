@@ -1,5 +1,6 @@
 package com.myce.reservation.repository;
 
+import com.myce.expo.entity.Expo;
 import com.myce.reservation.dto.ExpoAdminPaymentBasicResponse;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.code.ReservationStatus;
@@ -29,6 +30,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             "JOIN FETCH r.ticket t " +
             "WHERE r.reservationCode = :reservationCode")
     Optional<Reservation> findByReservationCodeWithExpoAndTicket(@Param("reservationCode") String reservationCode);
+
+    @Query("SELECT r FROM Reservation r " +
+            "JOIN FETCH r.expo e " +
+            "JOIN FETCH r.ticket t " +
+            "WHERE r.id = :reservationId")
+    Optional<Reservation> findByIdWithExpoAndTicket(@Param("reservationId") Long reservationId);
 
     @Query("""
             SELECT new com.myce.reservation.dto.ExpoAdminPaymentBasicResponse(
@@ -96,4 +103,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     );
 
     Optional<Reservation> findByReservationCode(String reservationCode);
+
+    List<Reservation> findByExpo(com.myce.expo.entity.Expo expo);
+
+    List<Reservation> findByExpoIn(List<Expo> expos);
 }
