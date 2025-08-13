@@ -51,4 +51,14 @@ public class AdPosition {
         this.maxCount = maxCount;
         this.isActive = isActive;
     }
+
+    public void update(String name, Integer imageWidth,
+                       Integer imageHeight, Integer maxCount,
+                       boolean isActive, LocalDateTime updatedAt) {
+        this.name = name;
+        this.imageWidth = imageWidth;
+        this.imageHeight = imageHeight;
+        this.maxCount = maxCount;
+        this.isActive = isActive;
+    }
 }
