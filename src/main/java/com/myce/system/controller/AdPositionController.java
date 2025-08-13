@@ -1,10 +1,7 @@
 package com.myce.system.controller;
 
 import com.myce.common.dto.PageResponse;
-import com.myce.system.dto.adposition.AdPositionDetailResponse;
-import com.myce.system.dto.adposition.AdPositionDropdownResponse;
-import com.myce.system.dto.adposition.AdPositionResponse;
-import com.myce.system.dto.adposition.AdPositionUpdateRequest;
+import com.myce.system.dto.adposition.*;
 import com.myce.system.service.adposition.AdPositionService;
 
 import java.util.List;
@@ -42,6 +39,19 @@ public class AdPositionController {
     public ResponseEntity<Void> updateAdPosition(@PathVariable long bannerId,
             @RequestBody @Valid AdPositionUpdateRequest request) {
         adPositionService.updateAdPosition(bannerId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/new")
+    public ResponseEntity<Void> newAdPosition(
+            @RequestBody @Valid AdPositionNewRequest request){
+        adPositionService.addAdPosition(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{bannerId}/delete")
+    public ResponseEntity<Void> deleteAdPosition(@PathVariable long bannerId) {
+        adPositionService.deleteAdPosition(bannerId);
         return ResponseEntity.ok().build();
     }
 }

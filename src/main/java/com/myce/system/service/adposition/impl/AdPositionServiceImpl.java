@@ -3,12 +3,9 @@ package com.myce.system.service.adposition.impl;
 import com.myce.common.dto.PageResponse;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
-import com.myce.system.dto.adposition.AdPositionDetailResponse;
-import com.myce.system.dto.adposition.AdPositionDropdownResponse;
-import com.myce.system.dto.adposition.AdPositionUpdateRequest;
+import com.myce.system.dto.adposition.*;
 import com.myce.system.entity.AdPosition;
 import com.myce.system.repository.AdPositionRepository;
-import com.myce.system.dto.adposition.AdPositionResponse;
 import com.myce.system.service.adposition.AdPositionService;
 import com.myce.system.service.mapper.AdPositionMapper;
 import jakarta.transaction.Transactional;
@@ -66,5 +63,20 @@ public class AdPositionServiceImpl implements AdPositionService {
                 LocalDateTime.now());
 
         log.info("AdPosition({}) updated", adPosition.getId());
+    }
+
+    @Override
+    @Transactional
+    public void addAdPosition(AdPositionNewRequest request) {
+        AdPosition adPosition = AdPositionMapper.toEntity(request);
+
+        adPositionRepository.save(adPosition);
+        log.info("AdPosition({}) created", adPosition.getId());
+    }
+
+    @Override
+    @Transactional
+    public void deleteAdPosition(long bannerId) {
+        adPositionRepository.deleteById(bannerId);
     }
 }

@@ -3,6 +3,7 @@ package com.myce.system.service.mapper;
 import com.myce.common.dto.PageResponse;
 import com.myce.system.dto.adposition.AdPositionDetailResponse;
 import com.myce.system.dto.adposition.AdPositionDropdownResponse;
+import com.myce.system.dto.adposition.AdPositionNewRequest;
 import com.myce.system.dto.adposition.AdPositionResponse;
 import com.myce.system.entity.AdPosition;
 import org.springframework.data.domain.Page;
@@ -33,6 +34,16 @@ public class AdPositionMapper {
                 .isActive(position.getIsActive())
                 .createdAt(position.getCreatedAt())
                 .updatedAt(position.getUpdatedAt())
+                .build();
+    }
+
+    public static AdPosition toEntity(AdPositionNewRequest request){
+        return AdPosition.builder()
+                .name(request.getBannerName())
+                .imageWidth(request.getBannerWidth())
+                .imageHeight(request.getBannerHeight())
+                .maxCount(request.getMaxBannerCount())
+                .isActive(request.isActive())
                 .build();
     }
 }
