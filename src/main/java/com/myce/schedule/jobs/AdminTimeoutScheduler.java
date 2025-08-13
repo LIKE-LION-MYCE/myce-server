@@ -25,8 +25,8 @@ public class AdminTimeoutScheduler implements TaskScheduler {
 
     private final ChatRoomRepository chatRoomRepository;
     
-    // 운영 환경: 5분간 비활성시 해제
-    private static final int TIMEOUT_MINUTES = 5;
+    // 테스트 환경: 1분간 비활성시 해제 (원래 5분)
+    private static final int TIMEOUT_MINUTES = 1;
     
     @PostConstruct
     public void init() {
