@@ -40,6 +40,14 @@ public class AuthServiceImpl implements AuthService {
     private final EmailSendService emailSendService;
 
     public void signup(SignupRequest signupRequest) {
+        if(memberRepository.existsByLoginId(signupRequest.getLoginId())) {
+            throw new CustomException(CustomErrorCode.ALREADY_EXIST_LOGIN_ID);
+        }
+
+        if(memberRepository.existsByEmail(signupRequest.getEmail())) {
+            throw new CustomException(CustomErrorCode.ALREADY_EXIST_EMAIL);
+        }
+
         MemberGrade memberGrade = memberGradeRepository.findByGradeCode(GradeCode.BRONZE).orElseThrow();
         String password = passwordEncoder.encode(signupRequest.getPassword());
         Member member = authMapper.signupRequestToMember(signupRequest, memberGrade, password);
@@ -48,8 +56,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public FindLoginIdResponse getLoginId(FindLoginIdRequest request) {
-        Member member = memberRepository.findByNameAndEmail(request.getName(), request.getEmail())
+    public FindLoginIdResponse getLoginId(String name, String email) {
+        Member member = memberRepository.findByNameAndEmail(name, email)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
         return authMapper.getFindLoginIdResponse(member.getLoginId());
     }
