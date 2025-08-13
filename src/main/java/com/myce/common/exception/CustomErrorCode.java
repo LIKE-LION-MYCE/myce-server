@@ -134,7 +134,10 @@ public enum CustomErrorCode {
     ALREADY_SET_ACTIVATION(HttpStatus.BAD_REQUEST, "SY004", "이미 설정되어있는 활성화 값입니다."),
 
     // 엑셀 EX
-    EXCEL_EXPORT_FAILED(HttpStatus.NOT_FOUND, "EX001", "엑셀 추출에 실패하였습니다.");
+    EXCEL_EXPORT_FAILED(HttpStatus.NOT_FOUND, "EX001", "엑셀 추출에 실패하였습니다."),
+
+    // 기간 PE
+    PERIOD_TYPE_NOT_EXIST(HttpStatus.NOT_FOUND, "PE001", "기간 타입이 존재하지 않습니다.");
 
     private final HttpStatus status;
     private final String errorCode;
