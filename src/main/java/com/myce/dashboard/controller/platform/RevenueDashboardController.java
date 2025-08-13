@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/settlement")
+@RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
 @Slf4j
 public class RevenueDashboardController {
@@ -19,7 +19,7 @@ public class RevenueDashboardController {
 
     private final Long SIZE = 8L;
 
-    @GetMapping("/dashboard")
+    @GetMapping("/revenue")
     public RevenueDashboardResponse getRevenueDashboardData(@RequestParam String period) {
         PeriodType periodType = PeriodType.fromLabel(period);
 
