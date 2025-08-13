@@ -35,6 +35,7 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
 
     private static final String ADMIN_ROOM_PREFIX = "admin-";
     private static final String ROOM_DELIMITER = "-";
+    private static final String PLATFORM_ROOM_PREFIX = "platform-";
 
     private final JwtUtil jwtUtil;
     private final MemberRepository memberRepository;
@@ -77,6 +78,21 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
             throw new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
         }
         
+        // 플랫폼 방 처리
+        if (roomId.startsWith(PLATFORM_ROOM_PREFIX)) {
+            String[] parts = roomId.split(ROOM_DELIMITER);
+            Long roomMemberId = Long.parseLong(parts[1]);
+            
+            // 본인의 플랫폼 방만 접근 가능
+            if (!userId.equals(roomMemberId)) {
+                throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+            }
+            
+            ensurePlatformChatRoomExists(roomId, userId);
+            return;
+        }
+        
+        // 기존 박람회 방 처리
         String[] parts = roomId.split(ROOM_DELIMITER);
         Long expoId = Long.parseLong(parts[1]);
         Long participantId = Long.parseLong(parts[2]);
@@ -159,22 +175,39 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
      * roomId 형식 검증
      */
     private boolean isValidRoomIdFormat(String roomId) {
-        if (roomId == null || !roomId.startsWith(ADMIN_ROOM_PREFIX)) {
+        if (roomId == null) {
             return false;
         }
         
-        String[] parts = roomId.split(ROOM_DELIMITER);
-        if (parts.length != 3) {
-            return false;
+        // 플랫폼 방 형식: platform-{memberId}
+        if (roomId.startsWith(PLATFORM_ROOM_PREFIX)) {
+            String[] parts = roomId.split(ROOM_DELIMITER);
+            if (parts.length != 2) return false;
+            try {
+                Long.parseLong(parts[1]); // memberId
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
         }
         
-        try {
-            Long.parseLong(parts[1]); // expoId
-            Long.parseLong(parts[2]); // userId
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
+        // 기존 박람회 방 형식: admin-{expoId}-{memberId}
+        if (roomId.startsWith(ADMIN_ROOM_PREFIX)) {
+            String[] parts = roomId.split(ROOM_DELIMITER);
+            if (parts.length != 3) {
+                return false;
+            }
+            
+            try {
+                Long.parseLong(parts[1]); // expoId
+                Long.parseLong(parts[2]); // userId
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
         }
+        
+        return false;
     }
 
     /**
@@ -191,6 +224,26 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
                 .build();
                 
             chatRoomRepository.save(newRoom);
+        }
+    }
+
+    /**
+     * 플랫폼 채팅방 존재 확인 및 생성
+     */
+    private void ensurePlatformChatRoomExists(String roomCode, Long memberId) {
+        Optional<ChatRoom> existingRoom = chatRoomRepository.findByRoomCode(roomCode);
+        
+        if (existingRoom.isEmpty()) {
+            ChatRoom newRoom = ChatRoom.builder()
+                .roomCode(roomCode)
+                .expoId(null)  // 플랫폼 방은 expoId 없음
+                .memberId(memberId)
+                .memberName("플랫폼 사용자")  // 기본값
+                .expoTitle("플랫폼 상담")    // 플랫폼 방 표시용
+                .build();
+                
+            chatRoomRepository.save(newRoom);
+            log.info("플랫폼 채팅방 생성 완료 - roomCode: {}, memberId: {}", roomCode, memberId);
         }
     }
 

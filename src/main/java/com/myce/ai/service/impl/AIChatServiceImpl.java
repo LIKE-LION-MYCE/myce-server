@@ -1,0 +1,608 @@
+package com.myce.ai.service.impl;
+
+import com.myce.ai.service.AIChatService;
+import com.myce.chat.document.ChatMessage;
+import com.myce.chat.document.ChatRoom;
+import com.myce.chat.dto.MessageResponse;
+import com.myce.chat.repository.ChatMessageRepository;
+import com.myce.chat.repository.ChatRoomRepository;
+import com.myce.chat.service.mapper.ChatMessageMapper;
+import com.myce.chat.type.MessageSenderType;
+import com.myce.member.entity.Member;
+import com.myce.member.repository.MemberRepository;
+import com.myce.expo.entity.Expo;
+import com.myce.expo.repository.ExpoRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+/**
+ * AI 채팅 서비스 구현체
+ * 
+ * AWS Bedrock Nova Lite 기반 플랫폼 상담 서비스
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class AIChatServiceImpl implements AIChatService {
+
+    // AI 식별 상수
+    private static final String PLATFORM_ROOM_PREFIX = "platform-";
+    private static final String AI_SENDER_NAME = "찍찍킹 (AI 상담사)";
+    private static final Long AI_SENDER_ID = -1L;
+    
+    /**
+     * 사용자별 컨텍스트 정보
+     */
+    private record UserContext(
+        String userName,
+        String membershipLevel, 
+        List<String> recentReservations,
+        String paymentStatus,
+        Long userId
+    ) {}
+
+    /**
+     * 공개 플랫폼 정보
+     */
+    private record PublicContext(
+        List<String> availableExpos,
+        String platformInfo,
+        String pricingInfo
+    ) {}
+    
+    // 의존성 주입
+    private final ChatClient chatClient;
+    private final ChatRoomRepository chatRoomRepository;
+    private final ChatMessageRepository chatMessageRepository;
+    private final MemberRepository memberRepository;
+    private final ExpoRepository expoRepository;
+
+    @Override
+    public String generateAIResponse(String userMessage, String roomCode) {
+        try {
+            // 1. 채팅방 상태 확인
+            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+            boolean isWaitingForAdmin = chatRoomOpt.map(ChatRoom::isWaitingForAdmin).orElse(false);
+            
+            // 2. 대화 이력 조회
+            List<ChatMessage> allRecentMessages = chatMessageRepository
+                .findTop50ByRoomCodeOrderBySentAtDesc(roomCode);
+            
+            List<ChatMessage> recentMessages = allRecentMessages.stream()
+                .limit(10)
+                .toList();
+            
+            // 3. 컨텍스트 수집
+            UserContext userContext = buildUserContext(roomCode);
+            PublicContext publicContext = buildPublicContext();
+            String conversationHistory = buildConversationHistory(recentMessages);
+            
+            // 4. 사람 상담 필요 여부 감지
+            boolean shouldSuggestHuman = detectNeedForHumanAssistance(userMessage, recentMessages);
+            
+            // 5. AI 프롬프트 구성 (대기 상태 고려)
+            String systemPrompt = createSystemPromptWithContext(userContext, publicContext, isWaitingForAdmin, shouldSuggestHuman);
+            
+            String aiPrompt = String.format("""
+                %s
+                
+                대화 이력:
+                %s
+                
+                사용자 메시지: %s
+                
+                사용자가 사용한 언어로 자연스럽게 답변해주세요:
+                """, systemPrompt, conversationHistory, userMessage);
+            
+            String aiResponse = chatClient.prompt(aiPrompt).call().content();
+            
+            log.info("AI 응답 생성 완료 (컨텍스트 포함) - roomCode: {}, userId: {}, 대기상태: {}, 사람상담제안: {}", 
+                roomCode, userContext.userId(), isWaitingForAdmin, shouldSuggestHuman);
+            return aiResponse;
+            
+        } catch (Exception e) {
+            log.error("AI 응답 생성 실패 - roomCode: {}", roomCode, e);
+            return "찍찍! 죄송합니다. 일시적인 오류가 발생했습니다.";
+        }
+    }
+
+    @Override
+    @Transactional
+    public MessageResponse sendAIMessage(String roomCode, String userMessage) {
+        try {
+            // AI 응답 생성
+            String aiResponse = generateAIResponse(userMessage, roomCode);
+            
+            // AI 메시지 생성 및 저장
+            ChatMessage aiMessage = ChatMessage.builder()
+                .roomCode(roomCode)
+                .senderType(MessageSenderType.AI.name())
+                .senderId(AI_SENDER_ID)
+                .senderName(AI_SENDER_NAME)
+                .content(aiResponse)
+                .sentAt(LocalDateTime.now())
+                .build();
+            
+            ChatMessage savedMessage = chatMessageRepository.save(aiMessage);
+            
+            // 채팅방 마지막 메시지 정보 업데이트
+            updateChatRoomLastMessage(roomCode, savedMessage.getId(), aiResponse);
+            
+            log.info("AI 메시지 전송 완료 - roomCode: {}, messageId: {}", roomCode, savedMessage.getId());
+            
+            return ChatMessageMapper.toSendResponse(savedMessage, roomCode);
+            
+        } catch (Exception e) {
+            log.error("AI 메시지 전송 실패 - roomCode: {}, userMessage: {}", roomCode, userMessage, e);
+            throw new RuntimeException("AI 메시지 전송에 실패했습니다.", e);
+        }
+    }
+
+    @Override
+    public boolean isAIEnabled(String roomCode) {
+        return roomCode != null && roomCode.startsWith(PLATFORM_ROOM_PREFIX);
+    }
+
+    @Override
+    @Transactional
+    public void handoffToAdmin(String roomCode, String adminCode) {
+        try {
+            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+            if (chatRoomOpt.isPresent()) {
+                ChatRoom chatRoom = chatRoomOpt.get();
+                
+                // 대화 요약 생성
+                String conversationSummary = generateConversationSummary(roomCode);
+                
+                // 요약을 AI 메시지로 전송 (사용자와 관리자 모두 확인용)
+                if (!conversationSummary.isEmpty()) {
+                    ChatMessage summaryMessage = ChatMessage.builder()
+                        .roomCode(roomCode)
+                        .senderType(MessageSenderType.AI.name())
+                        .senderId(AI_SENDER_ID)
+                        .senderName("AI 상담사 (인계 요약)")
+                        .content(conversationSummary)
+                        .sentAt(LocalDateTime.now())
+                        .build();
+                    
+                    ChatMessage savedSummary = chatMessageRepository.save(summaryMessage);
+                    
+                    // 인계 완료 메시지 추가
+                    ChatMessage handoffCompleteMessage = ChatMessage.builder()
+                        .roomCode(roomCode)
+                        .senderType(MessageSenderType.AI.name())
+                        .senderId(AI_SENDER_ID)
+                        .senderName(AI_SENDER_NAME)
+                        .content("찍찍! 상담원님께 인계해드렸습니다. 곧 전문적인 도움을 받으실 수 있어요!")
+                        .sentAt(LocalDateTime.now())
+                        .build();
+                    
+                    chatMessageRepository.save(handoffCompleteMessage);
+                }
+                
+                // 관리자 배정 및 대기 상태 해제
+                chatRoom.assignAdmin(adminCode);
+                chatRoom.stopWaitingForAdmin();  // 대기 상태 종료
+                chatRoomRepository.save(chatRoom);
+                
+                log.info("AI에서 관리자로 handoff 완료 (요약 포함) - roomCode: {}, adminCode: {}", roomCode, adminCode);
+            }
+        } catch (Exception e) {
+            log.error("AI handoff 실패 - roomCode: {}, adminCode: {}", roomCode, adminCode, e);
+            throw new RuntimeException("관리자 handoff에 실패했습니다.", e);
+        }
+    }
+
+    @Override
+    public String generateConversationSummary(String roomCode) {
+        try {
+            // 전체 대화 이력 조회 (최근 50개)
+            List<ChatMessage> allMessages = chatMessageRepository
+                .findTop50ByRoomCodeOrderBySentAtDesc(roomCode);
+            
+            if (allMessages.isEmpty()) {
+                return "찍찍! 대화 내용이 없어 요약할 내용이 없습니다.";
+            }
+            
+            // 시간순으로 정렬 (오래된 것부터)
+            List<ChatMessage> sortedMessages = allMessages.stream()
+                .sorted((a, b) -> a.getSentAt().compareTo(b.getSentAt()))
+                .toList();
+            
+            // 사용자 컨텍스트 구성
+            UserContext userContext = buildUserContext(roomCode);
+            
+            // 대화 이력을 문자열로 변환
+            StringBuilder conversationLog = new StringBuilder();
+            sortedMessages.forEach(msg -> {
+                String senderLabel = MessageSenderType.AI.name().equals(msg.getSenderType()) 
+                    ? "AI 상담사" : "고객";
+                conversationLog.append(String.format("[%s] %s: %s\n", 
+                    msg.getSentAt().toString(), senderLabel, msg.getContent()));
+            });
+            
+            // AI 요약 프롬프트 구성 (사용자와 관리자 모두 볼 수 있도록 전문적이고 친화적으로)
+            String summaryPrompt = String.format("""
+                다음은 MYCE 플랫폼 AI 상담사와 고객(%s, %s 등급) 간의 대화 내용입니다.
+                
+                대화 내용:
+                %s
+                
+                위 대화를 상담원 인계를 위해 요약해주세요. 고객도 함께 볼 수 있으므로 전문적이고 정중하게 작성해주세요:
+                
+                요약 형식:
+                ═══════════════════════════
+                🔄 **상담 인계 요약**
+                ═══════════════════════════
+                
+                **문의 내용**: [고객의 주요 문의사항을 명확하게]
+                **현재 상황**: [문제의 현재 상태나 시도한 해결책]
+                **추가 확인 필요**: [상담원이 추가로 도와드려야 할 부분]
+                
+                ─────────────────────────────
+                💬 고객님, 위 내용이 정확하지 않다면 상담원님께 직접 말씀해 주세요.
+                ─────────────────────────────
+                
+                전문적이고 정중하게, 고객과 상담원 모두에게 도움이 되는 요약을 작성해주세요.
+                """, 
+                userContext.userName(), 
+                userContext.membershipLevel(),
+                conversationLog.toString()
+            );
+            
+            String summary = chatClient.prompt(summaryPrompt).call().content();
+            
+            log.info("대화 요약 생성 완료 - roomCode: {}, 메시지 수: {}", roomCode, sortedMessages.size());
+            return summary;
+            
+        } catch (Exception e) {
+            log.error("대화 요약 생성 실패 - roomCode: {}", roomCode, e);
+            return "찍찍! 죄송합니다. 대화 요약 생성 중 오류가 발생했습니다.";
+        }
+    }
+
+    @Override
+    @Transactional
+    public MessageResponse requestAdminHandoff(String roomCode) {
+        try {
+            // 1. 채팅방 대기 상태 업데이트
+            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+            if (chatRoomOpt.isPresent()) {
+                ChatRoom chatRoom = chatRoomOpt.get();
+                chatRoom.startWaitingForAdmin();
+                chatRoomRepository.save(chatRoom);
+                
+                // 2. AI 대기 메시지 생성 및 저장
+                ChatMessage waitingMessage = ChatMessage.builder()
+                    .roomCode(roomCode)
+                    .senderType(MessageSenderType.AI.name())
+                    .senderId(AI_SENDER_ID)
+                    .senderName(AI_SENDER_NAME)
+                    .content("찍찍! 상담원을 찾고 있어요. 잠시만 기다려주세요! 그동안 다른 궁금한 점이 있으시면 언제든 말씀해주세요.")
+                    .sentAt(LocalDateTime.now())
+                    .build();
+                
+                ChatMessage savedMessage = chatMessageRepository.save(waitingMessage);
+                
+                // 3. 채팅방 마지막 메시지 정보 업데이트
+                updateChatRoomLastMessage(roomCode, savedMessage.getId(), savedMessage.getContent());
+                
+                log.info("관리자 연결 요청 시작 - roomCode: {}", roomCode);
+                
+                return ChatMessageMapper.toSendResponse(savedMessage, roomCode);
+            } else {
+                throw new RuntimeException("채팅방을 찾을 수 없습니다: " + roomCode);
+            }
+            
+        } catch (Exception e) {
+            log.error("관리자 연결 요청 실패 - roomCode: {}", roomCode, e);
+            throw new RuntimeException("관리자 연결 요청에 실패했습니다.", e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public MessageResponse cancelAdminHandoff(String roomCode) {
+        try {
+            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+            if (chatRoomOpt.isPresent()) {
+                ChatRoom chatRoom = chatRoomOpt.get();
+                chatRoom.stopWaitingForAdmin();
+                chatRoomRepository.save(chatRoom);
+                
+                // 취소 확인 메시지 생성
+                ChatMessage cancelMessage = ChatMessage.builder()
+                    .roomCode(roomCode)
+                    .senderType(MessageSenderType.AI.name())
+                    .senderId(AI_SENDER_ID)
+                    .senderName(AI_SENDER_NAME)
+                    .content("찍찍! 상담원 연결 요청을 취소했어요. 제가 계속 도와드리겠습니다!")
+                    .sentAt(LocalDateTime.now())
+                    .build();
+                
+                ChatMessage savedMessage = chatMessageRepository.save(cancelMessage);
+                updateChatRoomLastMessage(roomCode, savedMessage.getId(), savedMessage.getContent());
+                
+                log.info("관리자 연결 요청 취소 완료 - roomCode: {}", roomCode);
+                return ChatMessageMapper.toSendResponse(savedMessage, roomCode);
+            } else {
+                throw new RuntimeException("채팅방을 찾을 수 없습니다: " + roomCode);
+            }
+        } catch (Exception e) {
+            log.error("관리자 연결 요청 취소 실패 - roomCode: {}", roomCode, e);
+            throw new RuntimeException("관리자 연결 요청 취소에 실패했습니다.", e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public MessageResponse requestAIReturn(String roomCode) {
+        try {
+            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+            if (chatRoomOpt.isPresent()) {
+                ChatRoom chatRoom = chatRoomOpt.get();
+                
+                // 관리자 해제 및 AI 복귀
+                chatRoom.releaseAdmin();
+                chatRoom.stopWaitingForAdmin();
+                chatRoomRepository.save(chatRoom);
+                
+                // AI 복귀 메시지 생성
+                ChatMessage returnMessage = ChatMessage.builder()
+                    .roomCode(roomCode)
+                    .senderType(MessageSenderType.AI.name())
+                    .senderId(AI_SENDER_ID)
+                    .senderName(AI_SENDER_NAME)
+                    .content("찍찍! 다시 제가 도와드리게 되었어요. 어떤 도움이 필요하신가요?")
+                    .sentAt(LocalDateTime.now())
+                    .build();
+                
+                ChatMessage savedMessage = chatMessageRepository.save(returnMessage);
+                updateChatRoomLastMessage(roomCode, savedMessage.getId(), savedMessage.getContent());
+                
+                log.info("AI 복귀 요청 완료 - roomCode: {}", roomCode);
+                return ChatMessageMapper.toSendResponse(savedMessage, roomCode);
+            } else {
+                throw new RuntimeException("채팅방을 찾을 수 없습니다: " + roomCode);
+            }
+        } catch (Exception e) {
+            log.error("AI 복귀 요청 실패 - roomCode: {}", roomCode, e);
+            throw new RuntimeException("AI 복귀 요청에 실패했습니다.", e);
+        }
+    }
+
+    /**
+     * 사용자별 컨텍스트 구성 (격리된 정보만 제공)
+     */
+    private UserContext buildUserContext(String roomCode) {
+        try {
+            // platform-{memberId}에서 memberId 추출
+            Long userId = extractUserIdFromRoomCode(roomCode);
+            
+            // 사용자 기본 정보 조회
+            Member user = memberRepository.findById(userId)
+                .orElse(null);
+            
+            if (user == null) {
+                return new UserContext("사용자", "일반", List.of(), "정보 없음", userId);
+            }
+            
+            // TODO: 예약 정보, 결제 상태 등은 추후 구현
+            List<String> recentReservations = List.of("예약 정보 조회 예정");
+            String paymentStatus = "결제 상태 조회 예정";
+            
+            return new UserContext(
+                user.getName(),
+                user.getMemberGrade() != null ? user.getMemberGrade().getName() : "일반",
+                recentReservations,
+                paymentStatus,
+                userId
+            );
+            
+        } catch (Exception e) {
+            log.warn("사용자 컨텍스트 구성 실패 - roomCode: {}", roomCode, e);
+            return new UserContext("사용자", "일반", List.of(), "정보 없음", -1L);
+        }
+    }
+
+    /**
+     * 공개 플랫폼 정보 구성
+     */
+    private PublicContext buildPublicContext() {
+        try {
+            // 공개 박람회 목록 조회 (상위 5개)
+            List<Expo> publicExpos = expoRepository.findTop5ByOrderByCreatedAtDesc();
+            List<String> expoTitles = publicExpos.stream()
+                .map(Expo::getTitle)
+                .collect(Collectors.toList());
+            
+            String platformInfo = """
+                MYCE는 박람회 관리 플랫폼입니다.
+                - 박람회 예약 및 관리
+                - 티켓 구매 시스템  
+                - 실시간 채팅 상담
+                """;
+                
+            String pricingInfo = "요금제 정보는 개별 박람회마다 상이합니다.";
+            
+            return new PublicContext(expoTitles, platformInfo, pricingInfo);
+            
+        } catch (Exception e) {
+            log.warn("공개 컨텍스트 구성 실패", e);
+            return new PublicContext(List.of(), "플랫폼 정보 로딩 실패", "요금 정보 조회 불가");
+        }
+    }
+
+    /**
+     * roomCode에서 사용자 ID 추출
+     */
+    private Long extractUserIdFromRoomCode(String roomCode) {
+        try {
+            if (roomCode != null && roomCode.startsWith(PLATFORM_ROOM_PREFIX)) {
+                String[] parts = roomCode.split("-");
+                if (parts.length == 2) {
+                    return Long.parseLong(parts[1]);
+                }
+            }
+        } catch (NumberFormatException e) {
+            log.warn("roomCode에서 사용자 ID 추출 실패: {}", roomCode);
+        }
+        throw new IllegalArgumentException("Invalid platform room code: " + roomCode);
+    }
+
+    /**
+     * 컨텍스트 포함 AI 시스템 프롬프트 생성
+     */
+    private String createSystemPromptWithContext(UserContext userContext, PublicContext publicContext, boolean isWaitingForAdmin, boolean shouldSuggestHuman) {
+        String waitingMessage = isWaitingForAdmin ? 
+            "\n\n⏰ **현재 상태**: 상담원 연결 요청됨 - 대기 중 사용자와 소통하며 도움을 드리세요." : "";
+        
+        String humanSuggestionMessage = shouldSuggestHuman ? 
+            "\n\n💡 **중요**: 이 문의는 전문 상담원의 도움이 필요해 보입니다. 답변 마지막에 '위 버튼을 눌러 상담원과 연결하시면 더 정확한 도움을 받으실 수 있어요!'라고 자연스럽게 안내해주세요." : "";
+            
+        return String.format("""
+            당신은 MYCE 플랫폼의 AI 상담사 '찍찍킹'입니다.
+            
+            현재 상담 중인 사용자 정보:
+            - 이름: %s
+            - 회원 등급: %s  
+            - 최근 예약: %s
+            - 결제 상태: %s
+            
+            MYCE 플랫폼 정보:
+            %s
+            
+            현재 이용 가능한 박람회:
+            %s%s%s
+            
+            성격과 말투:
+            - 한국어 존댓말을 사용하세요 (반말 금지)
+            - 도움이 되고 정중한 태도를 유지하세요
+            - 가끔 자연스럽게 '찍찍!'이나 '찍찍~' 같은 쥐 소리를 적절히 섞어서 말하세요
+            - 너무 자주 사용하지 말고, 인사나 감탄할 때 적절히 사용하세요
+            %s
+            
+            역할:
+            - MYCE는 박람회 관리 플랫폼입니다
+            - 사용자의 플랫폼 이용 문의에 도움을 드리세요
+            - 박람회 예약, 계정 관리, 일반적인 질문에 답변하세요
+            - 복잡한 기술적 문제나 결제 이슈는 전문 상담원이 더 도움이 될 수 있습니다
+            - 사용자의 개인 정보를 바탕으로 맞춤형 상담을 제공하세요
+            
+            답변 가이드라인:
+            - 300자 이내로 간결하게 답변하세요
+            - 구체적이고 실용적인 정보를 제공하세요
+            - 사용자 정보를 활용한 개인화된 정보를 제공하세요
+            - 확실하지 않은 정보는 추측하지 마세요
+            """, 
+            userContext.userName(),
+            userContext.membershipLevel(),
+            String.join(", ", userContext.recentReservations()),
+            userContext.paymentStatus(),
+            publicContext.platformInfo(),
+            String.join(", ", publicContext.availableExpos()),
+            waitingMessage,
+            humanSuggestionMessage,
+            isWaitingForAdmin ? "- 상담원 연결 대기 중임을 자연스럽게 언급하고 계속 도움을 드리세요" : ""
+        );
+    }
+
+    /**
+     * 대화 이력을 문자열로 변환
+     */
+    private String buildConversationHistory(List<ChatMessage> messages) {
+        if (messages.isEmpty()) {
+            return "새로운 대화입니다.";
+        }
+        
+        StringBuilder history = new StringBuilder();
+        
+        // 메시지를 시간순으로 정렬 (오래된 것부터)
+        messages.stream()
+            .sorted((a, b) -> a.getSentAt().compareTo(b.getSentAt()))
+            .forEach(msg -> {
+                String senderLabel = MessageSenderType.AI.name().equals(msg.getSenderType()) 
+                    ? "AI" : "사용자";
+                history.append(String.format("%s: %s\n", senderLabel, msg.getContent()));
+            });
+        
+        return history.toString();
+    }
+
+    /**
+     * 사람 상담 필요 여부 감지
+     */
+    private boolean detectNeedForHumanAssistance(String userMessage, List<ChatMessage> recentMessages) {
+        try {
+            String message = userMessage.toLowerCase();
+            
+            // 1. 명시적 키워드 감지 (강한 신호)
+            String[] strongKeywords = {
+                "결제", "환불", "취소", "계좌", "카드", "billing", "payment", 
+                "오류", "에러", "버그", "작동", "안됨", "문제",
+                "불만", "항의", "컴플레인", "complaint",
+                "법적", "소송", "변호사", "legal"
+            };
+            
+            for (String keyword : strongKeywords) {
+                if (message.contains(keyword)) {
+                    return true;
+                }
+            }
+            
+            // 2. 반복적 문의 감지 (같은 문제를 3번 이상 물어봄)
+            long sameTopicCount = recentMessages.stream()
+                .filter(msg -> "USER".equals(msg.getSenderType()))
+                .limit(6) // 최근 6개 사용자 메시지 확인
+                .mapToLong(msg -> {
+                    String content = msg.getContent().toLowerCase();
+                    // 동일 주제 키워드 검사
+                    for (String keyword : strongKeywords) {
+                        if (content.contains(keyword) && message.contains(keyword)) {
+                            return 1;
+                        }
+                    }
+                    return 0;
+                })
+                .sum();
+                
+            if (sameTopicCount >= 3) {
+                return true;
+            }
+            
+            // 3. 복잡성 감지 (긴 메시지 + 복잡한 상황 설명)
+            if (message.length() > 100 && 
+                (message.contains("여러") || message.contains("계속") || 
+                 message.contains("몇번") || message.contains("자꾸"))) {
+                return true;
+            }
+            
+            return false;
+            
+        } catch (Exception e) {
+            log.warn("사람 상담 필요성 감지 실패 - userMessage: {}", userMessage, e);
+            return false;
+        }
+    }
+    
+    /**
+     * 채팅방 마지막 메시지 정보 업데이트
+     */
+    private void updateChatRoomLastMessage(String roomCode, String messageId, String content) {
+        Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+        
+        if (chatRoomOpt.isPresent()) {
+            ChatRoom chatRoom = chatRoomOpt.get();
+            chatRoom.updateLastMessageInfo(messageId, content);
+            chatRoomRepository.save(chatRoom);
+        }
+    }
+}

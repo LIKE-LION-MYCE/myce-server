@@ -22,4 +22,9 @@ public interface ChatRoomService {
      * 사용자 채팅방 읽음 처리 (USER 타입 사용자 전용)
      */
     void markAsRead(String roomCode, String lastReadMessageId, Long memberId);
+    
+    /**
+     * AI 상담을 관리자에게 인계 (요약 포함)
+     */
+    void handoffAIToAdmin(String roomCode, String adminCode);
 }

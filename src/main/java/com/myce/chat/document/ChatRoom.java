@@ -116,6 +116,18 @@ public class ChatRoom {
     private String adminDisplayName;
 
     /**
+     * 관리자 연결 대기 상태 (AI 핸드오프용)
+     */
+    @Setter
+    private Boolean waitingForAdmin;
+
+    /**
+     * 핸드오프 요청 시간
+     */
+    @Setter  
+    private LocalDateTime handoffRequestedAt;
+
+    /**
      * 채팅방 생성 시 기본값 설정
      */
     @Builder
@@ -130,6 +142,7 @@ public class ChatRoom {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         this.readStatusJson = "{}";  // 빈 JSON 객체로 초기화
+        this.waitingForAdmin = false;  // 기본값: 대기 상태 아님
     }
 
     /**
@@ -209,5 +222,69 @@ public class ChatRoom {
     public void updateReadStatus(String readStatusJson) {
         this.readStatusJson = readStatusJson;
         this.updatedAt = LocalDateTime.now();
+    }
+    
+    /**
+     * 관리자 연결 대기 시작
+     */
+    public void startWaitingForAdmin() {
+        this.waitingForAdmin = true;
+        this.handoffRequestedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    /**
+     * 관리자 연결 대기 종료
+     */
+    public void stopWaitingForAdmin() {
+        this.waitingForAdmin = false;
+        this.handoffRequestedAt = null;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    /**
+     * 현재 관리자 연결 대기 중인지 확인
+     */
+    public boolean isWaitingForAdmin() {
+        return Boolean.TRUE.equals(this.waitingForAdmin);
+    }
+    
+    /**
+     * 채팅방 상태 enum
+     */
+    public enum ChatRoomState {
+        AI_ACTIVE("AI 상담 중", "Request Human"),
+        WAITING_FOR_ADMIN("상담원 대기 중", "Cancel Request"), 
+        HUMAN_ACTIVE("상담원 상담 중", "Request AI"),
+        HUMAN_INACTIVE("상담원 비활성", "Continue with AI");
+        
+        private final String description;
+        private final String buttonText;
+        
+        ChatRoomState(String description, String buttonText) {
+            this.description = description;
+            this.buttonText = buttonText;
+        }
+        
+        public String getDescription() { return description; }
+        public String getButtonText() { return buttonText; }
+    }
+    
+    /**
+     * 현재 채팅방 상태 확인
+     */
+    public ChatRoomState getCurrentState() {
+        if (isWaitingForAdmin()) {
+            return ChatRoomState.WAITING_FOR_ADMIN;
+        } else if (hasAssignedAdmin()) {
+            // 관리자가 배정되었지만 5분 이상 비활성인지 확인
+            if (lastAdminActivity != null && 
+                lastAdminActivity.isBefore(LocalDateTime.now().minusMinutes(5))) {
+                return ChatRoomState.HUMAN_INACTIVE;
+            }
+            return ChatRoomState.HUMAN_ACTIVE;
+        } else {
+            return ChatRoomState.AI_ACTIVE;
+        }
     }
 }

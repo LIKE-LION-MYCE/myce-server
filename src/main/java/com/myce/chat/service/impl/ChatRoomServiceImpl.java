@@ -14,6 +14,7 @@ import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.member.entity.Member;
 import com.myce.member.repository.MemberRepository;
+import com.myce.ai.service.AIChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -49,6 +50,9 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     
     // WebSocket 메시징
     private final SimpMessagingTemplate messagingTemplate;
+    
+    // AI 채팅 서비스
+    private final AIChatService aiChatService;
 
     /**
      * 현재 로그인한 사용자의 채팅방 목록 조회
@@ -72,6 +76,12 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             chatRooms = getChatRoomsForAdmin(memberId);
         } else {
             // 일반 사용자인 경우: 본인이 참여한 채팅방만 조회
+            chatRooms = chatRoomRepository.findByMemberIdAndIsActiveTrueOrderByLastMessageAtDesc(memberId);
+            
+            // 플랫폼 상담방 자동 생성 (사용자용)
+            ensurePlatformRoomExists(memberId);
+            
+            // 플랫폼 방 포함하여 다시 조회
             chatRooms = chatRoomRepository.findByMemberIdAndIsActiveTrueOrderByLastMessageAtDesc(memberId);
         }
 
@@ -279,6 +289,45 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         } else {
             return currentReadStatus.substring(0, currentReadStatus.length() - 1) + 
                    ",\"USER\":\"" + lastReadMessageId + "\"}";
+        }
+    }
+    
+    /**
+     * 플랫폼 채팅방 자동 생성
+     */
+    private void ensurePlatformRoomExists(Long memberId) {
+        String platformRoomCode = "platform-" + memberId;
+        Optional<ChatRoom> existingRoom = chatRoomRepository.findByRoomCode(platformRoomCode);
+        
+        if (existingRoom.isEmpty()) {
+            ChatRoom platformRoom = ChatRoom.builder()
+                .roomCode(platformRoomCode)
+                .expoId(null)  // 플랫폼 방은 expoId 없음
+                .memberId(memberId)
+                .memberName("플랫폼 사용자")  
+                .expoTitle("플랫폼 상담")    // Frontend에서 이 이름으로 표시됨
+                .build();
+                
+            chatRoomRepository.save(platformRoom);
+            log.info("플랫폼 채팅방 자동 생성 - memberId: {}, roomCode: {}", memberId, platformRoomCode);
+        }
+    }
+    
+    /**
+     * AI 상담을 관리자에게 인계 (요약 포함)
+     */
+    @Override
+    @Transactional
+    public void handoffAIToAdmin(String roomCode, String adminCode) {
+        try {
+            // AI 서비스를 통한 인계 처리 (요약 자동 생성)
+            aiChatService.handoffToAdmin(roomCode, adminCode);
+            
+            log.info("AI 상담 관리자 인계 완료 - roomCode: {}, adminCode: {}", roomCode, adminCode);
+            
+        } catch (Exception e) {
+            log.error("AI 상담 관리자 인계 실패 - roomCode: {}, adminCode: {}", roomCode, adminCode, e);
+            throw new CustomException(CustomErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
 }

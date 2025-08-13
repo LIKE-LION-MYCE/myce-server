@@ -10,6 +10,7 @@ import com.myce.chat.service.mapper.ChatMessageMapper;
 import com.myce.chat.type.WebSocketMessageType;
 import com.myce.common.exception.CustomException;
 import com.myce.common.exception.CustomErrorCode;
+import com.myce.ai.service.AIChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -40,6 +41,7 @@ public class ChatWebSocketController {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final AIChatService aiChatService;
 
     /**
      * 인증 처리
@@ -150,6 +152,37 @@ public class ChatWebSocketController {
                 "/topic/chat/" + roomId,
                 broadcastMessage
             );
+            
+            // AI 응답 처리 (플랫폼 방에서만)
+            if (aiChatService.isAIEnabled(roomId)) {
+                try {
+                    MessageResponse aiResponse = aiChatService.sendAIMessage(roomId, content);
+                    
+                    Map<String, Object> aiPayload = Map.of(
+                        "roomId", roomId,
+                        "messageId", aiResponse.getMessageId(),
+                        "senderId", aiResponse.getSenderId(),
+                        "senderType", "AI",
+                        "content", aiResponse.getContent(),
+                        "sentAt", aiResponse.getSentAt().toString()
+                    );
+                    
+                    Map<String, Object> aiBroadcastMessage = Map.of(
+                        "type", "AI_MESSAGE",
+                        "payload", aiPayload
+                    );
+                    
+                    messagingTemplate.convertAndSend(
+                        "/topic/chat/" + roomId,
+                        aiBroadcastMessage
+                    );
+                    
+                    log.info("AI 응답 전송 완료 - roomId: {}", roomId);
+                    
+                } catch (Exception aiError) {
+                    log.error("AI 응답 처리 실패 - roomId: {}", roomId, aiError);
+                }
+            }
             
             // 사용자 메시지 전송 후 박람회 관리자들에게 unread count 업데이트 알림
             try {
@@ -360,6 +393,153 @@ public class ChatWebSocketController {
             log.error("읽음 상태 알림 처리 실패 - roomId: {}", message.get("roomId"));
         }
     }
+
+    /**
+     * 관리자 연결 요청 (버튼 액션)
+     * /app/request-handoff -> AI가 관리자 연결 대기 상태로 전환
+     */
+    @MessageMapping("/request-handoff")
+    public void requestHandoff(@Payload Map<String, Object> message,
+                              SimpMessageHeaderAccessor headerAccessor) {
+        try {
+            Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
+            if (userId == null) {
+                throw new IllegalStateException("인증되지 않은 사용자");
+            }
+            
+            String roomId = (String) message.get("roomId");
+            
+            // AI 서비스를 통한 핸드오프 요청 처리
+            MessageResponse handoffResponse = aiChatService.requestAdminHandoff(roomId);
+            
+            // 핸드오프 요청 메시지 브로드캐스트
+            Map<String, Object> handoffPayload = Map.of(
+                "roomId", roomId,
+                "messageId", handoffResponse.getMessageId(),
+                "senderId", handoffResponse.getSenderId(),
+                "senderType", "AI",
+                "content", handoffResponse.getContent(),
+                "sentAt", handoffResponse.getSentAt().toString()
+            );
+            
+            Map<String, Object> handoffBroadcast = Map.of(
+                "type", "AI_HANDOFF_REQUEST",
+                "payload", handoffPayload
+            );
+            
+            messagingTemplate.convertAndSend(
+                "/topic/chat/" + roomId,
+                handoffBroadcast
+            );
+            
+            // 버튼 상태 업데이트 브로드캐스트
+            sendButtonStateUpdate(roomId, "WAITING_FOR_ADMIN");
+            
+            log.info("핸드오프 요청 처리 완료 - roomId: {}, userId: {}", roomId, userId);
+            
+        } catch (Exception e) {
+            log.error("핸드오프 요청 처리 실패 - roomId: {}", message.get("roomId"), e);
+            sendErrorMessage(headerAccessor, "핸드오프 요청에 실패했습니다.");
+        }
+    }
+
+    /**
+     * 관리자 연결 요청 취소 (버튼 액션)
+     * /app/cancel-handoff -> AI가 일반 상태로 복귀
+     */
+    @MessageMapping("/cancel-handoff")
+    public void cancelHandoff(@Payload Map<String, Object> message,
+                             SimpMessageHeaderAccessor headerAccessor) {
+        try {
+            Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
+            if (userId == null) {
+                throw new IllegalStateException("인증되지 않은 사용자");
+            }
+            
+            String roomId = (String) message.get("roomId");
+            
+            // AI 서비스를 통한 핸드오프 취소 처리
+            MessageResponse cancelResponse = aiChatService.cancelAdminHandoff(roomId);
+            
+            // 취소 메시지 브로드캐스트
+            Map<String, Object> cancelPayload = Map.of(
+                "roomId", roomId,
+                "messageId", cancelResponse.getMessageId(),
+                "senderId", cancelResponse.getSenderId(),
+                "senderType", "AI",
+                "content", cancelResponse.getContent(),
+                "sentAt", cancelResponse.getSentAt().toString()
+            );
+            
+            Map<String, Object> cancelBroadcast = Map.of(
+                "type", "AI_MESSAGE",
+                "payload", cancelPayload
+            );
+            
+            messagingTemplate.convertAndSend(
+                "/topic/chat/" + roomId,
+                cancelBroadcast
+            );
+            
+            // 버튼 상태 업데이트 브로드캐스트
+            sendButtonStateUpdate(roomId, "AI_ACTIVE");
+            
+            log.info("핸드오프 취소 처리 완료 - roomId: {}, userId: {}", roomId, userId);
+            
+        } catch (Exception e) {
+            log.error("핸드오프 취소 처리 실패 - roomId: {}", message.get("roomId"), e);
+            sendErrorMessage(headerAccessor, "핸드오프 취소에 실패했습니다.");
+        }
+    }
+
+    /**
+     * AI 복귀 요청 (버튼 액션)
+     * /app/request-ai -> 관리자에서 AI로 전환
+     */
+    @MessageMapping("/request-ai")
+    public void requestAI(@Payload Map<String, Object> message,
+                         SimpMessageHeaderAccessor headerAccessor) {
+        try {
+            Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
+            if (userId == null) {
+                throw new IllegalStateException("인증되지 않은 사용자");
+            }
+            
+            String roomId = (String) message.get("roomId");
+            
+            // AI 서비스를 통한 AI 복귀 처리
+            MessageResponse aiReturnResponse = aiChatService.requestAIReturn(roomId);
+            
+            // AI 복귀 메시지 브로드캐스트
+            Map<String, Object> returnPayload = Map.of(
+                "roomId", roomId,
+                "messageId", aiReturnResponse.getMessageId(),
+                "senderId", aiReturnResponse.getSenderId(),
+                "senderType", "AI",
+                "content", aiReturnResponse.getContent(),
+                "sentAt", aiReturnResponse.getSentAt().toString()
+            );
+            
+            Map<String, Object> returnBroadcast = Map.of(
+                "type", "AI_RETURN",
+                "payload", returnPayload
+            );
+            
+            messagingTemplate.convertAndSend(
+                "/topic/chat/" + roomId,
+                returnBroadcast
+            );
+            
+            // 버튼 상태 업데이트 브로드캐스트
+            sendButtonStateUpdate(roomId, "AI_ACTIVE");
+            
+            log.info("AI 복귀 처리 완료 - roomId: {}, userId: {}", roomId, userId);
+            
+        } catch (Exception e) {
+            log.error("AI 복귀 처리 실패 - roomId: {}", message.get("roomId"), e);
+            sendErrorMessage(headerAccessor, "AI 복귀 요청에 실패했습니다.");
+        }
+    }
     
     /**
      * 룸 코드에서 박람회 ID 추출
@@ -433,6 +613,81 @@ public class ChatWebSocketController {
         } catch (Exception e) {
             log.warn("readStatusJson 파싱 실패: {}", readStatusJson, e);
             return null;
+        }
+    }
+    
+    /**
+     * 버튼 상태 업데이트 브로드캐스트
+     */
+    private void sendButtonStateUpdate(String roomId, String newState) {
+        try {
+            Map<String, Object> statePayload = Map.of(
+                "roomId", roomId,
+                "state", newState,
+                "buttonText", getButtonText(newState),
+                "buttonAction", getButtonAction(newState)
+            );
+            
+            Map<String, Object> stateBroadcast = Map.of(
+                "type", "BUTTON_STATE_UPDATE",
+                "payload", statePayload
+            );
+            
+            messagingTemplate.convertAndSend(
+                "/topic/chat/" + roomId,
+                stateBroadcast
+            );
+            
+        } catch (Exception e) {
+            log.warn("버튼 상태 업데이트 전송 실패 - roomId: {}, state: {}", roomId, newState, e);
+        }
+    }
+    
+    /**
+     * 상태별 버튼 텍스트 반환
+     */
+    private String getButtonText(String state) {
+        return switch (state) {
+            case "AI_ACTIVE" -> "Request Human";
+            case "WAITING_FOR_ADMIN" -> "Cancel Request";
+            case "HUMAN_ACTIVE" -> "Request AI";
+            case "HUMAN_INACTIVE" -> "Continue with AI";
+            default -> "Request Human";
+        };
+    }
+    
+    /**
+     * 상태별 버튼 액션 반환
+     */
+    private String getButtonAction(String state) {
+        return switch (state) {
+            case "AI_ACTIVE" -> "request_handoff";
+            case "WAITING_FOR_ADMIN" -> "cancel_handoff";
+            case "HUMAN_ACTIVE" -> "request_ai";
+            case "HUMAN_INACTIVE" -> "request_ai";
+            default -> "request_handoff";
+        };
+    }
+    
+    /**
+     * 에러 메시지 전송
+     */
+    private void sendErrorMessage(SimpMessageHeaderAccessor headerAccessor, String errorMessage) {
+        try {
+            Map<String, Object> error = Map.of(
+                "type", "ERROR",
+                "payload", errorMessage
+            );
+            
+            String sessionId = headerAccessor.getSessionId();
+            messagingTemplate.convertAndSendToUser(
+                sessionId,
+                "/queue/errors", 
+                error
+            );
+            
+        } catch (Exception e) {
+            log.error("에러 메시지 전송 실패: {}", errorMessage, e);
         }
     }
 }

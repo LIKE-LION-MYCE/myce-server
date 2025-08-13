@@ -28,7 +28,13 @@ public enum MessageSenderType {
      * 시스템
      * - 시스템에서 자동 생성하는 메시지용
      */
-    SYSTEM("시스템");
+    SYSTEM("시스템"),
+    
+    /**
+     * AI 상담사
+     * - 찍찍킹 AI가 자동 응답하는 메시지용
+     */
+    AI("찍찍킹");
     
     private final String description;
     
