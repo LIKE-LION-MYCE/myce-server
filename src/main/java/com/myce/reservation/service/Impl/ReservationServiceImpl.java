@@ -6,12 +6,18 @@ import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
+import com.myce.member.entity.Guest;
+import com.myce.member.entity.Member;
+import com.myce.member.repository.GuestRepository;
+import com.myce.member.repository.MemberRepository;
 import com.myce.reservation.dto.ReservationDetailResponse;
 import com.myce.reservation.dto.ReservationPendingRequest;
+import com.myce.reservation.dto.ReservationSuccessResponse;
 import com.myce.reservation.dto.ReserverBulkUpdateRequest;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.Reserver;
 import com.myce.reservation.entity.code.ReservationStatus;
+import com.myce.reservation.entity.code.UserType;
 import com.myce.reservation.service.ReservationCodeService;
 import com.myce.reservation.service.mapper.ReservationDetailMapper;
 import com.myce.reservation.repository.ReservationRepository;
@@ -38,6 +44,8 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationMapper reservationMapper;
     private final ExpoRepository expoRepository;
     private final ReservationCodeService reservationCodeService;
+    private final MemberRepository memberRepository;
+    private final GuestRepository guestRepository;
     
     @Override
     public ReservationDetailResponse getReservationDetail(String reservationCode) {
@@ -108,5 +116,24 @@ public class ReservationServiceImpl implements ReservationService {
             .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
 
         reservation.updateStatus(ReservationStatus.CONFIRMED);
+    }
+
+    @Override
+    public ReservationSuccessResponse getReservationCodeAndEmail(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+            .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+
+        UserType userType = reservation.getUserType();
+        Long userId = reservation.getUserId();
+
+        if(userType == UserType.MEMBER){
+            Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+            return reservationMapper.toSuccessResponse(reservation, member.getEmail());
+        } else{
+            Guest guest = guestRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.GUEST_NOT_EXIST));
+            return reservationMapper.toSuccessResponse(reservation, guest.getEmail());
+        }
     }
 }

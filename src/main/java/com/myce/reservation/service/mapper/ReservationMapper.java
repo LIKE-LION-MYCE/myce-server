@@ -3,6 +3,7 @@ package com.myce.reservation.service.mapper;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
 import com.myce.reservation.dto.ReservationPendingRequest;
+import com.myce.reservation.dto.ReservationSuccessResponse;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.code.ReservationStatus;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,13 @@ public class ReservationMapper {
         .userId(req.getUserId())
         .status(reservationStatus)
         .reservationCode(reservationCode)
+        .build();
+  }
+
+  public ReservationSuccessResponse toSuccessResponse(Reservation reservation, String email){
+    return ReservationSuccessResponse.builder()
+        .reservationCode(reservation.getReservationCode())
+        .email(email)
         .build();
   }
 }

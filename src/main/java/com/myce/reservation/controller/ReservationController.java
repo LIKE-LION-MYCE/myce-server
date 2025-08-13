@@ -2,6 +2,7 @@ package com.myce.reservation.controller;
 
 import com.myce.reservation.dto.ReservationDetailResponse;
 import com.myce.reservation.dto.ReservationPendingRequest;
+import com.myce.reservation.dto.ReservationSuccessResponse;
 import com.myce.reservation.dto.ReserverBulkUpdateRequest;
 import com.myce.reservation.dto.ResolveReserversRequest;
 import com.myce.reservation.dto.ResolveReserversResponse;
@@ -63,5 +64,12 @@ public class ReservationController {
     public ResponseEntity<Void> updateReservationStatusConfirm(@PathVariable Long reservationId){
         reservationService.updateStatusToConfirm(reservationId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{reservationId}/success")
+    public ResponseEntity<ReservationSuccessResponse> getReservationSuccess(
+        @PathVariable Long reservationId){
+        ReservationSuccessResponse response = reservationService.getReservationCodeAndEmail(reservationId);
+        return ResponseEntity.ok(response);
     }
 }
