@@ -5,6 +5,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 
 @Getter
@@ -15,16 +16,18 @@ public class EmailLog {
     @Id
     private String id;
     private Long expoId;
-    private String title;
-    private String recipientName;
+    private String subject;
+    private List<String> recipientNames;
+    private Integer recipientCount;
     private String content;
     private LocalDateTime createdAt;
 
     @Builder
-    public EmailLog(Long expoId, String title, String recipientName, String content) {
+    public EmailLog(Long expoId, String subject, List<String> recipientNames, Integer recipientCount, String content) {
         this.expoId = expoId;
-        this.title = title;
-        this.recipientName = recipientName;
+        this.subject = subject;
+        this.recipientCount = recipientCount;
+        this.recipientNames = recipientNames;
         this.content = content;
         this.createdAt = LocalDateTime.now();
     }

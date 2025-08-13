@@ -12,6 +12,9 @@ import com.myce.expo.repository.ExpoRepository;
 import com.myce.notification.service.EmailSendService;
 import com.myce.reservation.dto.ExpoAdminEmailRequest;
 import com.myce.reservation.service.ExpoAdminEmailService;
+import com.myce.reservation.service.mapper.ExpoAdminEmailMapper;
+import com.myce.system.repository.EmailLogRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
@@ -27,8 +30,10 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
     private final ExpoRepository expoRepository;
     private final BusinessProfileRepository businessProfileRepository;
     private final AdminPermissionRepository adminPermissionRepository;
+    private final EmailLogRepository emailLogRepository;
     private final EmailSendService emailSendService;
     private final SpringTemplateEngine templateEngine;
+    private final ExpoAdminEmailMapper mapper;
     
     //TODO : 추후 링크 교체, 또는 @Value로 값 주입
     private final String TERMS_URL= "http://www.myce.live";
@@ -36,35 +41,15 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
     private final String PRIVACY_URL = "http://www.myce.live";
 
     @Override
+    @Transactional
     public void sendMail(Long memberId, LoginType loginType, Long expoId, ExpoAdminEmailRequest dto) {
         validateMyAccess(expoId, memberId, loginType);
 
         String html = renderEmailHtml(expoId,dto);
         emailSendService.sendMailToMultiple(dto.getRecipients(), dto.getSubject(), html);
-        //TODO : 이메일 로그 저장
+
+        emailLogRepository.save(mapper.toDocument(expoId,dto));
     }
-
-    //TODO: 1차 구현 이후 유틸메소드화(중복 코드들 제거 및 유지보수 용이하도록) 및 권한 로직 수정
-    private void validateMyAccess(Long expoId, Long memberId, LoginType loginType) {
-        if(memberId == null || loginType == null){
-            throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
-        }
-
-        switch(loginType){
-            case MEMBER -> {
-                if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            case ADMIN_CODE -> {
-                if(!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoIdAndIsReserverListViewTrue(memberId, expoId)){
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
-        }
-    }
-
     private String renderEmailHtml(Long expoId, ExpoAdminEmailRequest dto){
         String expoName = expoRepository.findById(expoId)
                 .map(Expo::getTitle)
@@ -94,5 +79,26 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
         if (html == null) return "";
         String text = html.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ").trim();
         return text.length() > maxLen ? text.substring(0, maxLen) + "…" : text;
+    }
+
+    //TODO: 1차 구현 이후 유틸메소드화(중복 코드들 제거 및 유지보수 용이하도록) 및 권한 로직 수정
+    private void validateMyAccess(Long expoId, Long memberId, LoginType loginType) {
+        if(memberId == null || loginType == null){
+            throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
+        }
+
+        switch(loginType){
+            case MEMBER -> {
+                if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
+                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+                }
+            }
+            case ADMIN_CODE -> {
+                if(!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoIdAndIsReserverListViewTrue(memberId, expoId)){
+                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+                }
+            }
+            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
+        }
     }
 }
