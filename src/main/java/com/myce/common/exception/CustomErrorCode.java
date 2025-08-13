@@ -23,6 +23,7 @@ public enum CustomErrorCode {
     MEMBER_SETTING_NOT_EXIST(HttpStatus.NOT_FOUND, "M003", "회원의 시스템 설정이 존재하지 않습니다."),
     CURRENT_PASSWORD_NOT_MATCH(HttpStatus.BAD_REQUEST, "M004", "기존 비밀번호가 일치하지 않습니다."),
     PASSWORD_CONFIRMATION_MISMATCH(HttpStatus.BAD_REQUEST, "M005", "새로운 비밀번호가 일치하지 않습니다."),
+    GENDER_TYPE_INVALID(HttpStatus.BAD_REQUEST, "M006", "유효하지 않은 성별 값입니다."),
 
     // 비회원 G
     GUEST_NOT_EXIST(HttpStatus.NOT_FOUND, "G001", "비회원 정보가 존재하지 않습니다."),
@@ -44,7 +45,7 @@ public enum CustomErrorCode {
     RESERVER_NOT_FOUND(HttpStatus.NOT_FOUND, "Q007", "예약자를 찾을 수 없습니다."),
     QR_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q008", "QR 코드 생성 중 오류가 발생했습니다."),
     QR_REISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q009", "QR 코드 재발급 중 오류가 발생했습니다."),
-    QR_APPROVED(HttpStatus.BAD_REQUEST , "Q010" , "QR 코드 발급 기간이 아닙니다."  ),
+    QR_APPROVED(HttpStatus.BAD_REQUEST, "Q010", "QR 코드 발급 기간이 아닙니다."),
     QR_NOT_MANUAL_CHECK_IN(HttpStatus.BAD_REQUEST, "Q011", "ACTIVE 상태의 QR만 수기입장 처리가 가능합니다."),
 
     // S3 S
@@ -53,10 +54,10 @@ public enum CustomErrorCode {
     // 엑스포 E
     EXPO_NOT_EXIST(HttpStatus.NOT_FOUND, "E001", "운영중인 박람회가 존재하지 않습니다."),
     EXPO_NOT_FOUND(HttpStatus.NOT_FOUND, "E002", "박람회를 찾을 수 없습니다."),
-    CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E005", "카테고리가 존재하지 않습니다."),
     EXPO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "E003", "해당 박람회에 대한 접근 권한이 없습니다."),
-    EXPO_UPDATE_DENIED(HttpStatus.FORBIDDEN, "E004", "해당 박람회에 대한 수정 권한이 없습니다."),
-    INVALID_EXPO_STATUS(HttpStatus.NOT_FOUND, "E005" , "영수증을 조회 할 수 없습니다."),
+    CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E004", "카테고리가 존재하지 않습니다."),
+    INVALID_EXPO_STATUS(HttpStatus.NOT_FOUND, "E005", "영수증을 조회 할 수 없습니다."),
+
 
     // 티켓 T
     TICKET_NOT_EXIST(HttpStatus.NOT_FOUND, "T001", "티켓이 존재하지 않습니다."),
@@ -73,7 +74,7 @@ public enum CustomErrorCode {
     CHAT_SENDER_TYPE_INVALID(HttpStatus.BAD_REQUEST, "C006", "유효하지 않은 메시지 발송자 타입입니다."),
 
     // 광고 A
-    AD_NOT_FOUND(HttpStatus.NOT_FOUND, "A001" ,  "광고가 존재 하지 않습니다" ),
+    AD_NOT_FOUND(HttpStatus.NOT_FOUND, "A001", "광고가 존재 하지 않습니다"),
     AD_MAX_CAPACITY_REACHED(HttpStatus.CONFLICT, "A002", "신청할 수 없는 기간이 포함되어 있습니다."),
     INVALID_ADVERTISEMENT_STATUS(HttpStatus.BAD_REQUEST, "A003", "유효하지 않은 광고 상태입니다."),
 
@@ -84,6 +85,13 @@ public enum CustomErrorCode {
     BOOTH_PREMIUM_RANK_DUPLICATED(HttpStatus.CONFLICT, "B004", "이미 사용중인 프리미엄 부스 노출 순위입니다."),
     BOOTH_NOT_FOUND(HttpStatus.NOT_FOUND, "B005", "부스를 찾을 수 없습니다."),
     BOOTH_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "B006", "해당 박람회에 속한 부스가 아닙니다."),
+    BOOTH_ACCESS_DENIED(HttpStatus.FORBIDDEN, "B007", "부스에 접근할 권한이 없습니다."),
+
+    // 이벤트 EV
+    EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "EV001", "이벤트를 찾을 수 없습니다."),
+    EVENT_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "EV002", "해당 박람회에 속한 이벤트가 아닙니다."),
+    EVENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "EV003", "해당 행사에 대한 권한이 없습니다."),
+
 
     // 광고 위치 AP
     AD_POSITION_NOT_EXIST(HttpStatus.NOT_FOUND, "AP001", "배너 위치 정보가 존재하지 않습니다."),
@@ -113,7 +121,6 @@ public enum CustomErrorCode {
     RESERVATION_CODE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "R005", "예매 코드 생성에 실패했습니다."),
 
     // 정산 S
-
     FEE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F001" , "요금 설정이 없습니다"),
 
     // 환경 Y
@@ -125,8 +132,13 @@ public enum CustomErrorCode {
     REFUND_NOT_FOUND(HttpStatus.NOT_FOUND, "RF001", "환불 정보가 존재하지 않습니다."),
 
     // 시스템 설정 에러
-    NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다.");
+    NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다."),
+    NOT_EXIST_AD_FEE_SETTING(HttpStatus.NOT_FOUND, "SY002", "광고 요금제가 존재하지 않습니다."),
+    NOT_EXIST_EXPO_FEE_SETTING(HttpStatus.NOT_FOUND, "SY003", "박람회 요금제가 존재하지 않습니다."),
+    ALREADY_SET_ACTIVATION(HttpStatus.BAD_REQUEST, "SY004", "이미 설정되어있는 활성화 값입니다."),
 
+    // 엑셀 EX
+    EXCEL_EXPORT_FAILED(HttpStatus.NOT_FOUND, "EX001", "엑셀 추출에 실패하였습니다.");
 
     private final HttpStatus status;
     private final String errorCode;

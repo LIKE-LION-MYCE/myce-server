@@ -42,7 +42,12 @@ public enum WebSocketMessageType {
     /**
      * 에러
      */
-    ERROR("에러");
+    ERROR("에러"),
+    
+    /**
+     * 담당자 해제 알림
+     */
+    ADMIN_RELEASED("담당자해제");
     
     private final String description;
     

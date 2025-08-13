@@ -6,7 +6,7 @@ import com.myce.expo.dto.MyExpoDetailResponse;
 import com.myce.expo.dto.MyExpoUpdateRequest;
 
 public interface MyExpoService {
-    MyExpoDetailResponse getMyExpoDetail(Long expoId, Long memberId);
-    MyExpoDetailResponse updateMyExpoDetail(Long expoId, Long memberId, MyExpoUpdateRequest updateRequest);
+    MyExpoDetailResponse getMyExpoDetail(Long expoId, LoginType loginType, Long principalId);
+    MyExpoDetailResponse updateMyExpoDetail(Long expoId, MyExpoUpdateRequest updateRequest, LoginType loginType, Long principalId);
     ExpoAdminPermissionResponse getExpoAdminPermission(Long memberId, LoginType loginType);
 }

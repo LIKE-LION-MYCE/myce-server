@@ -20,6 +20,9 @@ public class ExpoFeeSetting {
     @Column(name = "expo_fee_setting_id")
     private Long id;
 
+    @Column(name="name", nullable = false, length = 30)
+    private String name;
+
     @Column(name = "deposit", nullable = false)
     private Integer deposit;
 
@@ -44,12 +47,21 @@ public class ExpoFeeSetting {
     private LocalDateTime updatedAt;
 
     @Builder
-    public ExpoFeeSetting(Integer deposit, Integer premiumDeposit, BigDecimal settlementCommission,
+    public ExpoFeeSetting(String name, Integer deposit, Integer premiumDeposit, BigDecimal settlementCommission,
                           Integer dailyUsageFee, Boolean isActive) {
+        this.name = name;
         this.deposit = deposit;
         this.premiumDeposit = premiumDeposit;
         this.settlementCommission = settlementCommission;
         this.dailyUsageFee = dailyUsageFee;
         this.isActive = isActive;
+    }
+
+    public void inactive() {
+        this.isActive = false;
+    }
+
+    public void active() {
+        this.isActive = true;
     }
 }
