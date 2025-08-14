@@ -14,8 +14,14 @@ import com.myce.expo.service.mapper.RejectInfoMapper;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.entity.type.PaymentStatus;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
+import com.myce.settlement.entity.Settlement;
+import com.myce.settlement.entity.code.SettlementStatus;
+import com.myce.settlement.repository.SettlementRepository;
 import com.myce.system.entity.ExpoFeeSetting;
 import com.myce.system.repository.ExpoFeeSettingRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.myce.member.entity.Member;
+import com.myce.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,6 +45,8 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
     private final ExpoPaymentInfoRepository expoPaymentInfoRepository;
     private final RejectInfoRepository rejectInfoRepository;
     private final ExpoFeeSettingRepository expoFeeSettingRepository;
+    private final SettlementRepository settlementRepository;
+    private final MemberRepository memberRepository;
 
     /**
      * 박람회 신청 승인 처리
@@ -178,10 +186,33 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
             throw new CustomException(CustomErrorCode.INVALID_EXPO_STATUS);
         }
         
-        // 4. 박람회 상태 변경 (SETTLEMENT_REQUESTED -> COMPLETED)
+        // 4. 현재 로그인한 관리자 조회 (임시로 첫 번째 플랫폼 관리자 사용)
+        Member adminMember = memberRepository.findById(1L)
+                .orElseThrow(() -> {
+                    log.error("박람회 정산 승인 실패 - 관리자 조회 실패");
+                    return new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
+                });
+        
+        // 5. 기존 Settlement 조회 (이미 존재한다고 가정)
+        Settlement settlement = settlementRepository.findByExpoId(expoId)
+                .orElseThrow(() -> {
+                    log.error("박람회 정산 승인 실패 - Settlement 레코드 없음: {}", expoId);
+                    return new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND);
+                });
+        
+        // 6. Settlement 승인 정보 업데이트
+        settlement.setSettlementAt(java.time.LocalDateTime.now()); // 정산 승인 시점
+        settlement.setAdminMember(adminMember); // 승인한 관리자
+        settlement.setSettlementStatus(SettlementStatus.APPROVED); // 승인 상태로 변경
+        
+        // Settlement 엔티티 명시적 저장
+        settlementRepository.save(settlement);
+        
+        // 7. 박람회 상태 변경 (SETTLEMENT_REQUESTED -> COMPLETED)
         expo.approveSettlement();  // Entity 메서드 사용
         
-        log.info("박람회 정산 승인 완료 - expoId: {}", expoId);
+        log.info("박람회 정산 승인 완료 - expoId: {}, adminMemberId: {}, settlementId: {}", 
+                expoId, adminMember.getId(), settlement.getId());
     }
 
     /**
