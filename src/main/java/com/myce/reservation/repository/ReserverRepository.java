@@ -21,6 +21,8 @@ import java.util.stream.Stream;
 public interface ReserverRepository extends JpaRepository<Reserver, Long> {
     
     List<Reserver> findByReservation(Reservation reservation);
+
+    List<Reserver> findByReservationId(Long reservationId);
     
     // QR코드 일괄 생성용 - 특정 박람회의 모든 예약자 조회
     @Query("SELECT r FROM Reserver r " +
