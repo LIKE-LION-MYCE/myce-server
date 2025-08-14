@@ -5,6 +5,8 @@ import com.myce.common.exception.CustomException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @RequiredArgsConstructor
 public enum PaymentStatus {
@@ -28,5 +30,12 @@ public enum PaymentStatus {
             if (status.getLabel().equals(label)) return status;
         }
         throw new CustomException(CustomErrorCode.PAYMENT_STATUS_INVALID);
+    }
+
+
+    public static List<PaymentStatus> getPaidStatusList(){
+        return List.of(PaymentStatus.PARTIAL_REFUNDED,
+                PaymentStatus.REFUNDED,
+                PaymentStatus.SUCCESS);
     }
 }
