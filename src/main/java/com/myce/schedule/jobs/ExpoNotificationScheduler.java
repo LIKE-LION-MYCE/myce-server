@@ -45,7 +45,7 @@ public class ExpoNotificationScheduler implements TaskScheduler {
     }
 
     @Override
-    @Scheduled(cron = "0 13 * * * *") // 매일 오전 9시에 실행
+    @Scheduled(cron = "0 0 9 * * *") // 매일 오전 9시에 실행
     @Transactional
     public void run() {
         log.info("[Scheduler] 박람회 시작 하루 전 알림 스케줄러 실행");
