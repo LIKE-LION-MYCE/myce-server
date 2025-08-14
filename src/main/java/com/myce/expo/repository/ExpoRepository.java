@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -70,5 +71,10 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
     
     // 현재 박람회 관리용 - 키워드 검색 + 여러 상태 조회
     Page<Expo> findByTitleContainingIgnoreCaseAndStatusIn(String keyword, List<ExpoStatus> statuses, Pageable pageable);
+
+    @Query("select count(e) from Expo e " +
+            "WHERE e.displayEndDate <= CURRENT_DATE " +
+            "and e.displayEndDate >= :date ")
+    long countAllAfterDate(LocalDate date);
 }
 

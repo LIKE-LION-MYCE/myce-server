@@ -8,12 +8,12 @@ import java.util.List;
 
 @Getter
 @NoArgsConstructor
-public class RevenueChartData {
-    private List<String> labels; // 예: ["2025/08/14", "2025/08/13", ...]
+public class DashboardChartData {
+    private List<String> labels;
     private List<Long> data;
 
     @Builder
-    public RevenueChartData(List<String> labels, List<Long> data) {
+    public DashboardChartData(List<String> labels, List<Long> data) {
         this.labels = labels;
         this.data = data;
     }

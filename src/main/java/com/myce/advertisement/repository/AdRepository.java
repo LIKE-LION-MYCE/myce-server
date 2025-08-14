@@ -4,6 +4,7 @@ import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -57,4 +58,9 @@ public interface AdRepository extends JpaRepository<Advertisement, Long> {
             @Param("status") List<AdvertisementStatus> status);
 
     Optional<Advertisement> findByIdAndMemberId(Long advertisementId, Long memberId);
+
+    @Query("SELECT COUNT(a) FROM Advertisement a " +
+            "WHERE a.displayEndDate >= :date " +
+            "and a.displayEndDate <= CURRENT_DATE")
+    long countAllByDateAfter(LocalDate date);
 }

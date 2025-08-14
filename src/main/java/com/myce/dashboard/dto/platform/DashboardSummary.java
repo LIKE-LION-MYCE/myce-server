@@ -6,13 +6,13 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class RevenueSummary {
+public class DashboardSummary {
     private String label;
     private Long value;
     private Float change;
     private boolean isTrending;
     @Builder
-    public RevenueSummary(String label, Long value, Float change, boolean isTrending) {
+    public DashboardSummary(String label, Long value, Float change, boolean isTrending) {
         this.label = label;
         this.value = value;
         this.change = change;
