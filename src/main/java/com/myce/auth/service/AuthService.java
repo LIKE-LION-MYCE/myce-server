@@ -12,7 +12,7 @@ public interface AuthService {
 
     void signup(SignupRequest signupRequest);
 
-    FindLoginIdResponse getLoginId(FindLoginIdRequest findLoginIdRequest);
+    FindLoginIdResponse getLoginId(String name, String email);
 
     void sendTempPasswordMail(TempPasswordRequest request);
 

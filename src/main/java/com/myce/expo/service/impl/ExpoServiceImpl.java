@@ -8,19 +8,29 @@ import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.common.service.mapper.BusinessProfileMapper;
 import com.myce.expo.dto.CongestionResponse;
+import com.myce.expo.dto.ExpoCardResponse;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.ExpoCategory;
+import com.myce.expo.entity.Ticket;
+import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.CategoryRepository;
 import com.myce.expo.repository.ExpoRepository;
+import com.myce.expo.repository.TicketRepository;
 import com.myce.expo.service.ExpoService;
 import com.myce.expo.service.mapper.ExpoMapper;
 import com.myce.member.entity.Member;
+import com.myce.member.repository.FavoriteRepository;
 import com.myce.member.repository.MemberRepository;
 import com.myce.qrcode.repository.QrCodeRepository;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +47,9 @@ public class ExpoServiceImpl implements ExpoService {
     private final CategoryRepository categoryRepository;
     private final BusinessProfileRepository businessProfileRepository;
     private final QrCodeRepository qrCodeRepository;
+    private final ExpoMapper expoMapper;
+    private final TicketRepository ticketRepository;
+    private final FavoriteRepository favoriteRepository;
 
     @Override
     public void saveExpo(Long memberId, ExpoRegistrationRequest request) {
@@ -95,7 +108,7 @@ public class ExpoServiceImpl implements ExpoService {
         return CongestionResponse.of(expoId, expo.getTitle(),
                 hourlyVisitors, hourlyCapacity);
     }
-    
+
     /**
      * 시간당 수용 인원 계산
      * = 총 수용인원 / 박람회 기간(일) / 하루 운영시간
@@ -117,5 +130,53 @@ public class ExpoServiceImpl implements ExpoService {
                 expoDays, dailyHours, totalOperatingHours, hourlyCapacity);
                 
         return hourlyCapacity;
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<ExpoCardResponse> getExpoCardsFiltered(Long memberId,
+        String categoryName,
+        LocalDate from,
+        LocalDate to,
+        String keyword,
+        Pageable pageable) {
+
+        Long categoryId = null;
+        if (categoryName != null && !categoryName.isBlank()) {
+            Category category = categoryRepository.findByName(categoryName)
+                .orElseThrow(()-> new CustomException(CustomErrorCode.CATEGORY_NOT_EXIST));
+            if (category != null) {
+                categoryId = category.getId();
+            }
+        }
+
+        String kw = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+
+        Page<Expo> exposPage = expoRepository.findPublishedExposFiltered(
+            ExpoStatus.PUBLISHED,
+            categoryId,
+            kw,
+            from,
+            to,
+            pageable
+        );
+
+        List<ExpoCardResponse> expoCards = new ArrayList<>(exposPage.getContent().size());
+        for(Expo expo : exposPage.getContent()) {
+            // 남은 티켓 수 합산
+            List<Ticket> tickets = ticketRepository.findByExpoId(expo.getId());
+            int remainingTickets = 0;
+            for(Ticket ticket : tickets) {
+                remainingTickets += ticket.getRemainingQuantity();
+            }
+
+            // 회원일 경우에만 찜 확인 가능
+            boolean isBookmark = false;
+            if(memberId != null){
+                isBookmark = favoriteRepository.existsByMemberIdAndExpoId(memberId, expo.getId());
+            }
+            expoCards.add(expoMapper.toCards(expo, remainingTickets, isBookmark));
+        }
+        return expoCards;
     }
 }

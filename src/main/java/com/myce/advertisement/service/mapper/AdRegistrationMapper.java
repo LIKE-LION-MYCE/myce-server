@@ -1,7 +1,7 @@
 package com.myce.advertisement.service.mapper;
 
 import com.myce.advertisement.dto.AdRegistrationRequest;
-import com.myce.advertisement.entity.AdPosition;
+import com.myce.system.entity.AdPosition;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.member.entity.Member;

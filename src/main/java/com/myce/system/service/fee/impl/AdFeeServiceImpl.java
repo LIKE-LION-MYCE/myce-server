@@ -1,7 +1,7 @@
 package com.myce.system.service.fee.impl;
 
-import com.myce.advertisement.entity.AdPosition;
-import com.myce.advertisement.repository.AdPositionRepository;
+import com.myce.system.entity.AdPosition;
+import com.myce.system.repository.AdPositionRepository;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.system.dto.fee.AdFeeListResponse;

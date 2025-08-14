@@ -1,9 +1,12 @@
 package com.myce.reservation.controller;
 
+import com.myce.reservation.dto.ReserverBulkSaveRequest;
 import com.myce.reservation.dto.ReserverUpdateRequest;
 import com.myce.reservation.service.ReserverService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,5 +25,12 @@ public class ReserverController {
         reserverService.updateReserver(reserverId, requestDto);
         
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping()
+    public ResponseEntity<Void> saveReservers(
+        @RequestBody @Valid ReserverBulkSaveRequest request){
+        reserverService.saveReservers(request.getReservationId(), request.getReserverInfos());
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }

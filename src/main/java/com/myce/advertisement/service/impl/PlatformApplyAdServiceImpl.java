@@ -22,12 +22,14 @@ import com.myce.system.entity.AdFeeSetting;
 import com.myce.system.repository.AdFeeSettingRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
     private final AdRepository adRepository;
     private final RejectInfoRepository rejectInfoRepository;
@@ -44,6 +46,8 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
         HashMap<String, Integer> priceMap = new HashMap<>();
         int totalPayment = 0;
+
+        log.info("generatePaymentCheck - Advertisement : {}", ad);
 
         // todo: PG 수수료 고려 X
         int totalDayFee = feeSetting.getFeePerDay() * ad.getTotalDays();
@@ -69,6 +73,7 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
                 .feePerDay(feeSetting.getFeePerDay())
                 .build();
 
+        log.info("approveApply - Advertisement : {}", ad);
         adPaymentInfoRepository.save(paymentInfo);
         ad.approve();
     }
@@ -83,6 +88,8 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
                 .description(request.getReason())
                 .build();
 
+        log.info("rejectApply - Advertisement : {}", ad);
+
         rejectInfoRepository.save(rejectInfo);
         ad.reject();
     }
@@ -92,6 +99,7 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
                 .findByTargetIdAndTargetType(adId, TargetType.ADVERTISEMENT)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.REJECT_INFO_NOT_FOUND));
 
+        log.info("getRejectInfo - RejectInfo : {}", rejectInfo);
         return AdInfoMapper.getAdRejectInfoResponse(rejectInfo);
     }
 
@@ -99,7 +107,7 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
         AdPaymentInfo paymentInfo = adPaymentInfoRepository
                 .findByAdvertisementId(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
-
+        log.info("getPaymentHistory - AdPaymentInfo : {}", paymentInfo);
         return AdInfoMapper.getPaymentInfoRequest(paymentInfo);
     }
 
@@ -113,7 +121,7 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
         Refund refund = refundRepository
                 .findByPayment(payment)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.REFUND_NOT_FOUND));
-
+        log.info("getCancelHistory - Advertisement : {}", advertisement);
         return AdInfoMapper.getAdCancelInfoResponse(advertisement, payment, refund);
     }
 }
