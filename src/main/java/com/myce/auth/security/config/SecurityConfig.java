@@ -64,9 +64,10 @@ public class SecurityConfig {
                 LoginFilter.class).addFilterAt(loginFilter, UsernamePasswordAuthenticationFilter.class);
 
         http.authorizeHttpRequests(auth ->
-                auth.requestMatchers(HttpMethod.POST, "/api/auth/**")
+                auth.requestMatchers(HttpMethod.POST, "/api/auth/**", "/api/payment/**")
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/**", "/api/categories", "/api/expos")
+                        .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/**",
+                            "/api/categories", "/api/expos/**", "/api/tickest/quantity")
                         .permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
