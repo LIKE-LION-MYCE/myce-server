@@ -1,18 +1,18 @@
 package com.myce.advertisement.service.mapper;
 
 import com.myce.advertisement.dto.*;
-import com.myce.advertisement.entity.AdPosition;
+import com.myce.system.entity.AdPosition;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.common.entity.BusinessProfile;
 import com.myce.member.entity.Member;
 
 public class AdMapper {
-    public static AdSimpleResponse getSimpleAdvertisement(
+    public static AdResponse getSimpleAdvertisement(
             Advertisement advertisement, BusinessProfile businessProfile) {
         Member member = advertisement.getMember();
         AdPosition adPosition = advertisement.getAdPosition();
 
-        return AdSimpleResponse.builder()
+        return AdResponse.builder()
                 .id(advertisement.getId())
                 .title(advertisement.getTitle())
                 .memberUsername(member.getLoginId())

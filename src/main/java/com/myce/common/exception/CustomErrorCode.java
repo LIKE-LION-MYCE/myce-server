@@ -24,6 +24,8 @@ public enum CustomErrorCode {
     CURRENT_PASSWORD_NOT_MATCH(HttpStatus.BAD_REQUEST, "M004", "기존 비밀번호가 일치하지 않습니다."),
     PASSWORD_CONFIRMATION_MISMATCH(HttpStatus.BAD_REQUEST, "M005", "새로운 비밀번호가 일치하지 않습니다."),
     GENDER_TYPE_INVALID(HttpStatus.BAD_REQUEST, "M006", "유효하지 않은 성별 값입니다."),
+    ALREADY_EXIST_LOGIN_ID(HttpStatus.BAD_REQUEST, "M007", "이미 존재하는 아이디입니다."),
+    ALREADY_EXIST_EMAIL(HttpStatus.BAD_REQUEST, "M008", "이미 존재하는 이메일입니다."),
 
     // 비회원 G
     GUEST_NOT_EXIST(HttpStatus.NOT_FOUND, "G001", "비회원 정보가 존재하지 않습니다."),
@@ -57,12 +59,14 @@ public enum CustomErrorCode {
     EXPO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "E003", "해당 박람회에 대한 접근 권한이 없습니다."),
     CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E004", "카테고리가 존재하지 않습니다."),
     INVALID_EXPO_STATUS(HttpStatus.NOT_FOUND, "E005", "영수증을 조회 할 수 없습니다."),
+    EXPO_NOT_PUBLISHED(HttpStatus.FORBIDDEN, "E006", "공개되지 않은 박람회입니다."),
 
 
     // 티켓 T
     TICKET_NOT_EXIST(HttpStatus.NOT_FOUND, "T001", "티켓이 존재하지 않습니다."),
     TICKET_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "T002", "해당 티켓은 현재 박람회에 속하지 않습니다."),
     TICKET_TYPE_INVALID(HttpStatus.BAD_REQUEST, "T003", "유효하지 않은 티켓 타입입니다."),
+    TICKET_SOLD_OUT(HttpStatus.CONFLICT, "T004", "티켓이 매진되었습니다."),
 
     // 채팅 C
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "채팅방을 찾을 수 없습니다."),
@@ -98,26 +102,31 @@ public enum CustomErrorCode {
     // 결제 P
     PAYMENT_STATUS_INVALID(HttpStatus.BAD_REQUEST, "P001", "유효하지 않은 결제 상태값입니다."),
     PAYMENT_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "P002", "결제 정보를 찾을 수 없습니다."),
-    PORTONE_PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "P003", "포트원 결제내역 응답이 없습니다."),
-    PAYMENT_NOT_PAID(HttpStatus.CONFLICT, "P004", "결제가 완료되지 않았습니다."),
-    PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "P005", "결제 금액이 다릅니다."),
-    PAYMENT_MERCHANT_UID_MISMATCH(HttpStatus.BAD_REQUEST, "P006", "주문번호가 일치하지 않습니다."),
-    PORTONE_AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "P007", "포트원 인증에 실패했습니다."),
-    INVALID_PAYMENT_TARGET_TYPE(HttpStatus.BAD_REQUEST, "P008", "유효하지 않은 결제 타겟입니다."),
-    PORTONE_REFUND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "P009", "포트원 환불 요청에 실패했습니다."),
-    REFUND_AMOUNT_EXCEEDS_PAID(HttpStatus.BAD_REQUEST, "P010", "환불 금액이 결제 금액을 초과합니다."),
-    PORTONE_REQUEST_SERIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "P011", "포트원 요청 본문 직렬화에 실패했습니다."),
-    PORTONE_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "P012", "포트원 요청에 실패했습니다."),
-    PAYMENT_NOT_READY_OR_PAID(HttpStatus.BAD_REQUEST, "P013", "결제 상태가 'ready' 또는 'paid'가 아닙니다."),
-    WEBHOOK_DATA_MISMATCH(HttpStatus.BAD_REQUEST, "P014", "웹훅 데이터와 포트원 조회 데이터가 일치하지 않습니다."),
-    INVALID_MERCHANT_UID_FORMAT(HttpStatus.BAD_REQUEST, "P015", "유효하지 않은 상점 주문번호 형식입니다."),
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "P003", "결제 내역을 찾을 수 없습니다."),
+    PORTONE_PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "P004", "포트원 결제내역 응답이 없습니다."),
+    PAYMENT_NOT_PAID(HttpStatus.CONFLICT, "P005", "결제가 완료되지 않았습니다."),
+    PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "P006", "결제 금액이 다릅니다."),
+    PAYMENT_MERCHANT_UID_MISMATCH(HttpStatus.BAD_REQUEST, "P007", "주문번호가 일치하지 않습니다."),
+    PORTONE_AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "P008", "포트원 인증에 실패했습니다."),
+    INVALID_PAYMENT_TARGET_TYPE(HttpStatus.BAD_REQUEST, "P009", "유효하지 않은 결제 타겟입니다."),
+    PORTONE_REFUND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "P010", "포트원 환불 요청에 실패했습니다."),
+    REFUND_AMOUNT_EXCEEDS_PAID(HttpStatus.BAD_REQUEST, "P011", "환불 금액이 결제 금액을 초과합니다."),
+    PORTONE_REQUEST_SERIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "P012", "포트원 요청 본문 직렬화에 실패했습니다."),
+    PORTONE_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "P013", "포트원 요청에 실패했습니다."),
+    PAYMENT_NOT_READY_OR_PAID(HttpStatus.BAD_REQUEST, "P014", "결제 상태가 'ready' 또는 'paid'가 아닙니다."),
+    WEBHOOK_DATA_MISMATCH(HttpStatus.BAD_REQUEST, "P015", "웹훅 데이터와 포트원 조회 데이터가 일치하지 않습니다."),
+    INVALID_MERCHANT_UID_FORMAT(HttpStatus.BAD_REQUEST, "P016", "유효하지 않은 상점 주문번호 형식입니다."),
 
     // 예약 R
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "해당 예약 정보를 조회 할수 없습니다."),
     RESERVATION_STATUS_INVALID(HttpStatus.BAD_REQUEST, "R002", "유효하지 않은 예약 상태값입니다."),
+    RESERVER_INFO_NOT_FOUND(HttpStatus.BAD_REQUEST, "R003", "예매자 개인정보들은 비어 있을 수 없습니다."),
+    RESERVATION_CODE_INVALID_INPUT(HttpStatus.BAD_REQUEST, "R004", "예매 코드를 만들기 위한 값이 유효하지 않습니다."),
+    RESERVATION_CODE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "R005", "예매 코드 생성에 실패했습니다."),
 
     // 정산 S
     FEE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "F001" , "요금 설정이 없습니다"),
+    SETTLEMENT_ALREADY_REQUESTED(HttpStatus.BAD_REQUEST, "F002" , "이미 정산 요청이 존재합니다."),
 
     // 환경 Y
 
@@ -126,6 +135,7 @@ public enum CustomErrorCode {
 
     // 환불 RF
     REFUND_NOT_FOUND(HttpStatus.NOT_FOUND, "RF001", "환불 정보가 존재하지 않습니다."),
+    ALREADY_REFUND_REQUESTED(HttpStatus.CONFLICT, "RF002", "이미 환불 신청이 접수되었습니다."),
 
     // 시스템 설정 에러
     NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다."),
@@ -138,6 +148,9 @@ public enum CustomErrorCode {
 
     // 이메일 EM
     INVALID_EMAIL_LOG(HttpStatus.NOT_FOUND, "EM001", "유효하지 않은 이메일 로그 입니다.");
+
+    // 기간 PE
+    PERIOD_TYPE_NOT_EXIST(HttpStatus.NOT_FOUND, "PE001", "기간 타입이 존재하지 않습니다.");
 
     private final HttpStatus status;
     private final String errorCode;

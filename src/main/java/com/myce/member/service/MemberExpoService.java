@@ -4,6 +4,7 @@ import com.myce.member.dto.expo.ExpoAdminCodeResponse;
 import com.myce.member.dto.expo.ExpoPaymentDetailResponse;
 import com.myce.member.dto.expo.ExpoRefundReceiptResponse;
 import com.myce.member.dto.expo.ExpoSettlementReceiptResponse;
+import com.myce.member.dto.expo.ExpoSettlementRequest;
 import com.myce.member.dto.expo.MemberExpoDetailResponse;
 import com.myce.member.dto.expo.MemberExpoResponse;
 import org.springframework.data.domain.Page;
@@ -26,4 +27,6 @@ public interface MemberExpoService {
     ExpoSettlementReceiptResponse getExpoSettlementReceipt(Long memberId, Long expoId);
     
     ExpoRefundReceiptResponse getExpoRefundReceipt(Long memberId, Long expoId);
+    
+    void requestExpoSettlement(Long memberId, Long expoId, ExpoSettlementRequest request);
 }
