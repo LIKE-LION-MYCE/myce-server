@@ -20,12 +20,9 @@ import com.myce.expo.entity.Booth;
 import com.myce.expo.repository.BoothRepository;
 import com.myce.expo.service.mapper.BoothMapper;
 import com.myce.expo.entity.type.ExpoStatus;
-import com.myce.expo.entity.Ticket;
-import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.CategoryRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.ReviewRepository;
-import com.myce.expo.repository.TicketRepository;
 import com.myce.expo.repository.TicketRepository;
 import com.myce.expo.service.ExpoService;
 import com.myce.expo.service.mapper.ExpoMapper;
@@ -41,13 +38,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -61,7 +55,6 @@ public class ExpoServiceImpl implements ExpoService {
     private final CategoryRepository categoryRepository;
     private final BusinessProfileRepository businessProfileRepository;
     private final QrCodeRepository qrCodeRepository;
-    private final ExpoMapper expoMapper;
     private final TicketRepository ticketRepository;
     private final FavoriteRepository favoriteRepository;
     private final BoothRepository boothRepository;
@@ -167,16 +160,21 @@ public class ExpoServiceImpl implements ExpoService {
             }
         }
 
-        String kw = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        String keyWord = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
 
         Page<Expo> exposPage = expoRepository.findPublishedExposFiltered(
             ExpoStatus.PUBLISHED,
             categoryId,
-            kw,
+            keyWord,
             from,
             to,
             pageable
         );
+
+        List<Long> bookmarkedExpoIds = new ArrayList<>();
+        if (memberId != null) {
+            bookmarkedExpoIds = favoriteRepository.findExpoIdsByMemberId(memberId);
+        }
 
         List<ExpoCardResponse> expoCards = new ArrayList<>(exposPage.getContent().size());
         for(Expo expo : exposPage.getContent()) {
@@ -187,12 +185,9 @@ public class ExpoServiceImpl implements ExpoService {
                 remainingTickets += ticket.getRemainingQuantity();
             }
 
-            // 회원일 경우에만 찜 확인 가능
-            boolean isBookmark = false;
-            if(memberId != null){
-                isBookmark = favoriteRepository.existsByMemberIdAndExpoId(memberId, expo.getId());
-            }
-            expoCards.add(expoMapper.toCards(expo, remainingTickets, isBookmark));
+            // 북마크된 엑스포 중에 있는지 확인
+            boolean isBookmark = bookmarkedExpoIds.contains(expo.getId());
+            expoCards.add(ExpoMapper.toCards(expo, remainingTickets, isBookmark));
         }
         return expoCards;
     }

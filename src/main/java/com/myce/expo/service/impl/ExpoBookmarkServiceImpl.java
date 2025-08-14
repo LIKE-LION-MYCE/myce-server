@@ -12,6 +12,6 @@ public class ExpoBookmarkServiceImpl implements ExpoBookmarkService {
 
   @Override
   public boolean getCheckBookmark(Long memberId, Long expoId) {
-    return favoriteRepository.existsByMemberIdAndExpoId(memberId, expoId);
+    return favoriteRepository.existsByMember_IdAndExpo_Id(memberId, expoId);
   }
 }
