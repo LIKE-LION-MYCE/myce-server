@@ -1,5 +1,6 @@
 package com.myce.dashboard.service.platform.impl;
 
+import com.myce.dashboard.record.CheckDivideZero;
 import com.myce.payment.entity.type.PaymentStatus;
 import com.myce.payment.repository.AdPaymentInfoRepository;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
@@ -10,7 +11,7 @@ import com.myce.dashboard.dto.platform.type.PeriodType;
 import com.myce.settlement.entity.code.SettlementStatus;
 import com.myce.settlement.repository.SettlementRepository;
 import com.myce.dashboard.service.platform.RevenueService;
-import com.myce.dashboard.service.platform.mapper.SettlementMapper;
+import com.myce.dashboard.service.platform.mapper.RevenueMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import static com.myce.dashboard.util.ComparisonUtil.getCheckDivideZero;
 
 @Service
 @RequiredArgsConstructor
@@ -60,11 +63,12 @@ public class RevenueServiceImpl implements RevenueService {
         Long pastResult = settlementRepository
                 .countSettlementBySettlementAtAfterAndSettlementStatus(timestamp.minusDays(period), SettlementStatus.PAID);
 
-        checkDivideZero result = getCheckDivideZero(pastResult, currentResult);
+        CheckDivideZero comparisonInfo = getCheckDivideZero(pastResult, currentResult);
 
         log.info("settlement : currentResult: {}, pastResult: {}", currentResult, pastResult);
 
-        return SettlementMapper.toSummary("총 정산 수", currentResult, result.compareRatio(), result.isTrending());
+        return RevenueMapper.toSummary("총 정산 수", currentResult,
+                comparisonInfo.compareRatio(), comparisonInfo.isTrending());
     }
 
     // 박람회 등록금 + 티켓 수익(토나오는)
@@ -82,9 +86,10 @@ public class RevenueServiceImpl implements RevenueService {
 
         log.info("expoBenefit : currentResult: {}, pastResult: {}", currentResult, pastResult);
 
-        checkDivideZero result = getCheckDivideZero(pastResult, currentResult);
+        CheckDivideZero comparisonInfo = getCheckDivideZero(pastResult, currentResult);
 
-        return SettlementMapper.toSummary("박람회 순수익", currentResult, result.compareRatio, result.isTrending);
+        return RevenueMapper.toSummary("박람회 순수익", currentResult,
+                comparisonInfo.compareRatio(), comparisonInfo.isTrending());
     }
 
     public RevenueSummary getAdBenefit(Long period) {
@@ -92,13 +97,13 @@ public class RevenueServiceImpl implements RevenueService {
 
         totalAdBenefit adBenefit = getTotalAdBenefit(period, timestamp);
 
-        checkDivideZero result = getCheckDivideZero(adBenefit.pastResult,
+        CheckDivideZero comparisonInfo = getCheckDivideZero(adBenefit.pastResult,
                 adBenefit.currentResult);
 
         log.info("adBenefit : currentResult: {}, pastResult: {}", adBenefit.currentResult(), adBenefit.pastResult());
 
-        return SettlementMapper.toSummary("광고 수익", adBenefit.currentResult(),
-                result.compareRatio, result.isTrending);
+        return RevenueMapper.toSummary("광고 수익", adBenefit.currentResult(),
+                comparisonInfo.compareRatio(), comparisonInfo.isTrending());
     }
 
     public RevenueSummary getTotalBenefit(Long period) {
@@ -110,9 +115,9 @@ public class RevenueServiceImpl implements RevenueService {
         Long currentResult = currentExpo.ticketBenefit() + currentExpo.applyDeposit() + adBenefit.currentResult();
         Long pastResult = pastExpo.ticketBenefit() + pastExpo.applyDeposit() + adBenefit.pastResult();
 
-        checkDivideZero result = getCheckDivideZero(pastResult, currentResult);
+        CheckDivideZero comparisonInfo = getCheckDivideZero(pastResult, currentResult);
 
-        return SettlementMapper.toSummary("총 수익", currentResult, result.compareRatio, result.isTrending);
+        return RevenueMapper.toSummary("총 수익", currentResult, comparisonInfo.compareRatio(), comparisonInfo.isTrending());
     }
 
     public RevenueChartData getChartData(Long period, Long size) {
@@ -171,23 +176,5 @@ public class RevenueServiceImpl implements RevenueService {
     }
 
     private record totalAdBenefit(long currentResult, long pastResult) {
-    }
-    
-    //지난 기간 결과값이 0일 경우 -> 비교 백분율을 0으로 고정
-    private static checkDivideZero getCheckDivideZero(Long pastResult, Long currentResult) {
-        float compareRatio;
-        boolean isTrending;
-        if(pastResult == 0) {
-            compareRatio = 0;
-            isTrending = false;
-        }else{
-            compareRatio = (float) 100 * (currentResult - pastResult) / pastResult;
-            isTrending = compareRatio > 0;
-        }
-        checkDivideZero result = new checkDivideZero(compareRatio, isTrending);
-        return result;
-    }
-
-    private record checkDivideZero(float compareRatio, boolean isTrending) {
     }
 }
