@@ -89,10 +89,8 @@ public class ExpoController {
 
     // 박람회 찜하기 상태 조회
     @GetMapping("/{expoId}/bookmark")
-    public ResponseEntity<ExpoBookmarkResponse> getExpoBookmarkStatus(
-            @PathVariable Long expoId,
-            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
-        Long memberId = customUserDetails != null ? customUserDetails.getMemberId() : null;
+    public ResponseEntity<ExpoBookmarkResponse> getExpoBookmarkStatus(@PathVariable Long expoId) {
+        Long memberId = getCurrentMemberIdOrNull();
         ExpoBookmarkResponse bookmarkStatus = expoService.getExpoBookmarkStatus(expoId, memberId);
         return ResponseEntity.ok(bookmarkStatus);
     }
@@ -122,14 +120,19 @@ public class ExpoController {
     }
 
     private Long getCurrentMemberIdOrNull(){
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+        try {
+            var auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+                return null;
+            }
+            Object principal = auth.getPrincipal();
+            if(principal instanceof CustomUserDetails user) {
+                return user.getMemberId();
+            }
+            return null;
+        } catch (Exception e) {
+            // 비회원이거나 인증 관련 예외 발생시 null 반환
             return null;
         }
-        Object principal = auth.getPrincipal();
-        if(principal instanceof CustomUserDetails user) {
-            return user.getMemberId();
-        }
-        return null;
     }
 }

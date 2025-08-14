@@ -250,15 +250,21 @@ public class ExpoServiceImpl implements ExpoService {
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
 
-        // TODO: 찜하기 기능 구현 후 실제 데이터로 변경
+        // 현재 사용자의 찜 상태 확인 (회원인 경우에만)
         boolean isBookmarked = false;
-        int bookmarkCount = 0;
+        if (memberId != null) {
+            try {
+                isBookmarked = favoriteRepository.existsByMember_IdAndExpo_Id(memberId, expoId);
+            } catch (Exception e) {
+                log.warn("찜 상태 조회 중 예외 발생 - 회원 ID: {}, 박람회 ID: {}, 에러: {}", memberId, expoId, e.getMessage());
+                isBookmarked = false;
+            }
+        }
 
         return ExpoBookmarkResponse.builder()
                 .expoId(expo.getId())
                 .expoTitle(expo.getTitle())
                 .isBookmarked(isBookmarked)
-                .bookmarkCount(bookmarkCount)
                 .build();
     }
 
