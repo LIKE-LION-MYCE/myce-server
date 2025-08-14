@@ -7,7 +7,6 @@ import com.myce.expo.dto.ExpoCardResponse;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.dto.TicketSummaryResponse;
 import com.myce.expo.dto.BoothResponse;
-import com.myce.expo.entity.Ticket;
 import com.myce.expo.service.ExpoService;
 import com.myce.expo.service.TicketService;
 import jakarta.validation.Valid;
@@ -28,6 +27,7 @@ import java.util.List;
 @RequestMapping("/api/expos")
 @RequiredArgsConstructor
 public class ExpoController {
+
     private final ExpoService expoService;
     private final TicketService ticketService;
 
@@ -83,16 +83,17 @@ public class ExpoController {
     // 박람회 기본 정보 조회
     @GetMapping("/{expoId}/basic")
     public ResponseEntity<ExpoBasicResponse> getExpoBasicInfo(@PathVariable Long expoId) {
-        ExpoBasicResponse basicInfo = exposervice.getExpoBasicInfo(expoId);
+        ExpoBasicResponse basicInfo = expoService.getExpoBasicInfo(expoId);
         return ResponseEntity.ok(basicInfo);
     }
+
     // 박람회 찜하기 상태 조회
     @GetMapping("/{expoId}/bookmark")
     public ResponseEntity<ExpoBookmarkResponse> getExpoBookmarkStatus(
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         Long memberId = customUserDetails != null ? customUserDetails.getMemberId() : null;
-        ExpoBookmarkResponse bookmarkStatus = exposervice.getExpoBookmarkStatus(expoId, memberId);
+        ExpoBookmarkResponse bookmarkStatus = expoService.getExpoBookmarkStatus(expoId, memberId);
         return ResponseEntity.ok(bookmarkStatus);
     }
 
@@ -104,24 +105,23 @@ public class ExpoController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Long memberId = customUserDetails != null ? customUserDetails.getMemberId() : null;
-        ExpoReviewsResponse reviewsInfo = exposervice.getExpoReviews(expoId, memberId, page, size);
+        ExpoReviewsResponse reviewsInfo = expoService.getExpoReviews(expoId, memberId, page, size);
         return ResponseEntity.ok(reviewsInfo);
     }
 
     // 박람회 위치 정보 조회
     @GetMapping("/{expoId}/location")
     public ResponseEntity<ExpoLocationResponse> getExpoLocation(@PathVariable Long expoId) {
-        ExpoLocationResponse locationInfo = exposervice.getExpoLocation(expoId);
+        ExpoLocationResponse locationInfo = expoService.getExpoLocation(expoId);
         return ResponseEntity.ok(locationInfo);
     }
 
     // 박람회 부스 정보 조회 (공개용)
     @GetMapping("/{expoId}/booths/public")
     public ResponseEntity<List<BoothResponse>> getExpoBooths(@PathVariable Long expoId) {
-        List<BoothResponse> booths = exposervice.getExpoBooths(expoId);
+        List<BoothResponse> booths = expoService.getExpoBooths(expoId);
         return ResponseEntity.ok(booths);
     }
-}
 
     private Long getCurrentMemberIdOrNull(){
         var auth = SecurityContextHolder.getContext().getAuthentication();
