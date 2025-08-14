@@ -21,26 +21,29 @@ import java.util.Optional;
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
     @Query("SELECT r FROM Reservation r " +
-            "JOIN FETCH r.expo e " +
-            "JOIN FETCH r.ticket t " +
-            "WHERE r.userType = :userType AND r.userId = :userId")
-    List<Reservation> findReservationsByUserTypeAndUserIdWithExpoAndTicket(@Param("userType") UserType userType,
-                                                                           @Param("userId") Long userId);
+        "JOIN FETCH r.expo e " +
+        "JOIN FETCH r.ticket t " +
+        "WHERE r.userType = :userType AND r.userId = :userId")
+    List<Reservation> findReservationsByUserTypeAndUserIdWithExpoAndTicket(
+        @Param("userType") UserType userType,
+        @Param("userId") Long userId);
 
     @Query("SELECT r FROM Reservation r " +
-            "JOIN FETCH r.expo e " +
-            "JOIN FETCH r.ticket t " +
-            "WHERE r.reservationCode = :reservationCode")
-    Optional<Reservation> findByReservationCodeWithExpoAndTicket(@Param("reservationCode") String reservationCode);
+        "JOIN FETCH r.expo e " +
+        "JOIN FETCH r.ticket t " +
+        "WHERE r.reservationCode = :reservationCode")
+    Optional<Reservation> findByReservationCodeWithExpoAndTicket(
+        @Param("reservationCode") String reservationCode);
 
     @Query("SELECT r FROM Reservation r " +
-            "JOIN FETCH r.expo e " +
-            "JOIN FETCH r.ticket t " +
-            "WHERE r.id = :reservationId")
+        "JOIN FETCH r.expo e " +
+        "JOIN FETCH r.ticket t " +
+        "WHERE r.id = :reservationId")
     Optional<Reservation> findByIdWithExpoAndTicket(@Param("reservationId") Long reservationId);
 
     @Query("""
-            SELECT new com.myce.reservation.dto.ExpoAdminPaymentBasicResponse(
+
+        SELECT new com.myce.reservation.dto.ExpoAdminPaymentBasicResponse(
                 r.reservationCode,
                 CASE
                     WHEN r.userType = com.myce.reservation.entity.code.UserType.MEMBER THEN m.name
@@ -114,3 +117,4 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     long countAllByCreatedAtAfter(LocalDateTime createdAt);
            
     List<Reservation> findByExpoId(Long expoId);
+}
