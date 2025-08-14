@@ -57,6 +57,7 @@ public enum CustomErrorCode {
     EXPO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "E003", "해당 박람회에 대한 접근 권한이 없습니다."),
     CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E004", "카테고리가 존재하지 않습니다."),
     INVALID_EXPO_STATUS(HttpStatus.NOT_FOUND, "E005", "영수증을 조회 할 수 없습니다."),
+    EXPO_NOT_PUBLISHED(HttpStatus.FORBIDDEN, "E006", "공개되지 않은 박람회입니다."),
 
 
     // 티켓 T
