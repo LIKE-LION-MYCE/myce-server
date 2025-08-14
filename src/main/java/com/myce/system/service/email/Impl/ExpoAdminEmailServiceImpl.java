@@ -67,8 +67,7 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
         //Subject랑 Content 넣으면 이걸로 검색 할 수 있게끔-> 동적으로 가능한가?
         
         if(subject!=null || subject)
-        return emailLogRepository.findByExpoIdAndSubjectContainingIgnoreCaseOrContentContainingIgnoreCase(
-                expoId, subject, content, pageable);
+        return emailLogRepository.findByExpoIdAndSubjectContainingIgnoreCaseOrContentContainingIgnoreCase(expoId, subject, content, pageable);
     }
 
     private String renderEmailHtml(Long expoId, ExpoAdminEmailRequest dto){
@@ -95,6 +94,7 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
 
         return templateEngine.process("mail/mail-basic",ctx);
     }
+
     private String toPreheader(String html, int maxLen) {
         if (html == null) return "";
         String text = html.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ").trim();
