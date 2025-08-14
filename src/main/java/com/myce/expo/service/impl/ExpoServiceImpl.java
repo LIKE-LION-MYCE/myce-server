@@ -8,6 +8,9 @@ import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.common.service.mapper.BusinessProfileMapper;
 import com.myce.expo.dto.*;
+import com.myce.expo.dto.CongestionResponse;
+import com.myce.expo.dto.ExpoCardResponse;
+import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.ExpoCategory;
@@ -17,19 +20,28 @@ import com.myce.expo.entity.Booth;
 import com.myce.expo.repository.BoothRepository;
 import com.myce.expo.service.mapper.BoothMapper;
 import com.myce.expo.entity.type.ExpoStatus;
+import com.myce.expo.entity.Ticket;
+import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.CategoryRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.ReviewRepository;
 import com.myce.expo.repository.TicketRepository;
+import com.myce.expo.repository.TicketRepository;
 import com.myce.expo.service.ExpoService;
 import com.myce.expo.service.mapper.ExpoMapper;
 import com.myce.member.entity.Member;
+import com.myce.member.repository.FavoriteRepository;
 import com.myce.member.repository.MemberRepository;
 import com.myce.qrcode.repository.QrCodeRepository;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,7 +61,9 @@ public class ExpoServiceImpl implements ExpoService {
     private final CategoryRepository categoryRepository;
     private final BusinessProfileRepository businessProfileRepository;
     private final QrCodeRepository qrCodeRepository;
+    private final ExpoMapper expoMapper;
     private final TicketRepository ticketRepository;
+    private final FavoriteRepository favoriteRepository;
     private final BoothRepository boothRepository;
     private final ReviewRepository reviewRepository;
     private final BoothMapper boothMapper;
@@ -111,7 +125,7 @@ public class ExpoServiceImpl implements ExpoService {
         return CongestionResponse.of(expoId, expo.getTitle(),
                 hourlyVisitors, hourlyCapacity);
     }
-    
+
     /**
      * 시간당 수용 인원 계산
      * = 총 수용인원 / 박람회 기간(일) / 하루 운영시간
@@ -134,35 +148,83 @@ public class ExpoServiceImpl implements ExpoService {
                 
         return hourlyCapacity;
     }
-    
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<ExpoCardResponse> getExpoCardsFiltered(Long memberId,
+        String categoryName,
+        LocalDate from,
+        LocalDate to,
+        String keyword,
+        Pageable pageable) {
+
+        Long categoryId = null;
+        if (categoryName != null && !categoryName.isBlank()) {
+            Category category = categoryRepository.findByName(categoryName)
+                .orElseThrow(()-> new CustomException(CustomErrorCode.CATEGORY_NOT_EXIST));
+            if (category != null) {
+                categoryId = category.getId();
+            }
+        }
+
+        String kw = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+
+        Page<Expo> exposPage = expoRepository.findPublishedExposFiltered(
+            ExpoStatus.PUBLISHED,
+            categoryId,
+            kw,
+            from,
+            to,
+            pageable
+        );
+
+        List<ExpoCardResponse> expoCards = new ArrayList<>(exposPage.getContent().size());
+        for(Expo expo : exposPage.getContent()) {
+            // 남은 티켓 수 합산
+            List<Ticket> tickets = ticketRepository.findByExpoId(expo.getId());
+            int remainingTickets = 0;
+            for(Ticket ticket : tickets) {
+                remainingTickets += ticket.getRemainingQuantity();
+            }
+
+            // 회원일 경우에만 찜 확인 가능
+            boolean isBookmark = false;
+            if(memberId != null){
+                isBookmark = favoriteRepository.existsByMemberIdAndExpoId(memberId, expo.getId());
+            }
+            expoCards.add(expoMapper.toCards(expo, remainingTickets, isBookmark));
+        }
+        return expoCards;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public ExpoBasicResponse getExpoBasicInfo(Long expoId) {
         log.info("박람회 기본 정보 조회 - 박람회 ID: {}", expoId);
-        
+
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-        
+
         if (expo.getStatus() != ExpoStatus.PUBLISHED) {
             throw new CustomException(CustomErrorCode.EXPO_NOT_PUBLISHED);
         }
-        
+
         // 사업자 정보 조회
         BusinessProfile businessProfile = businessProfileRepository
                 .findByTargetIdAndTargetType(expoId, TargetType.EXPO)
                 .orElse(null);
-        
+
         // 카테고리 목록 조회
         List<String> categories = expo.getExpoCategories().stream()
                 .map(expoCategory -> expoCategory.getCategory().getName())
                 .collect(Collectors.toList());
-        
+
         // 현재 예약자 수 계산
         List<Ticket> tickets = ticketRepository.findByExpoIdOrderByCreatedAtAsc(expoId);
         int currentReservationCount = tickets.stream()
                 .mapToInt(Ticket::getRemainingQuantity)
                 .sum();
-        
+
         return ExpoBasicResponse.builder()
                 .expoId(expo.getId())
                 .title(expo.getTitle())
@@ -189,14 +251,14 @@ public class ExpoServiceImpl implements ExpoService {
     @Transactional(readOnly = true)
     public ExpoBookmarkResponse getExpoBookmarkStatus(Long expoId, Long memberId) {
         log.info("박람회 찜하기 상태 조회 - 박람회 ID: {}, 사용자 ID: {}", expoId, memberId);
-        
+
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-        
+
         // TODO: 찜하기 기능 구현 후 실제 데이터로 변경
         boolean isBookmarked = false;
         int bookmarkCount = 0;
-        
+
         return ExpoBookmarkResponse.builder()
                 .expoId(expo.getId())
                 .expoTitle(expo.getTitle())
@@ -204,34 +266,34 @@ public class ExpoServiceImpl implements ExpoService {
                 .bookmarkCount(bookmarkCount)
                 .build();
     }
-    
+
     @Override
     @Transactional(readOnly = true)
     public ExpoReviewsResponse getExpoReviews(Long expoId, Long memberId, int page, int size) {
         log.info("박람회 리뷰 정보 조회 - 박람회 ID: {}, 사용자 ID: {}, 페이지: {}", expoId, memberId, page);
-        
+
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-        
+
         // 페이징 설정
         Pageable pageable = PageRequest.of(page, size);
-        
+
         // 리뷰 목록 조회
         Page<Review> reviewPage = reviewRepository.findByExpoIdOrderByCreatedAtDesc(expoId, pageable);
-        
+
         // 평균 평점 계산
         Double averageRating = reviewRepository.findAverageRatingByExpoId(expoId);
         if (averageRating == null) {
             averageRating = 0.0;
         }
-        
+
         // 전체 리뷰 개수
         Long totalReviews = reviewRepository.countByExpoId(expoId);
-        
+
         // 별점별 개수 계산
         Object[][] ratingCounts = reviewRepository.findRatingCountByExpoId(expoId);
         ExpoReviewsResponse.RatingSummary ratingSummary = buildRatingSummary(ratingCounts);
-        
+
         // 리뷰 목록 변환
         List<ExpoReviewsResponse.ReviewInfo> reviewInfos = reviewPage.getContent().stream()
                 .map(review -> ExpoReviewsResponse.ReviewInfo.builder()
@@ -244,7 +306,7 @@ public class ExpoServiceImpl implements ExpoService {
                         .isMyReview(memberId != null && memberId.equals(review.getMember().getId()))
                         .build())
                 .collect(Collectors.toList());
-        
+
         return ExpoReviewsResponse.builder()
                 .expoId(expo.getId())
                 .expoTitle(expo.getTitle())
@@ -254,13 +316,13 @@ public class ExpoServiceImpl implements ExpoService {
                 .reviews(reviewInfos)
                 .build();
     }
-    
+
     /**
      * 별점별 개수 데이터를 RatingSummary로 변환
      */
     private ExpoReviewsResponse.RatingSummary buildRatingSummary(Object[][] ratingCounts) {
         int[] counts = new int[6]; // 인덱스 1~5 사용 (0은 무시)
-        
+
         for (Object[] row : ratingCounts) {
             Integer rating = (Integer) row[0];
             Long count = (Long) row[1];
@@ -268,7 +330,7 @@ public class ExpoServiceImpl implements ExpoService {
                 counts[rating] = count.intValue();
             }
         }
-        
+
         return ExpoReviewsResponse.RatingSummary.builder()
                 .fiveStars(counts[5])
                 .fourStars(counts[4])
@@ -277,19 +339,19 @@ public class ExpoServiceImpl implements ExpoService {
                 .oneStars(counts[1])
                 .build();
     }
-    
+
     @Override
     @Transactional(readOnly = true)
     public ExpoLocationResponse getExpoLocation(Long expoId) {
         log.info("박람회 위치 정보 조회 - 박람회 ID: {}", expoId);
-        
+
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-        
+
         if (expo.getStatus() != ExpoStatus.PUBLISHED) {
             throw new CustomException(CustomErrorCode.EXPO_NOT_PUBLISHED);
         }
-        
+
         return ExpoLocationResponse.builder()
                 .expoId(expo.getId())
                 .expoTitle(expo.getTitle())
@@ -299,21 +361,21 @@ public class ExpoServiceImpl implements ExpoService {
                 .longitude(expo.getLongitude())
                 .build();
     }
-    
+
     @Override
     @Transactional(readOnly = true)
     public List<BoothResponse> getExpoBooths(Long expoId) {
         log.info("박람회 부스 정보 조회 - 박람회 ID: {}", expoId);
-        
+
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-        
+
         if (expo.getStatus() != ExpoStatus.PUBLISHED) {
             throw new CustomException(CustomErrorCode.EXPO_NOT_PUBLISHED);
         }
-        
+
         List<Booth> booths = boothRepository.findAllByExpoId(expoId);
-        
+
         return booths.stream()
                 .map(boothMapper::toResponse)
                 .collect(Collectors.toList());
