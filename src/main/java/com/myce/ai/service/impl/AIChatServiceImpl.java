@@ -15,11 +15,13 @@ import com.myce.expo.repository.ExpoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -35,7 +37,7 @@ public class AIChatServiceImpl implements AIChatService {
 
     // AI 식별 상수
     private static final String PLATFORM_ROOM_PREFIX = "platform-";
-    private static final String AI_SENDER_NAME = "찍찍킹 (AI 상담사)";
+    private static final String AI_SENDER_NAME = "찍찍봇 (AI 챗봇)";
     private static final Long AI_SENDER_ID = -1L;
     
     /**
@@ -64,6 +66,7 @@ public class AIChatServiceImpl implements AIChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final MemberRepository memberRepository;
     private final ExpoRepository expoRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     public String generateAIResponse(String userMessage, String roomCode) {
@@ -135,7 +138,10 @@ public class AIChatServiceImpl implements AIChatService {
             // 채팅방 마지막 메시지 정보 업데이트
             updateChatRoomLastMessage(roomCode, savedMessage.getId(), aiResponse);
             
-            log.info("AI 메시지 전송 완료 - roomCode: {}, messageId: {}", roomCode, savedMessage.getId());
+            // AI가 사용자 메시지를 "읽음" 처리 - 읽음 상태 업데이트 브로드캐스트
+            sendAIReadStatusUpdate(roomCode);
+            
+            log.info("AI 메시지 전송 완료 (읽음 처리 포함) - roomCode: {}, messageId: {}", roomCode, savedMessage.getId());
             
             return ChatMessageMapper.toSendResponse(savedMessage, roomCode);
             
@@ -158,7 +164,15 @@ public class AIChatServiceImpl implements AIChatService {
             if (chatRoomOpt.isPresent()) {
                 ChatRoom chatRoom = chatRoomOpt.get();
                 
-                // 대화 요약 생성
+                // IMPORTANT: 관리자를 먼저 배정하여 AI 응답을 즉시 차단
+                chatRoom.assignAdmin(adminCode);
+                chatRoom.stopWaitingForAdmin();  // 대기 상태 종료
+                ChatRoom savedRoom = chatRoomRepository.save(chatRoom);
+                
+                log.info("관리자 배정 완료 - roomCode: {}, adminCode: {}, hasAdmin: {}", 
+                    roomCode, adminCode, savedRoom.hasAssignedAdmin());
+                
+                // 대화 요약 생성 (관리자 배정 후 생성)
                 String conversationSummary = generateConversationSummary(roomCode);
                 
                 // 요약을 AI 메시지로 전송 (사용자와 관리자 모두 확인용)
@@ -173,6 +187,9 @@ public class AIChatServiceImpl implements AIChatService {
                     
                     ChatMessage savedSummary = chatMessageRepository.save(summaryMessage);
                     
+                    // 요약 메시지 WebSocket 브로드캐스트
+                    broadcastAIMessage(savedSummary, roomCode);
+                    
                     // 인계 완료 메시지 추가
                     ChatMessage handoffCompleteMessage = ChatMessage.builder()
                         .roomCode(roomCode)
@@ -182,13 +199,14 @@ public class AIChatServiceImpl implements AIChatService {
                         .content("찍찍! 상담원님께 인계해드렸습니다. 곧 전문적인 도움을 받으실 수 있어요!")
                         .build();
                     
-                    chatMessageRepository.save(handoffCompleteMessage);
+                    ChatMessage savedHandoffMessage = chatMessageRepository.save(handoffCompleteMessage);
+                    
+                    // 인계 완료 메시지 WebSocket 브로드캐스트
+                    broadcastAIMessage(savedHandoffMessage, roomCode);
                 }
                 
-                // 관리자 배정 및 대기 상태 해제
-                chatRoom.assignAdmin(adminCode);
-                chatRoom.stopWaitingForAdmin();  // 대기 상태 종료
-                chatRoomRepository.save(chatRoom);
+                // 버튼 상태 업데이트 브로드캐스트 (HUMAN_ACTIVE 상태로)
+                broadcastButtonStateUpdate(roomCode, "HUMAN_ACTIVE");
                 
                 log.info("AI에서 관리자로 handoff 완료 (요약 포함) - roomCode: {}, adminCode: {}", roomCode, adminCode);
             }
@@ -236,19 +254,19 @@ public class AIChatServiceImpl implements AIChatService {
                 위 대화를 상담원 인계를 위해 요약해주세요. 고객도 함께 볼 수 있으므로 전문적이고 정중하게 작성해주세요:
                 
                 요약 형식:
-                ═══════════════════════════
-                🔄 **상담 인계 요약**
-                ═══════════════════════════
                 
-                **문의 내용**: [고객의 주요 문의사항을 명확하게]
-                **현재 상황**: [문제의 현재 상태나 시도한 해결책]
-                **추가 확인 필요**: [상담원이 추가로 도와드려야 할 부분]
+                📋 상담 인계 요약
+                
+                💬 문의 내용: [고객의 주요 문의사항을 명확하고 간단하게]
+                
+                📝 현재 상황: [문제의 현재 상태나 시도한 해결책을 간단하게]
+                
+                🔍 추가 확인 필요: [상담원이 추가로 도와드려야 할 부분]
                 
                 ─────────────────────────────
-                💬 고객님, 위 내용이 정확하지 않다면 상담원님께 직접 말씀해 주세요.
-                ─────────────────────────────
+                💡 고객님, 위 내용이 정확하지 않다면 상담원님께 직접 말씀해 주세요.
                 
-                전문적이고 정중하게, 고객과 상담원 모두에게 도움이 되는 요약을 작성해주세요.
+                간결하고 읽기 쉽게, 고객과 상담원 모두에게 도움이 되는 요약을 작성해주세요.
                 """, 
                 userContext.userName(), 
                 userContext.membershipLevel(),
@@ -543,7 +561,9 @@ public class AIChatServiceImpl implements AIChatService {
                 "결제", "환불", "취소", "계좌", "카드", "billing", "payment", 
                 "오류", "에러", "버그", "작동", "안됨", "문제",
                 "불만", "항의", "컴플레인", "complaint",
-                "법적", "소송", "변호사", "legal"
+                "법적", "소송", "변호사", "legal",
+                "사람", "상담원", "담당자", "직원", "매니저", "human", "person", "staff", "manager",
+                "where", "where's", "어디", "언제", "누가", "who"
             };
             
             for (String keyword : strongKeywords) {
@@ -588,6 +608,72 @@ public class AIChatServiceImpl implements AIChatService {
     }
     
     /**
+     * AI가 사용자 메시지를 읽었음을 알리는 읽음 상태 업데이트
+     */
+    private void sendAIReadStatusUpdate(String roomCode) {
+        try {
+            // 1. 실제 데이터베이스의 readStatusJson 업데이트
+            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+            if (chatRoomOpt.isPresent()) {
+                ChatRoom chatRoom = chatRoomOpt.get();
+                
+                // 가장 최근 메시지 ID 조회
+                List<ChatMessage> recentMessages = chatMessageRepository.findTop50ByRoomCodeOrderBySentAtDesc(roomCode);
+                if (!recentMessages.isEmpty()) {
+                    String latestMessageId = recentMessages.get(0).getId();
+                    
+                    // readStatusJson에 AI 읽음 상태 업데이트
+                    String currentReadStatus = chatRoom.getReadStatusJson();
+                    String updatedReadStatus = updateReadStatusForAI(currentReadStatus, latestMessageId);
+                    chatRoom.updateReadStatus(updatedReadStatus);
+                    chatRoomRepository.save(chatRoom);
+                    
+                    log.debug("AI 읽음 상태 데이터베이스 업데이트 완료 - roomCode: {}, messageId: {}", roomCode, latestMessageId);
+                }
+            }
+            
+            // 2. WebSocket 브로드캐스트
+            Map<String, Object> readStatusPayload = Map.of(
+                "readerType", "AI", 
+                "unreadCount", 0,
+                "roomCode", roomCode
+            );
+            
+            Map<String, Object> broadcastMessage = Map.of(
+                "type", "read_status_update",
+                "payload", readStatusPayload
+            );
+            
+            messagingTemplate.convertAndSend(
+                "/topic/chat/" + roomCode,
+                broadcastMessage
+            );
+            
+            log.debug("AI 읽음 상태 업데이트 완료 - roomCode: {}", roomCode);
+            
+        } catch (Exception e) {
+            log.error("AI 읽음 상태 업데이트 실패 - roomCode: {}", roomCode, e);
+        }
+    }
+    
+    /**
+     * AI 읽음 상태 업데이트를 위한 JSON 처리
+     */
+    private String updateReadStatusForAI(String currentReadStatus, String lastReadMessageId) {
+        if (currentReadStatus == null || currentReadStatus.isEmpty() || currentReadStatus.equals("{}")) {
+            return "{\"AI\":\"" + lastReadMessageId + "\"}";
+        }
+        
+        // 기존 AI 정보가 있으면 업데이트, 없으면 추가
+        if (currentReadStatus.contains("\"AI\"")) {
+            return currentReadStatus.replaceAll("\"AI\":\"[^\"]*\"", "\"AI\":\"" + lastReadMessageId + "\"");
+        } else {
+            return currentReadStatus.substring(0, currentReadStatus.length() - 1) + 
+                   ",\"AI\":\"" + lastReadMessageId + "\"}";
+        }
+    }
+    
+    /**
      * 채팅방 마지막 메시지 정보 업데이트
      */
     private void updateChatRoomLastMessage(String roomCode, String messageId, String content) {
@@ -598,5 +684,94 @@ public class AIChatServiceImpl implements AIChatService {
             chatRoom.updateLastMessageInfo(messageId, content);
             chatRoomRepository.save(chatRoom);
         }
+    }
+    
+    /**
+     * AI 메시지 WebSocket 브로드캐스트
+     */
+    private void broadcastAIMessage(ChatMessage aiMessage, String roomCode) {
+        try {
+            Map<String, Object> payload = Map.of(
+                "roomId", roomCode,
+                "messageId", aiMessage.getId(),
+                "senderId", aiMessage.getSenderId(),
+                "senderType", aiMessage.getSenderType(),
+                "senderName", aiMessage.getSenderName(),
+                "content", aiMessage.getContent(),
+                "sentAt", aiMessage.getSentAt().toString()
+            );
+            
+            Map<String, Object> broadcastMessage = Map.of(
+                "type", "AI_MESSAGE",
+                "payload", payload
+            );
+            
+            messagingTemplate.convertAndSend(
+                "/topic/chat/" + roomCode,
+                broadcastMessage
+            );
+            
+            log.debug("AI 메시지 WebSocket 브로드캐스트 완료 - roomCode: {}, messageId: {}", 
+                roomCode, aiMessage.getId());
+            
+        } catch (Exception e) {
+            log.error("AI 메시지 WebSocket 브로드캐스트 실패 - roomCode: {}, messageId: {}", 
+                roomCode, aiMessage.getId(), e);
+        }
+    }
+    
+    /**
+     * 버튼 상태 업데이트 WebSocket 브로드캐스트
+     */
+    private void broadcastButtonStateUpdate(String roomCode, String newState) {
+        try {
+            Map<String, Object> statePayload = Map.of(
+                "roomId", roomCode,
+                "state", newState,
+                "buttonText", getButtonText(newState),
+                "buttonAction", getButtonAction(newState)
+            );
+            
+            Map<String, Object> stateBroadcast = Map.of(
+                "type", "BUTTON_STATE_UPDATE",
+                "payload", statePayload
+            );
+            
+            messagingTemplate.convertAndSend(
+                "/topic/chat/" + roomCode,
+                stateBroadcast
+            );
+            
+            log.debug("버튼 상태 업데이트 브로드캐스트 완료 - roomCode: {}, state: {}", roomCode, newState);
+            
+        } catch (Exception e) {
+            log.error("버튼 상태 업데이트 브로드캐스트 실패 - roomCode: {}, state: {}", roomCode, newState, e);
+        }
+    }
+    
+    /**
+     * 상태별 버튼 텍스트 반환
+     */
+    private String getButtonText(String state) {
+        return switch (state) {
+            case "AI_ACTIVE" -> "Request Human";
+            case "WAITING_FOR_ADMIN" -> "Cancel Request";
+            case "HUMAN_ACTIVE" -> "Request AI";
+            case "HUMAN_INACTIVE" -> "Continue with AI";
+            default -> "Request Human";
+        };
+    }
+    
+    /**
+     * 상태별 버튼 액션 반환
+     */
+    private String getButtonAction(String state) {
+        return switch (state) {
+            case "AI_ACTIVE" -> "request_handoff";
+            case "WAITING_FOR_ADMIN" -> "cancel_handoff";
+            case "HUMAN_ACTIVE" -> "request_ai";
+            case "HUMAN_INACTIVE" -> "request_ai";
+            default -> "request_handoff";
+        };
     }
 }

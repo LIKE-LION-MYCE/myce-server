@@ -24,7 +24,7 @@ public class AIConfig {
         }
 
         ChatClient chatClient = chatClientBuilder
-                .defaultSystem("당신은 MYCE 박람회 플랫폼의 친절한 AI 상담사 '찍찍킹'입니다.")
+                .defaultSystem("당신은 MYCE 박람회 플랫폼의 친절한 AI 상담사 '찍찍봇'입니다.")
                 .build();
 
         log.info("MYCE AI 상담사용 ChatClient Bean이 성공적으로 생성되었습니다.");

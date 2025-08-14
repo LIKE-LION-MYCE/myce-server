@@ -83,12 +83,19 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
             String[] parts = roomId.split(ROOM_DELIMITER);
             Long roomMemberId = Long.parseLong(parts[1]);
             
-            // 본인의 플랫폼 방만 접근 가능
-            if (!userId.equals(roomMemberId)) {
+            // 권한 확인: 본인의 플랫폼 방이거나 플랫폼 관리자
+            String loginType = jwtUtil.getLoginTypeFromToken(token);
+            Member user = memberRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+            
+            boolean isOwner = userId.equals(roomMemberId);
+            boolean isPlatformAdmin = Role.PLATFORM_ADMIN.name().equals(user.getRole().name());
+            
+            if (!isOwner && !isPlatformAdmin) {
                 throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
             }
             
-            ensurePlatformChatRoomExists(roomId, userId);
+            ensurePlatformChatRoomExists(roomId, roomMemberId);
             return;
         }
         
@@ -131,33 +138,52 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
     @Override
     @Transactional
     public MessageResponse sendMessage(Long userId, String roomId, String content) {
-        String[] parts = roomId.split(ROOM_DELIMITER);
-        Long expoId = Long.parseLong(parts[1]);
-        
+        log.warn("🎭 SENDMESSAGE 시작 - userId: {}, roomId: {}, content: '{}'", userId, roomId, content);
         String senderRole;
         String senderName;
         
-        Optional<AdminCode> adminCodeOpt = adminCodeRepository.findById(userId);
-        
-        if (adminCodeOpt.isPresent()) {
-            senderRole = "ADMIN";
-            senderName = "박람회 관리자";
-        } else {
-            Optional<Member> memberOpt = memberRepository.findById(userId);
+        // Handle platform rooms (format: platform-{userId})
+        if (roomId.startsWith("platform-")) {
+            Member sender = memberRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
             
-            if (memberOpt.isPresent()) {
-                Member sender = memberOpt.get();
-                boolean isExpoOwner = expoRepository.existsByIdAndMemberId(expoId, userId);
-                
-                if (isExpoOwner) {
-                    senderRole = "ADMIN";
-                    senderName = "박람회 관리자";
-                } else {
-                    senderRole = "USER";
-                    senderName = sender.getName();
-                }
+            if (Role.PLATFORM_ADMIN.name().equals(sender.getRole().name())) {
+                senderRole = "PLATFORM_ADMIN";
+                senderName = "플랫폼 관리자";
             } else {
-                throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
+                senderRole = "USER";
+                senderName = sender.getName();
+            }
+            
+            log.debug("🎭 Platform 메시지 발송자 정보: userId={}, senderRole={}, senderName={}, memberRole={}", 
+                userId, senderRole, senderName, sender.getRole().name());
+        } else {
+            // Handle expo rooms (format: admin-{expoId}-{userId})
+            String[] parts = roomId.split(ROOM_DELIMITER);
+            Long expoId = Long.parseLong(parts[1]);
+            
+            Optional<AdminCode> adminCodeOpt = adminCodeRepository.findById(userId);
+            
+            if (adminCodeOpt.isPresent()) {
+                senderRole = "ADMIN";
+                senderName = "박람회 관리자";
+            } else {
+                Optional<Member> memberOpt = memberRepository.findById(userId);
+                
+                if (memberOpt.isPresent()) {
+                    Member sender = memberOpt.get();
+                    boolean isExpoOwner = expoRepository.existsByIdAndMemberId(expoId, userId);
+                    
+                    if (isExpoOwner) {
+                        senderRole = "ADMIN";
+                        senderName = "박람회 관리자";
+                    } else {
+                        senderRole = "USER";
+                        senderName = sender.getName();
+                    }
+                } else {
+                    throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
+                }
             }
         }
         

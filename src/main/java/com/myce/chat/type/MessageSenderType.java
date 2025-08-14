@@ -32,9 +32,9 @@ public enum MessageSenderType {
     
     /**
      * AI 상담사
-     * - 찍찍킹 AI가 자동 응답하는 메시지용
+     * - 찍찍봇 AI가 자동 응답하는 메시지용
      */
-    AI("찍찍킹");
+    AI("찍찍봇");
     
     private final String description;
     

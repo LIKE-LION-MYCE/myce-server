@@ -17,6 +17,7 @@ public class MessageResponse {
     private String messageId;
     private Long senderId;
     private String senderType;
+    private String senderName; // 발신자 이름 (모든 메시지 타입에 사용)
     private String adminCode; // 관리자 메시지인 경우 관리자 코드
     private String adminDisplayName; // 관리자 메시지인 경우 관리자 표시명
     private String content;
@@ -25,12 +26,13 @@ public class MessageResponse {
     
     @Builder
     public MessageResponse(String roomId, String messageId, Long senderId, String senderType,
-                          String adminCode, String adminDisplayName, String content, 
+                          String senderName, String adminCode, String adminDisplayName, String content, 
                           LocalDateTime sentAt, Integer unreadCount) {
         this.roomId = roomId;
         this.messageId = messageId;
         this.senderId = senderId;
         this.senderType = senderType;
+        this.senderName = senderName;
         this.adminCode = adminCode;
         this.adminDisplayName = adminDisplayName;
         this.content = content;
