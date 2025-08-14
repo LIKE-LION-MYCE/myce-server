@@ -24,5 +24,5 @@ public interface PlatformExpoManageService {
      * 박람회 정산 승인
      * SETTLEMENT_REQUESTED -> COMPLETED
      */
-    void approveSettlement(Long expoId);
+    void approveSettlement(Long expoId, Long adminMemberId);
 }

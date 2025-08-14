@@ -17,7 +17,7 @@ public class ExpoScheduler implements TaskScheduler {
     
     private final SystemExpoService systemExpoService;
 
-    @Value("${scheduler.expo-publish:0 */10 * * * *}")
+    @Value("${scheduler.expo-publish}")
     private String cronExpression;
 
     @PostConstruct
@@ -26,7 +26,7 @@ public class ExpoScheduler implements TaskScheduler {
     }
 
     @Override
-    @Scheduled(cron = "${scheduler.expo-publish:0 */10 * * * *}")
+    @Scheduled(cron = "${scheduler.expo-publish}")
     public void run() {
         try {
             this.process();

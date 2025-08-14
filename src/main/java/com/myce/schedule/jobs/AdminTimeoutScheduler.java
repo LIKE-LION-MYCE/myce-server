@@ -41,7 +41,7 @@ public class AdminTimeoutScheduler implements TaskScheduler {
     }
 
     @Override
-    @Scheduled(cron = "${scheduler.admin-timeout: 0 */1 * * * *}") // 매 1분마다 실행, 설정으로 변경 가능
+    @Scheduled(cron = "${scheduler.admin-timeout}")
     public void run() {
         try {
             this.process();

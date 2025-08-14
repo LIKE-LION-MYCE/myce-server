@@ -14,9 +14,7 @@ import com.myce.expo.service.mapper.RejectInfoMapper;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.entity.type.PaymentStatus;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
-import com.myce.settlement.entity.Settlement;
-import com.myce.settlement.entity.code.SettlementStatus;
-import com.myce.settlement.repository.SettlementRepository;
+import com.myce.settlement.service.SettlementPlatformAdminService;
 import com.myce.system.entity.ExpoFeeSetting;
 import com.myce.system.repository.ExpoFeeSettingRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -45,7 +43,7 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
     private final ExpoPaymentInfoRepository expoPaymentInfoRepository;
     private final RejectInfoRepository rejectInfoRepository;
     private final ExpoFeeSettingRepository expoFeeSettingRepository;
-    private final SettlementRepository settlementRepository;
+    private final SettlementPlatformAdminService settlementPlatformAdminService;
     private final MemberRepository memberRepository;
 
     /**
@@ -163,56 +161,20 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
 
     /**
      * 박람회 정산 승인 처리
-     * - 박람회 상태를 SETTLEMENT_REQUESTED -> COMPLETED로 변경
+     * - Settlement 로직을 SettlementPlatformAdminService로 완전 위임
      * 
      * @param expoId 정산 승인할 박람회 ID
+     * @param adminMemberId 현재 로그인한 플랫폼 관리자 ID
      */
     @Override
     @Transactional
-    public void approveSettlement(Long expoId) {
-        // 1. 요청 정보 로깅
-        log.info("박람회 정산 승인 요청 - expoId: {}", expoId);
+    public void approveSettlement(Long expoId, Long adminMemberId) {
+        log.info("박람회 정산 승인 요청 - expoId: {}, adminMemberId: {}", expoId, adminMemberId);
         
-        // 2. 박람회 조회
-        Expo expo = expoRepository.findById(expoId)
-                .orElseThrow(() -> {
-                    log.error("박람회 정산 승인 실패 - 존재하지 않는 박람회 ID: {}", expoId);
-                    return new CustomException(CustomErrorCode.EXPO_NOT_FOUND);
-                });
+        // Settlement 로직은 SettlementPlatformAdminService로 완전 위임
+        settlementPlatformAdminService.approveSettlement(expoId, adminMemberId);
         
-        // 3. 상태 검증 (SETTLEMENT_REQUESTED 상태만 정산 승인 가능)
-        if (expo.getStatus() != ExpoStatus.SETTLEMENT_REQUESTED) {
-            log.error("박람회 정산 승인 실패 - 잘못된 상태: {}, expoId: {}", expo.getStatus(), expoId);
-            throw new CustomException(CustomErrorCode.INVALID_EXPO_STATUS);
-        }
-        
-        // 4. 현재 로그인한 관리자 조회 (임시로 첫 번째 플랫폼 관리자 사용)
-        Member adminMember = memberRepository.findById(1L)
-                .orElseThrow(() -> {
-                    log.error("박람회 정산 승인 실패 - 관리자 조회 실패");
-                    return new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
-                });
-        
-        // 5. 기존 Settlement 조회 (이미 존재한다고 가정)
-        Settlement settlement = settlementRepository.findByExpoId(expoId)
-                .orElseThrow(() -> {
-                    log.error("박람회 정산 승인 실패 - Settlement 레코드 없음: {}", expoId);
-                    return new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND);
-                });
-        
-        // 6. Settlement 승인 정보 업데이트
-        settlement.setSettlementAt(java.time.LocalDateTime.now()); // 정산 승인 시점
-        settlement.setAdminMember(adminMember); // 승인한 관리자
-        settlement.setSettlementStatus(SettlementStatus.APPROVED); // 승인 상태로 변경
-        
-        // Settlement 엔티티 명시적 저장
-        settlementRepository.save(settlement);
-        
-        // 7. 박람회 상태 변경 (SETTLEMENT_REQUESTED -> COMPLETED)
-        expo.approveSettlement();  // Entity 메서드 사용
-        
-        log.info("박람회 정산 승인 완료 - expoId: {}, adminMemberId: {}, settlementId: {}", 
-                expoId, adminMember.getId(), settlement.getId());
+        log.info("박람회 정산 승인 위임 완료 - expoId: {}, adminMemberId: {}", expoId, adminMemberId);
     }
 
     /**
