@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 public class ExpoAdminPaymentBasicResponse {
+    private Long reservationId;
     private String reservationCode;
     private String name;
     private UserType userType;
