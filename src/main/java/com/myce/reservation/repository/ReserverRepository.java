@@ -1,6 +1,7 @@
 package com.myce.reservation.repository;
 
 import com.myce.reservation.dto.ExcelReservationInfoData;
+import com.myce.reservation.dto.ExpoAdminPaymentDetailResponse;
 import com.myce.reservation.dto.ExpoAdminReservationResponse;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.Reserver;
@@ -21,8 +22,6 @@ import java.util.stream.Stream;
 public interface ReserverRepository extends JpaRepository<Reserver, Long> {
     
     List<Reserver> findByReservation(Reservation reservation);
-
-    List<Reserver> findByReservationId(Long reservationId);
     
     // QR코드 일괄 생성용 - 특정 박람회의 모든 예약자 조회
     @Query("SELECT r FROM Reserver r " +
@@ -148,4 +147,13 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
               rv.id ASC
     """)
     Stream<ExcelReservationInfoData> streamAllForExcel(@Param("expoId") Long expoId);
+
+    @Query("""
+        select new com.myce.reservation.dto.ExpoAdminPaymentDetailResponse(r.name, r.gender ,r.birth, r.phone, r.email, t.name)
+        from Reserver r
+        join r.reservation res
+        join res.ticket t
+        where res.id = :reservationId
+    """)
+    List<ExpoAdminPaymentDetailResponse> findDetailById(@Param("reservationId") Long reservationId);
 }
