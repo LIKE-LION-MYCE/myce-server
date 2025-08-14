@@ -6,16 +6,19 @@ import com.myce.system.dto.email.ExpoAdminEmailResponse;
 import com.myce.system.document.EmailLog;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class ExpoAdminEmailMapper {
 
     private static final int SUBJECT_LIMIT = 50;
 
-    public EmailLog toDocument(Long expoId, ExpoAdminEmailRequest dto){
+    public EmailLog toDocument(Long expoId, ExpoAdminEmailRequest dto, List<EmailLog.RecipientInfo> recipientInfos){
         return EmailLog.builder()
                 .expoId(expoId)
                 .subject(dto.getSubject())
-                .recipientInfos(dto.getRecipientInfos())
+                .recipientInfos(recipientInfos)
+                .recipientCount(recipientInfos.size())
                 .content(dto.getContent())
                 .build();
     }
