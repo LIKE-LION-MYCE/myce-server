@@ -13,6 +13,7 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PlatformAdServiceImpl implements PlatformAdService {
 
     private final AdRepository adRepository;
@@ -38,6 +40,7 @@ public class PlatformAdServiceImpl implements PlatformAdService {
 
         Page<Advertisement> bannerEntityPage = adRepository
                 .findByStatusIn(applyStatusList, pageable);
+        log.info("PlatformAdServiceImpl.getAdList: {}", bannerEntityPage.getTotalElements());
 
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
@@ -60,7 +63,7 @@ public class PlatformAdServiceImpl implements PlatformAdService {
             bannerEntityPage = adRepository
                     .findByTitleContainingAndStatusIn(keyword, applyStatusList, pageable);
         }
-
+        log.info("PlatformAdServiceImpl.getFilteredAdListByKeyword: {}", bannerEntityPage.getTotalElements());
         return PageResponse.from(bannerEntityPage.map(this::getSimpleApplyAdvertisement));
     }
 
