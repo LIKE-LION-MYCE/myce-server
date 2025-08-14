@@ -59,6 +59,7 @@ public enum CustomErrorCode {
     EXPO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "E003", "해당 박람회에 대한 접근 권한이 없습니다."),
     CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E004", "카테고리가 존재하지 않습니다."),
     INVALID_EXPO_STATUS(HttpStatus.NOT_FOUND, "E005", "영수증을 조회 할 수 없습니다."),
+    EXPO_NOT_PUBLISHED(HttpStatus.FORBIDDEN, "E006", "공개되지 않은 박람회입니다."),
 
 
     // 티켓 T
@@ -144,6 +145,9 @@ public enum CustomErrorCode {
 
     // 엑셀 EX
     EXCEL_EXPORT_FAILED(HttpStatus.NOT_FOUND, "EX001", "엑셀 추출에 실패하였습니다."),
+
+    // 이메일 EM
+    INVALID_EMAIL_LOG(HttpStatus.NOT_FOUND, "EM001", "유효하지 않은 이메일 로그 입니다."),
 
     // 기간 PE
     PERIOD_TYPE_NOT_EXIST(HttpStatus.NOT_FOUND, "PE001", "기간 타입이 존재하지 않습니다.");

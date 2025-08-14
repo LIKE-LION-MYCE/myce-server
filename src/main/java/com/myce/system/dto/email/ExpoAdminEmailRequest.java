@@ -1,4 +1,4 @@
-package com.myce.reservation.dto;
+package com.myce.system.dto.email;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;

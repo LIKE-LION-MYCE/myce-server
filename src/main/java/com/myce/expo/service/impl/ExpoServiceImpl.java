@@ -7,16 +7,22 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.common.service.mapper.BusinessProfileMapper;
+import com.myce.expo.dto.*;
 import com.myce.expo.dto.CongestionResponse;
 import com.myce.expo.dto.ExpoCardResponse;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.ExpoCategory;
+import com.myce.expo.entity.Review;
 import com.myce.expo.entity.Ticket;
+import com.myce.expo.entity.Booth;
+import com.myce.expo.repository.BoothRepository;
+import com.myce.expo.service.mapper.BoothMapper;
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.CategoryRepository;
 import com.myce.expo.repository.ExpoRepository;
+import com.myce.expo.repository.ReviewRepository;
 import com.myce.expo.repository.TicketRepository;
 import com.myce.expo.service.ExpoService;
 import com.myce.expo.service.mapper.ExpoMapper;
@@ -30,11 +36,13 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -49,6 +57,9 @@ public class ExpoServiceImpl implements ExpoService {
     private final QrCodeRepository qrCodeRepository;
     private final TicketRepository ticketRepository;
     private final FavoriteRepository favoriteRepository;
+    private final BoothRepository boothRepository;
+    private final ReviewRepository reviewRepository;
+    private final BoothMapper boothMapper;
 
     @Override
     public void saveExpo(Long memberId, ExpoRegistrationRequest request) {
@@ -179,5 +190,189 @@ public class ExpoServiceImpl implements ExpoService {
             expoCards.add(ExpoMapper.toCards(expo, remainingTickets, isBookmark));
         }
         return expoCards;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ExpoBasicResponse getExpoBasicInfo(Long expoId) {
+        log.info("박람회 기본 정보 조회 - 박람회 ID: {}", expoId);
+
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+
+        if (expo.getStatus() != ExpoStatus.PUBLISHED) {
+            throw new CustomException(CustomErrorCode.EXPO_NOT_PUBLISHED);
+        }
+
+        // 사업자 정보 조회
+        BusinessProfile businessProfile = businessProfileRepository
+                .findByTargetIdAndTargetType(expoId, TargetType.EXPO)
+                .orElse(null);
+
+        // 카테고리 목록 조회
+        List<String> categories = expo.getExpoCategories().stream()
+                .map(expoCategory -> expoCategory.getCategory().getName())
+                .collect(Collectors.toList());
+
+        // 현재 예약자 수 계산
+        List<Ticket> tickets = ticketRepository.findByExpoIdOrderByCreatedAtAsc(expoId);
+        int currentReservationCount = tickets.stream()
+                .mapToInt(Ticket::getRemainingQuantity)
+                .sum();
+
+        return ExpoBasicResponse.builder()
+                .expoId(expo.getId())
+                .title(expo.getTitle())
+                .description(expo.getDescription())
+                .thumbnailUrl(expo.getThumbnailUrl())
+                .status(expo.getStatus())
+                .startDate(expo.getStartDate())
+                .endDate(expo.getEndDate())
+                .startTime(expo.getStartTime())
+                .endTime(expo.getEndTime())
+                .displayStartDate(expo.getDisplayStartDate())
+                .displayEndDate(expo.getDisplayEndDate())
+                .location(expo.getLocation())
+                .locationDetail(expo.getLocationDetail())
+                .maxReserverCount(expo.getMaxReserverCount())
+                .currentReservationCount(currentReservationCount)
+                .organizerName(businessProfile != null ? businessProfile.getCeoName() : "정보 없음")
+                .organizerContact(businessProfile != null ? businessProfile.getContactPhone() : "정보 없음")
+                .categories(categories)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ExpoBookmarkResponse getExpoBookmarkStatus(Long expoId, Long memberId) {
+        log.info("박람회 찜하기 상태 조회 - 박람회 ID: {}, 사용자 ID: {}", expoId, memberId);
+
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+
+        // TODO: 찜하기 기능 구현 후 실제 데이터로 변경
+        boolean isBookmarked = false;
+        int bookmarkCount = 0;
+
+        return ExpoBookmarkResponse.builder()
+                .expoId(expo.getId())
+                .expoTitle(expo.getTitle())
+                .isBookmarked(isBookmarked)
+                .bookmarkCount(bookmarkCount)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ExpoReviewsResponse getExpoReviews(Long expoId, Long memberId, int page, int size) {
+        log.info("박람회 리뷰 정보 조회 - 박람회 ID: {}, 사용자 ID: {}, 페이지: {}", expoId, memberId, page);
+
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+
+        // 페이징 설정
+        Pageable pageable = PageRequest.of(page, size);
+
+        // 리뷰 목록 조회
+        Page<Review> reviewPage = reviewRepository.findByExpoIdOrderByCreatedAtDesc(expoId, pageable);
+
+        // 평균 평점 계산
+        Double averageRating = reviewRepository.findAverageRatingByExpoId(expoId);
+        if (averageRating == null) {
+            averageRating = 0.0;
+        }
+
+        // 전체 리뷰 개수
+        Long totalReviews = reviewRepository.countByExpoId(expoId);
+
+        // 별점별 개수 계산
+        Object[][] ratingCounts = reviewRepository.findRatingCountByExpoId(expoId);
+        ExpoReviewsResponse.RatingSummary ratingSummary = buildRatingSummary(ratingCounts);
+
+        // 리뷰 목록 변환
+        List<ExpoReviewsResponse.ReviewInfo> reviewInfos = reviewPage.getContent().stream()
+                .map(review -> ExpoReviewsResponse.ReviewInfo.builder()
+                        .reviewId(review.getId())
+                        .memberName(review.getMember().getName())
+                        .title(review.getTitle())
+                        .content(review.getContent())
+                        .rating(review.getRating())
+                        .createdAt(review.getCreatedAt())
+                        .isMyReview(memberId != null && memberId.equals(review.getMember().getId()))
+                        .build())
+                .collect(Collectors.toList());
+
+        return ExpoReviewsResponse.builder()
+                .expoId(expo.getId())
+                .expoTitle(expo.getTitle())
+                .averageRating(averageRating)
+                .totalReviews(totalReviews.intValue())
+                .ratingSummary(ratingSummary)
+                .reviews(reviewInfos)
+                .build();
+    }
+
+    /**
+     * 별점별 개수 데이터를 RatingSummary로 변환
+     */
+    private ExpoReviewsResponse.RatingSummary buildRatingSummary(Object[][] ratingCounts) {
+        int[] counts = new int[6]; // 인덱스 1~5 사용 (0은 무시)
+
+        for (Object[] row : ratingCounts) {
+            Integer rating = (Integer) row[0];
+            Long count = (Long) row[1];
+            if (rating >= 1 && rating <= 5) {
+                counts[rating] = count.intValue();
+            }
+        }
+
+        return ExpoReviewsResponse.RatingSummary.builder()
+                .fiveStars(counts[5])
+                .fourStars(counts[4])
+                .threeStars(counts[3])
+                .twoStars(counts[2])
+                .oneStars(counts[1])
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ExpoLocationResponse getExpoLocation(Long expoId) {
+        log.info("박람회 위치 정보 조회 - 박람회 ID: {}", expoId);
+
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+
+        if (expo.getStatus() != ExpoStatus.PUBLISHED) {
+            throw new CustomException(CustomErrorCode.EXPO_NOT_PUBLISHED);
+        }
+
+        return ExpoLocationResponse.builder()
+                .expoId(expo.getId())
+                .expoTitle(expo.getTitle())
+                .location(expo.getLocation())
+                .locationDetail(expo.getLocationDetail())
+                .latitude(expo.getLatitude())
+                .longitude(expo.getLongitude())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BoothResponse> getExpoBooths(Long expoId) {
+        log.info("박람회 부스 정보 조회 - 박람회 ID: {}", expoId);
+
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+
+        if (expo.getStatus() != ExpoStatus.PUBLISHED) {
+            throw new CustomException(CustomErrorCode.EXPO_NOT_PUBLISHED);
+        }
+
+        List<Booth> booths = boothRepository.findAllByExpoId(expoId);
+
+        return booths.stream()
+                .map(boothMapper::toResponse)
+                .collect(Collectors.toList());
     }
 }
