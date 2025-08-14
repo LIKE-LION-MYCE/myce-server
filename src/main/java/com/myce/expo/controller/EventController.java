@@ -30,12 +30,19 @@ public class EventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // 행사 목록 조회
-    @GetMapping
+    // 행사 목록 조회 (관리자용)
+    @GetMapping("/admin")
     public ResponseEntity<List<EventResponse>> getEvents(
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         List<EventResponse> events = eventService.getEvents(expoId, userDetails.getLoginType(), userDetails.getMemberId());
+        return ResponseEntity.ok(events);
+    }
+
+    // 행사 목록 조회 (공개용 - 비회원 접근 가능)
+    @GetMapping
+    public ResponseEntity<List<EventResponse>> getPublicEvents(@PathVariable Long expoId) {
+        List<EventResponse> events = eventService.getPublicEvents(expoId);
         return ResponseEntity.ok(events);
     }
 

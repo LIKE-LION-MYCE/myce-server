@@ -70,6 +70,19 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
     }
 
+    // 행사 목록 조회 (공개용 - 비회원 접근 가능)
+    @Override
+    @Transactional(readOnly = true)
+    public List<EventResponse> getPublicEvents(Long expoId) {
+        // 행사 엔티티 목록 조회 (권한 검증 없음)
+        List<Event> events = eventRepository.findAllByExpoId(expoId);
+
+        // 행사 엔티티를 응답 dto로 매핑하여 리스트로 반환
+        return events.stream()
+                .map(eventMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
     // 행사 수정
     @Override
     public EventResponse updateEvent(Long expoId, Long eventId, EventRequest eventRequest, LoginType loginType, Long principalId) {

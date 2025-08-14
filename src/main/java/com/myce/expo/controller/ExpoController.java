@@ -89,23 +89,19 @@ public class ExpoController {
 
     // 박람회 찜하기 상태 조회
     @GetMapping("/{expoId}/bookmark")
-    public ResponseEntity<ExpoBookmarkResponse> getExpoBookmarkStatus(
-            @PathVariable Long expoId,
-            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
-        Long memberId = customUserDetails != null ? customUserDetails.getMemberId() : null;
+    public ResponseEntity<ExpoBookmarkResponse> getExpoBookmarkStatus(@PathVariable Long expoId) {
+        Long memberId = getCurrentMemberIdOrNull();
         ExpoBookmarkResponse bookmarkStatus = expoService.getExpoBookmarkStatus(expoId, memberId);
         return ResponseEntity.ok(bookmarkStatus);
     }
 
-    // 박람회 리뷰 정보 조회
+    // 박람회 리뷰 정보 조회 (비회원 접근 가능)
     @GetMapping("/{expoId}/reviews")
     public ResponseEntity<ExpoReviewsResponse> getExpoReviews(
             @PathVariable Long expoId,
-            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Long memberId = customUserDetails != null ? customUserDetails.getMemberId() : null;
-        ExpoReviewsResponse reviewsInfo = expoService.getExpoReviews(expoId, memberId, page, size);
+        ExpoReviewsResponse reviewsInfo = expoService.getExpoReviews(expoId, page, size);
         return ResponseEntity.ok(reviewsInfo);
     }
 
@@ -124,14 +120,19 @@ public class ExpoController {
     }
 
     private Long getCurrentMemberIdOrNull(){
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+        try {
+            var auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+                return null;
+            }
+            Object principal = auth.getPrincipal();
+            if(principal instanceof CustomUserDetails user) {
+                return user.getMemberId();
+            }
+            return null;
+        } catch (Exception e) {
+            // 비회원이거나 인증 관련 예외 발생시 null 반환
             return null;
         }
-        Object principal = auth.getPrincipal();
-        if(principal instanceof CustomUserDetails user) {
-            return user.getMemberId();
-        }
-        return null;
     }
 }
