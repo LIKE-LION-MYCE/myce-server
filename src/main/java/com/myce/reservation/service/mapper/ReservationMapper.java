@@ -2,6 +2,7 @@ package com.myce.reservation.service.mapper;
 
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
+import com.myce.reservation.dto.PreReservationRequest;
 import com.myce.reservation.dto.ReservationPendingRequest;
 import com.myce.reservation.dto.ReservationSuccessResponse;
 import com.myce.reservation.entity.Reservation;
@@ -28,6 +29,18 @@ public class ReservationMapper {
     return ReservationSuccessResponse.builder()
         .reservationCode(reservation.getReservationCode())
         .email(email)
+        .build();
+  }
+
+  public Reservation toPreEntity(Expo expo, Ticket ticket, PreReservationRequest req, String reservationCode, ReservationStatus reservationStatus) {
+    return Reservation.builder()
+        .expo(expo)
+        .ticket(ticket)
+        .quantity(req.getQuantity())
+        .userType(req.getUserType())
+        .userId(req.getUserId())
+        .status(reservationStatus)
+        .reservationCode(reservationCode)
         .build();
   }
 }

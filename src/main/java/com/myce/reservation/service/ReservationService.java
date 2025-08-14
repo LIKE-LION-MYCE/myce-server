@@ -1,6 +1,8 @@
 package com.myce.reservation.service;
 
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.reservation.dto.PreReservationRequest;
+import com.myce.reservation.dto.PreReservationResponse;
 import com.myce.reservation.dto.ReservationDetailResponse;
 import com.myce.reservation.dto.ReservationPendingRequest;
 import com.myce.reservation.dto.ReservationSuccessResponse;
@@ -17,4 +19,6 @@ public interface ReservationService {
     void updateStatusToConfirm(Long reservationId);
 
     ReservationSuccessResponse getReservationCodeAndEmail(Long reservationId);
+
+    PreReservationResponse savePreReservation(PreReservationRequest request);
 }

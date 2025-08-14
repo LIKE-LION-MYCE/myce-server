@@ -1,6 +1,8 @@
 package com.myce.reservation.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.reservation.dto.PreReservationRequest;
+import com.myce.reservation.dto.PreReservationResponse;
 import com.myce.reservation.dto.ReservationDetailResponse;
 import com.myce.reservation.dto.ReservationPendingRequest;
 import com.myce.reservation.dto.ReservationSuccessResponse;
@@ -75,5 +77,12 @@ public class ReservationController {
         @PathVariable Long reservationId){
         ReservationSuccessResponse response = reservationService.getReservationCodeAndEmail(reservationId);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/pre-reservation")
+    public ResponseEntity<PreReservationResponse> savePreReservation(
+        @Valid @RequestBody PreReservationRequest request
+    ){
+        return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.savePreReservation(request));
     }
 }

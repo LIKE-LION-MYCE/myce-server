@@ -12,6 +12,8 @@ import com.myce.member.entity.Guest;
 import com.myce.member.entity.Member;
 import com.myce.member.repository.GuestRepository;
 import com.myce.member.repository.MemberRepository;
+import com.myce.reservation.dto.PreReservationRequest;
+import com.myce.reservation.dto.PreReservationResponse;
 import com.myce.reservation.dto.ReservationDetailResponse;
 import com.myce.reservation.dto.ReservationPendingRequest;
 import com.myce.reservation.dto.ReservationSuccessResponse;
@@ -156,5 +158,25 @@ public class ReservationServiceImpl implements ReservationService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.GUEST_NOT_EXIST));
             return reservationMapper.toSuccessResponse(reservation, guest.getEmail());
         }
+    }
+
+    @Transactional
+    @Override
+    public PreReservationResponse savePreReservation(PreReservationRequest request) {
+        // 예약 번호 생성
+        String reservationCode = reservationCodeService.generate(request.getExpoId());
+        Expo expo = expoRepository.findById(request.getExpoId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
+        Ticket ticket = ticketRepository.findById(request.getTicketId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
+
+        // 엔티티 생성
+        Reservation preReservation = reservationMapper.toPreEntity(expo, ticket, request, reservationCode, ReservationStatus.CONFIRMED_PENDING);
+
+        // 저장
+        Reservation saved = reservationRepository.save(preReservation);
+
+        // 예약 번호 반환
+        return new PreReservationResponse(saved.getId());
     }
 }
