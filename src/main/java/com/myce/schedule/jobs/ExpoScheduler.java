@@ -22,7 +22,7 @@ public class ExpoScheduler implements TaskScheduler {
 
     @PostConstruct
     public void init() {
-        log.info("Expo publishing status scheduler registered. cron: {}", cronExpression);
+        log.info("Expo publishing status scheduler has been registered. cron: {}", cronExpression);
     }
 
     @Override
@@ -31,7 +31,7 @@ public class ExpoScheduler implements TaskScheduler {
         try {
             this.process();
         } catch (Exception e) {
-            log.error("Error occurred while executing expo publishing status scheduler", e);
+            log.error("Error occurred during expo publishing status scheduler execution", e);
         }
     }
 

@@ -179,12 +179,13 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
 
     /**
      * 박람회 총 일수 계산
+     * 게시 기간(displayStartDate ~ displayEndDate) 기준으로 계산
      * 
      * @param expo 박람회 엔티티
      * @return 총 일수
      */
     private int calculateTotalDays(Expo expo) {
-        long days = ChronoUnit.DAYS.between(expo.getStartDate(), expo.getEndDate()) + 1;
+        long days = ChronoUnit.DAYS.between(expo.getDisplayStartDate(), expo.getDisplayEndDate()) + 1;
         return (int) days;
     }
 
