@@ -1,5 +1,6 @@
 package com.myce.system.service.email.mapper;
 
+import com.myce.system.dto.email.ExpoAdminEmailDetailResponse;
 import com.myce.system.dto.email.ExpoAdminEmailRequest;
 import com.myce.system.dto.email.ExpoAdminEmailResponse;
 import com.myce.system.document.EmailLog;
@@ -25,6 +26,17 @@ public class ExpoAdminEmailMapper {
                 .subject(document.getSubject())
                 .content(summarize(document.getContent()))
                 .recipientCount(document.getRecipientCount())
+                .createdAt(document.getCreatedAt())
+                .build();
+    }
+
+    public ExpoAdminEmailDetailResponse toDetailDto(EmailLog document){
+        return ExpoAdminEmailDetailResponse.builder()
+                .id(document.getId())
+                .subject(document.getSubject())
+                .content(document.getContent())
+                .recipientCount(document.getRecipientCount())
+                .recipientInfos(document.getRecipientInfos())
                 .createdAt(document.getCreatedAt())
                 .build();
     }

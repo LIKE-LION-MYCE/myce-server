@@ -5,6 +5,7 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
+import com.myce.system.dto.email.ExpoAdminEmailDetailResponse;
 import com.myce.system.dto.email.ExpoAdminEmailResponse;
 import com.myce.system.repository.EmailLogRepository;
 import com.myce.system.service.email.ExpoAdminEmailDetailService;
@@ -47,11 +48,11 @@ public class ExpoAdminEmailDetailServiceImpl implements ExpoAdminEmailDetailServ
     }
 
     @Override
-    public ExpoAdminEmailResponse getMyMailDetail(Long expoId, Long memberId, LoginType loginType, String emailId) {
+    public ExpoAdminEmailDetailResponse getMyMailDetail(Long expoId, Long memberId, LoginType loginType, String emailId) {
         validateMyAccess(expoId, memberId, loginType);
 
         return emailLogRepository.findById(emailId)
-                .map(mapper::toDto)
+                .map(mapper::toDetailDto)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.INVALID_EMAIL_LOG));
     }
 

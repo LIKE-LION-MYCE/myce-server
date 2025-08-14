@@ -1,6 +1,7 @@
 package com.myce.system.service.email;
 
 import com.myce.auth.dto.type.LoginType;
+import com.myce.system.dto.email.ExpoAdminEmailDetailResponse;
 import com.myce.system.dto.email.ExpoAdminEmailResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,5 +13,5 @@ public interface ExpoAdminEmailDetailService {
                                             String keyword,
                                             Pageable pageable);
 
-    ExpoAdminEmailResponse getMyMailDetail(Long expoId, Long memberId, LoginType loginType, String emailId);
+    ExpoAdminEmailDetailResponse getMyMailDetail(Long expoId, Long memberId, LoginType loginType, String emailId);
 }

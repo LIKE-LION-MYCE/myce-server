@@ -2,6 +2,7 @@ package com.myce.system.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.auth.dto.type.LoginType;
+import com.myce.system.dto.email.ExpoAdminEmailDetailResponse;
 import com.myce.system.dto.email.ExpoAdminEmailRequest;
 import com.myce.system.dto.email.ExpoAdminEmailResponse;
 import com.myce.system.service.email.ExpoAdminEmailDetailService;
@@ -56,7 +57,7 @@ public class ExpoAdminEmailController {
     }
 
     @GetMapping("/{emailId}")
-    public ResponseEntity<ExpoAdminEmailResponse> getMyEmailDetail(
+    public ResponseEntity<ExpoAdminEmailDetailResponse> getMyEmailDetail(
             @PathVariable Long expoId,
             @PathVariable String emailId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails){
