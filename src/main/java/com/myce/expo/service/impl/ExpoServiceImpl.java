@@ -47,7 +47,6 @@ public class ExpoServiceImpl implements ExpoService {
     private final CategoryRepository categoryRepository;
     private final BusinessProfileRepository businessProfileRepository;
     private final QrCodeRepository qrCodeRepository;
-    private final ExpoMapper expoMapper;
     private final TicketRepository ticketRepository;
     private final FavoriteRepository favoriteRepository;
 
@@ -161,6 +160,11 @@ public class ExpoServiceImpl implements ExpoService {
             pageable
         );
 
+        List<Long> bookmarkedExpoIds = new ArrayList<>();
+        if (memberId != null) {
+            bookmarkedExpoIds = favoriteRepository.findExpoIdsByMemberId(memberId);
+        }
+
         List<ExpoCardResponse> expoCards = new ArrayList<>(exposPage.getContent().size());
         for(Expo expo : exposPage.getContent()) {
             // 남은 티켓 수 합산
@@ -170,12 +174,9 @@ public class ExpoServiceImpl implements ExpoService {
                 remainingTickets += ticket.getRemainingQuantity();
             }
 
-            // 회원일 경우에만 찜 확인 가능
-            boolean isBookmark = false;
-            if(memberId != null){
-                isBookmark = favoriteRepository.existsByMemberIdAndExpoId(memberId, expo.getId());
-            }
-            expoCards.add(expoMapper.toCards(expo, remainingTickets, isBookmark));
+            // 북마크된 엑스포 중에 있는지 확인
+            boolean isBookmark = bookmarkedExpoIds.contains(expo.getId());
+            expoCards.add(ExpoMapper.toCards(expo, remainingTickets, isBookmark));
         }
         return expoCards;
     }

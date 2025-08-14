@@ -23,7 +23,7 @@ public class MemberFavoriteServiceImpl implements MemberFavoriteService {
   @Transactional
   @Override
   public boolean saveFavorite(Long memberId, Long expoId) {
-    if(favoriteRepository.existsByMemberIdAndExpoId(memberId, expoId)) return true;
+    if(favoriteRepository.existsByMember_IdAndExpo_Id(memberId, expoId)) return true;
     Member member =  memberRepository.findById(memberId)
         .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
     Expo expo = expoRepository.findById(expoId)
@@ -36,7 +36,7 @@ public class MemberFavoriteServiceImpl implements MemberFavoriteService {
   @Transactional
   @Override
   public boolean deleteFavorite(Long memberId, Long expoId) {
-    favoriteRepository.deleteByMemberIdAndExpoId(memberId, expoId);
+    favoriteRepository.deleteByMember_IdAndExpo_Id(memberId, expoId);
     return false;
   }
 }

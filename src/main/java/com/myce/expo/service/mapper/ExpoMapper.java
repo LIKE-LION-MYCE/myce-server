@@ -31,7 +31,7 @@ public class ExpoMapper {
           .build();
   }
 
-  public ExpoCardResponse toCards(Expo expo, Integer remainingQuantity, boolean isBookmark){
+  public static ExpoCardResponse toCards(Expo expo, Integer remainingQuantity, boolean isBookmark){
     return ExpoCardResponse.builder()
         .expoId(expo.getId())
         .title(expo.getTitle())

@@ -80,7 +80,9 @@ public class ExpoController {
 
     private Long getCurrentMemberIdOrNull(){
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        if(auth == null || !auth.isAuthenticated()) return null;
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return null;
+        }
         Object principal = auth.getPrincipal();
         if(principal instanceof CustomUserDetails user) {
             return user.getMemberId();
