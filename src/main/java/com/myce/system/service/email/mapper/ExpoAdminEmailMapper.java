@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ExpoAdminEmailMapper {
 
-    private static final int SUBJECT_LIMIT = 25;
+    private static final int SUBJECT_LIMIT = 50;
 
     public EmailLog toDocument(Long expoId, ExpoAdminEmailRequest dto){
         return EmailLog.builder()
