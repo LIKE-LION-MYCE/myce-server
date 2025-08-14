@@ -7,6 +7,7 @@ import com.myce.advertisement.service.PlatformApplyAdService;
 import com.myce.advertisement.service.PlatformCurrentAdService;
 import com.myce.common.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/platform/ads")
 @RequiredArgsConstructor
+@Slf4j
 public class PlatformAdController {
     private final PlatformAdService service;
     private final PlatformAdDetailService adDetailService;

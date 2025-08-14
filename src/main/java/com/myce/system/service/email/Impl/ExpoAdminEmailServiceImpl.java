@@ -1,4 +1,4 @@
-package com.myce.reservation.service.Impl;
+package com.myce.system.service.email.Impl;
 
 import com.myce.auth.dto.type.LoginType;
 import com.myce.common.entity.BusinessProfile;
@@ -10,12 +10,13 @@ import com.myce.expo.entity.Expo;
 import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.notification.service.EmailSendService;
-import com.myce.reservation.dto.ExpoAdminEmailRequest;
-import com.myce.reservation.service.ExpoAdminEmailService;
-import com.myce.reservation.service.mapper.ExpoAdminEmailMapper;
+import com.myce.system.dto.email.ExpoAdminEmailRequest;
+import com.myce.system.service.email.ExpoAdminEmailService;
+import com.myce.system.service.email.mapper.ExpoAdminEmailMapper;
 import com.myce.system.repository.EmailLogRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -35,6 +36,7 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
     private final EmailLogRepository emailLogRepository;
     private final EmailSendService emailSendService;
     private final SpringTemplateEngine templateEngine;
+    private final MongoTemplate mongoTemplate;
     private final ExpoAdminEmailMapper mapper;
     
     //TODO : 추후 링크 교체, 또는 @Value로 값 주입
@@ -55,6 +57,7 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
 
         emailLogRepository.save(mapper.toDocument(expoId,dto));
     }
+
     private String renderEmailHtml(Long expoId, ExpoAdminEmailRequest dto){
         String expoName = expoRepository.findById(expoId)
                 .map(Expo::getTitle)
@@ -79,6 +82,7 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
 
         return templateEngine.process("mail/mail-basic",ctx);
     }
+
     private String toPreheader(String html, int maxLen) {
         if (html == null) return "";
         String text = html.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ").trim();
