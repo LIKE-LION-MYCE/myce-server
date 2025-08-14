@@ -17,7 +17,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -79,10 +78,17 @@ public class SecurityConfig {
                 .addFilterAt(loginFilter, UsernamePasswordAuthenticationFilter.class);
 
         http.authorizeHttpRequests(auth ->
-                auth.requestMatchers(HttpMethod.POST, "/api/auth/**", "/api/payment/**")
+                auth.requestMatchers(HttpMethod.POST, "/api/auth/**", "/api/payment/**",
+                        "/api/reservations/resolvers", "/api/reservations/pending",
+                        "/api/reservers")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/**",
-                            "/api/categories", "/api/expos/**", "/api/tickest/quantity")
+                            "/api/categories", "/api/expos", "/api/expos/*/basic",
+                            "/api/expos/*/reviews", "/api/expos/*/location",
+                            "/api/expos/*/booths/public")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.PATCH,"/api/tickets/quantity",
+                            "/api/reservations/*/confirm", "/api/reservations/success")
                         .permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
