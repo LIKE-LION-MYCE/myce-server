@@ -11,14 +11,12 @@ import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.notification.service.EmailSendService;
 import com.myce.system.dto.email.ExpoAdminEmailRequest;
-import com.myce.system.dto.email.ExpoAdminEmailResponse;
 import com.myce.system.service.email.ExpoAdminEmailService;
 import com.myce.system.service.email.mapper.ExpoAdminEmailMapper;
 import com.myce.system.repository.EmailLogRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -38,6 +36,7 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
     private final EmailLogRepository emailLogRepository;
     private final EmailSendService emailSendService;
     private final SpringTemplateEngine templateEngine;
+    private final MongoTemplate mongoTemplate;
     private final ExpoAdminEmailMapper mapper;
     
     //TODO : 추후 링크 교체, 또는 @Value로 값 주입
@@ -57,17 +56,6 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
         emailSendService.sendMailToMultiple(emails, dto.getSubject(), html);
 
         emailLogRepository.save(mapper.toDocument(expoId,dto));
-    }
-
-    @Override
-    public Page<ExpoAdminEmailResponse> getMyMails(Long expoId,Long memberId, LoginType loginType,
-                                                   String subject, String content,
-                                                   Pageable pageable) {
-        //ExpoId를 가지고 찾는데
-        //Subject랑 Content 넣으면 이걸로 검색 할 수 있게끔-> 동적으로 가능한가?
-        
-        if(subject!=null || subject)
-        return emailLogRepository.findByExpoIdAndSubjectContainingIgnoreCaseOrContentContainingIgnoreCase(expoId, subject, content, pageable);
     }
 
     private String renderEmailHtml(Long expoId, ExpoAdminEmailRequest dto){

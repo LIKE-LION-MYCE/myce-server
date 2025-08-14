@@ -4,6 +4,7 @@ import com.myce.auth.dto.CustomUserDetails;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.system.dto.email.ExpoAdminEmailRequest;
 import com.myce.system.dto.email.ExpoAdminEmailResponse;
+import com.myce.system.service.email.ExpoAdminEmailDetailService;
 import com.myce.system.service.email.ExpoAdminEmailService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +20,10 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/expos/{expoId}/emails")
 @RequiredArgsConstructor
-public class ExpoAdminMailController {
+public class ExpoAdminEmailController {
 
     private final ExpoAdminEmailService service;
+    private final ExpoAdminEmailDetailService detailService;
 
     @PostMapping
     public ResponseEntity<Void> sendEmail(
@@ -40,8 +42,7 @@ public class ExpoAdminMailController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "desc") String sort,
-            @RequestParam(required = false) String subject,
-            @RequestParam(required = false) String content,
+            @RequestParam(required = false) String keyword,
             @AuthenticationPrincipal CustomUserDetails customUserDetails){
         Long memberId = customUserDetails.getMemberId();
         LoginType loginType = customUserDetails.getLoginType();
@@ -49,8 +50,19 @@ public class ExpoAdminMailController {
         Sort.Direction direction = sort.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page,size,Sort.by(direction,"createdAt"));
 
-        Page<ExpoAdminEmailResponse> result = service.getMyMails(expoId, memberId, loginType, subject, content, pageable);
+        Page<ExpoAdminEmailResponse> result = detailService.getMyMails(expoId, memberId, loginType, keyword, pageable);
 
         return ResponseEntity.ok(new PagedModel<>(result));
+    }
+
+    @GetMapping("/{emailId}")
+    public ResponseEntity<ExpoAdminEmailResponse> getMyEmailDetail(
+            @PathVariable Long expoId,
+            @PathVariable String emailId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails){
+        Long memberId = customUserDetails.getMemberId();
+        LoginType loginType = customUserDetails.getLoginType();
+
+        return ResponseEntity.ok(detailService.getMyMailDetail(expoId,memberId,loginType,emailId));
     }
 }

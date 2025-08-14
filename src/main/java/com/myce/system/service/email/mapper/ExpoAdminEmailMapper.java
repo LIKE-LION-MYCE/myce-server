@@ -7,6 +7,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ExpoAdminEmailMapper {
+
+    private static final int SUBJECT_LIMIT = 25;
+
     public EmailLog toDocument(Long expoId, ExpoAdminEmailRequest dto){
         return EmailLog.builder()
                 .expoId(expoId)
@@ -20,9 +23,25 @@ public class ExpoAdminEmailMapper {
         return ExpoAdminEmailResponse.builder()
                 .id(document.getId())
                 .subject(document.getSubject())
-                .content(document.getContent())
+                .content(summarize(document.getContent()))
                 .recipientCount(document.getRecipientCount())
                 .createdAt(document.getCreatedAt())
                 .build();
+    }
+
+    private static String summarize(String original) {
+        if (original == null){
+            return null;
+        }
+
+        String stripped = original.strip();
+
+        if (stripped.codePointCount(0, original.length()) <= SUBJECT_LIMIT) {
+            return original;
+        }
+
+        int cutOffIndex = stripped.offsetByCodePoints(0, SUBJECT_LIMIT);
+
+        return stripped.substring(0, cutOffIndex) + "...";
     }
 }
