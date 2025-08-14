@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 public class TokenCookieProvider {
 
     private static final String PRODUCT_PROFILE = "product";
+    private static final String DOMAIN = ".myce.live";
 
     @Value("${spring.profiles.active}")
     private String profile;
@@ -22,7 +23,19 @@ public class TokenCookieProvider {
                 .sameSite(isProd ? "None" : "Lax")
                 .secure(isProd)
                 .maxAge(Duration.ofDays(14))
-                .domain(isProd ? ".myce.live" : null)
+                .domain(isProd ? DOMAIN : null)
+                .path("/")
+                .build();
+    }
+
+    public ResponseCookie getExpiredCookie(String key) {
+        boolean isProd = this.profile.equals(PRODUCT_PROFILE);
+        return ResponseCookie.from(key, "")
+                .httpOnly(true)
+                .sameSite(isProd ? "None" : "Lax")
+                .secure(isProd)
+                .maxAge(0)
+                .domain(isProd ? DOMAIN : null)
                 .path("/")
                 .build();
     }

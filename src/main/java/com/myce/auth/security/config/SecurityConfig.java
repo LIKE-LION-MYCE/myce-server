@@ -1,5 +1,8 @@
 package com.myce.auth.security.config;
 
+import com.myce.auth.repository.RefreshTokenRepository;
+import com.myce.auth.repository.TokenBlackListRepository;
+import com.myce.auth.security.filter.CustomLogoutFilter;
 import com.myce.auth.security.filter.JwtAuthenticationFilter;
 import com.myce.auth.security.filter.LoginFilter;
 import com.myce.auth.security.provider.AdminAuthenticationProvider;
@@ -22,6 +25,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
@@ -37,6 +41,8 @@ public class SecurityConfig {
     private final CorsConfigurationSource corsConfigurationSource;
     private final MemberAuthenticationProvider memberAuthenticationProvider;
     private final AdminAuthenticationProvider adminAuthenticationProvider;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenBlackListRepository tokenBlackListRepository;
 
     @Bean
     public AuthenticationManager authenticationManager() throws Exception {
@@ -48,9 +54,16 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
-        LoginFilter loginFilter = new LoginFilter(jwtUtil, tokenCookieProvider,
-                authenticationManager());
+        LoginFilter loginFilter = new LoginFilter
+                (jwtUtil, tokenCookieProvider, authenticationManager(), refreshTokenRepository);
         loginFilter.setFilterProcessesUrl("/api/auth/login");
+
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter
+                (jwtUtil, userDetailsService, adminCodeDetailService, tokenBlackListRepository);
+
+        CustomLogoutFilter logoutFilter = new CustomLogoutFilter
+                (jwtUtil, refreshTokenRepository, tokenBlackListRepository, tokenCookieProvider);
+
 
         http.cors(cors ->
                         cors.configurationSource(corsConfigurationSource))
@@ -60,8 +73,10 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        http.addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService, adminCodeDetailService),
-                LoginFilter.class).addFilterAt(loginFilter, UsernamePasswordAuthenticationFilter.class);
+        http
+                .addFilterBefore(logoutFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(jwtFilter, LogoutFilter.class)
+                .addFilterAt(loginFilter, UsernamePasswordAuthenticationFilter.class);
 
         http.authorizeHttpRequests(auth ->
                 auth.requestMatchers(HttpMethod.POST, "/api/auth/**", "/api/payment/**")

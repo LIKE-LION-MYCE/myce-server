@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.auth.dto.LoginRequest;
 import com.myce.auth.dto.type.LoginType;
+import com.myce.auth.repository.RefreshTokenRepository;
 import com.myce.auth.security.CustomAuthenticationToken;
 import com.myce.auth.security.provider.TokenCookieProvider;
 import com.myce.auth.security.util.JwtUtil;
@@ -27,6 +28,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     private final JwtUtil jwtUtil;
     private final TokenCookieProvider tokenCookieProvider;
     private final AuthenticationManager authenticationManager;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Override
     public Authentication attemptAuthentication
@@ -60,6 +62,8 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
         String accessToken = jwtUtil.createToken(JwtUtil.ACCESS_TOKEN, loginType, memberId, loginId, role);
         String refreshToken = jwtUtil.createToken(JwtUtil.REFRESH_TOKEN, loginType, memberId, loginId, role);
+
+        refreshTokenRepository.save(loginType, memberId, refreshToken, jwtUtil.getRefreshTokenTime());
 
         response.addHeader(JwtUtil.AUTHORIZATION_HEADER, accessToken);
         ResponseCookie cookie = tokenCookieProvider.getCookie(JwtUtil.REFRESH_TOKEN, refreshToken);
