@@ -9,10 +9,10 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class RevenueDashboardResponse {
-    private List<RevenueSummary> summaryItems;
-    private RevenueChartData chartData;
+    private List<DashboardSummary> summaryItems;
+    private DashboardChartData chartData;
     @Builder
-    public RevenueDashboardResponse(List<RevenueSummary> summaryItems, RevenueChartData chartData) {
+    public RevenueDashboardResponse(List<DashboardSummary> summaryItems, DashboardChartData chartData) {
         this.summaryItems = summaryItems;
         this.chartData = chartData;
     }
