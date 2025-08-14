@@ -3,6 +3,7 @@ package com.myce.settlement.repository;
 import com.myce.settlement.entity.Settlement;
 import com.myce.settlement.entity.code.SettlementStatus;
 import io.lettuce.core.dynamic.annotation.Param;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
