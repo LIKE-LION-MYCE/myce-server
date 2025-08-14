@@ -146,6 +146,9 @@ public enum CustomErrorCode {
     // 엑셀 EX
     EXCEL_EXPORT_FAILED(HttpStatus.NOT_FOUND, "EX001", "엑셀 추출에 실패하였습니다."),
 
+    // 이메일 EM
+    INVALID_EMAIL_LOG(HttpStatus.NOT_FOUND, "EM001", "유효하지 않은 이메일 로그 입니다.");
+
     // 기간 PE
     PERIOD_TYPE_NOT_EXIST(HttpStatus.NOT_FOUND, "PE001", "기간 타입이 존재하지 않습니다.");
 
