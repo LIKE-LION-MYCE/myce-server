@@ -208,9 +208,14 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
         Integer deposit = feeSetting.getDeposit() != null ? feeSetting.getDeposit() : 0;
         Integer dailyUsageFee = feeSetting.getDailyUsageFee() != null ? feeSetting.getDailyUsageFee() : 0;
         Integer dailyFee = dailyUsageFee * totalDays;
-        Integer premiumDeposit = feeSetting.getPremiumDeposit() != null ? feeSetting.getPremiumDeposit() : 0;
-        Integer premiumFee = expo.getIsPremium() ? premiumDeposit : 0;
         
-        return deposit + dailyFee + premiumFee;
+        if (expo.getIsPremium()) {
+            // 프리미엄일 경우: 기본 등록금 + 프리미엄 이용료 + 사용료
+            Integer premiumDeposit = feeSetting.getPremiumDeposit() != null ? feeSetting.getPremiumDeposit() : 0;
+            return deposit + premiumDeposit + dailyFee;
+        } else {
+            // 기본일 경우: 기본 등록금 + 사용료
+            return deposit + dailyFee;
+        }
     }
 }

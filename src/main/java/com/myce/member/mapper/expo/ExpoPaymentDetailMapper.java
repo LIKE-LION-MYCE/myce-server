@@ -16,10 +16,9 @@ public class ExpoPaymentDetailMapper {
         // 사용료 총액 계산 (일당 * 총일수)
         int usageFeeAmount = expoPaymentInfo.getDailyUsageFee() * expoPaymentInfo.getTotalDay();
         
-        // 등록금 계산 (프리미엄이면 premiumDeposit, 아니면 deposit)
-        int depositAmount = expo.getIsPremium() ? 
-                expoPaymentInfo.getPremiumDeposit() : 
-                expoPaymentInfo.getDeposit();
+        // 기본 등록금과 프리미엄 이용료 분리
+        int depositAmount = expoPaymentInfo.getDeposit();
+        Integer premiumDepositAmount = expo.getIsPremium() ? expoPaymentInfo.getPremiumDeposit() : null;
         
         return ExpoPaymentDetailResponse.builder()
                 .expoTitle(expo.getTitle())
@@ -31,9 +30,8 @@ public class ExpoPaymentDetailMapper {
                 .dailyUsageFee(expoPaymentInfo.getDailyUsageFee())
                 .usageFeeAmount(usageFeeAmount)
                 .depositAmount(depositAmount)
-                .totalAmount(expoPaymentInfo.getTotalAmount())
+                .premiumDepositAmount(premiumDepositAmount)
                 .isPremium(expo.getIsPremium())
-                .commissionRate(expoPaymentInfo.getCommissionRate())
                 .build();
     }
 }
