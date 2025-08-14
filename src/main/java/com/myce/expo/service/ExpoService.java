@@ -20,7 +20,7 @@ public interface ExpoService {
 
     ExpoBookmarkResponse getExpoBookmarkStatus(Long expoId, Long memberId);
 
-    ExpoReviewsResponse getExpoReviews(Long expoId, Long memberId, int page, int size);
+    ExpoReviewsResponse getExpoReviews(Long expoId, int page, int size);
 
     ExpoLocationResponse getExpoLocation(Long expoId);
 

@@ -97,15 +97,13 @@ public class ExpoController {
         return ResponseEntity.ok(bookmarkStatus);
     }
 
-    // 박람회 리뷰 정보 조회
+    // 박람회 리뷰 정보 조회 (비회원 접근 가능)
     @GetMapping("/{expoId}/reviews")
     public ResponseEntity<ExpoReviewsResponse> getExpoReviews(
             @PathVariable Long expoId,
-            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Long memberId = customUserDetails != null ? customUserDetails.getMemberId() : null;
-        ExpoReviewsResponse reviewsInfo = expoService.getExpoReviews(expoId, memberId, page, size);
+        ExpoReviewsResponse reviewsInfo = expoService.getExpoReviews(expoId, page, size);
         return ResponseEntity.ok(reviewsInfo);
     }
 

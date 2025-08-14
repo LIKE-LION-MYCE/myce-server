@@ -264,8 +264,8 @@ public class ExpoServiceImpl implements ExpoService {
 
     @Override
     @Transactional(readOnly = true)
-    public ExpoReviewsResponse getExpoReviews(Long expoId, Long memberId, int page, int size) {
-        log.info("박람회 리뷰 정보 조회 - 박람회 ID: {}, 사용자 ID: {}, 페이지: {}", expoId, memberId, page);
+    public ExpoReviewsResponse getExpoReviews(Long expoId, int page, int size) {
+        log.info("박람회 리뷰 정보 조회 - 박람회 ID: {}, 페이지: {}", expoId, page);
 
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
@@ -298,7 +298,7 @@ public class ExpoServiceImpl implements ExpoService {
                         .content(review.getContent())
                         .rating(review.getRating())
                         .createdAt(review.getCreatedAt())
-                        .isMyReview(memberId != null && memberId.equals(review.getMember().getId()))
+                        .isMyReview(false)  // 조회 전용이므로 항상 false
                         .build())
                 .collect(Collectors.toList());
 
