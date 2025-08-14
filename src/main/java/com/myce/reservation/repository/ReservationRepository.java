@@ -23,7 +23,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             "JOIN FETCH r.ticket t " +
             "WHERE r.userType = :userType AND r.userId = :userId")
     List<Reservation> findReservationsByUserTypeAndUserIdWithExpoAndTicket(@Param("userType") UserType userType,
-            @Param("userId") Long userId);
+                                                                           @Param("userId") Long userId);
 
     @Query("SELECT r FROM Reservation r " +
             "JOIN FETCH r.expo e " +
@@ -90,12 +90,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     );
 
     @Query("""
-           select distinct r.userId
-           from Reservation r
-           where r.expo.id = :expoId
-             and r.status = :status
-             and r.userType = :userType
-           """)
+            select distinct r.userId
+            from Reservation r
+            where r.expo.id = :expoId
+              and r.status = :status
+              and r.userType = :userType
+            """)
     List<Long> findAllMemberIdByExpoIdAndStatusAndUserType(
             @Param("expoId") Long expoId,
             @Param("status") ReservationStatus status,
@@ -104,10 +104,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     Optional<Reservation> findByReservationCode(String reservationCode);
 
-    List<Reservation> findByExpo(com.myce.expo.entity.Expo expo);
-
     List<Reservation> findByExpoIn(List<Expo> expos);
 
     // reservation code 이미 있는지 확인
     boolean existsByReservationCode(String reservationCode);
+
+    List<Reservation> findByExpoId(Long expoId);
 }
