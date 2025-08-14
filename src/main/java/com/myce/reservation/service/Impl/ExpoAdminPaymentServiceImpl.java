@@ -52,10 +52,7 @@ public class ExpoAdminPaymentServiceImpl implements ExpoAdminPaymentService {
     public List<ExpoAdminPaymentDetailResponse> getPaymentDetail(Long expoId, Long memberId, LoginType loginType, Long paymentId) {
         validateMyAccess(expoId, memberId, loginType);
 
-        return reserverRepository.findByReservationId(paymentId)
-                .stream()
-                .map(mapper::toDetailDto)
-                .toList();
+        return reserverRepository.findDetailById(paymentId);
     }
 
     private void validateMyAccess(Long expoId, Long memberId, LoginType loginType) {
