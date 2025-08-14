@@ -17,39 +17,47 @@ public class ExpoScheduler implements TaskScheduler {
     
     private final SystemExpoService systemExpoService;
 
-    @Value("${scheduler.expo-publish:0 */10 * * * *}")
+    @Value("${scheduler.expo-publish}")
     private String cronExpression;
 
     @PostConstruct
     public void init() {
-        log.info("박람회 게시 상태 관리 스케줄러가 등록되었습니다. cron: {}", cronExpression);
+        log.info("Expo publishing status scheduler registered. cron: {}", cronExpression);
     }
 
     @Override
-    @Scheduled(cron = "${scheduler.expo-publish:0 */10 * * * *}")
+    @Scheduled(cron = "${scheduler.expo-publish}")
     public void run() {
         try {
             this.process();
         } catch (Exception e) {
-            log.error("박람회 게시 상태 관리 스케줄러 실행 중 오류 발생", e);
+            log.error("Error occurred while executing expo publishing status scheduler", e);
         }
     }
 
     @Override
     @Transactional
     public void process() {
-        log.debug("박람회 게시 상태 관리 프로세스 시작");
+        log.debug("Expo publishing status management process started");
         
         int published = systemExpoService.publishPendingExpos();
         int completed = systemExpoService.closeCompletedExpos();
 
         if (published > 0 || completed > 0) {
             systemExpoService.refreshExpoCache();
-            log.info("박람회 상태 업데이트 완료 - 게시: {}개, 종료: {}개", published, completed);
+            log.info("Expo status update completed - Published: {}, Ended: {}", published, completed);
+            
+            // 상세 로그 추가
+            if (published > 0) {
+                log.info("Scheduler: {} expos transitioned to PUBLISHED status", published);
+            }
+            if (completed > 0) {
+                log.info("Scheduler: {} expos transitioned to PUBLISH_ENDED status", completed);
+            }
         } else {
-            log.debug("상태 변경할 박람회가 없습니다.");
+            log.debug("No expos to change status");
         }
         
-        log.debug("박람회 게시 상태 관리 프로세스 완료");
+        log.debug("Expo publishing status management process completed");
     }
 }

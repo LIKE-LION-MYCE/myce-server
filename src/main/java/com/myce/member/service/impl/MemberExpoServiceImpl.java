@@ -11,6 +11,7 @@ import com.myce.expo.entity.Ticket;
 import com.myce.expo.repository.AdminCodeRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
+import com.myce.member.repository.MemberRepository;
 import com.myce.member.dto.expo.ExpoAdminCodeResponse;
 import com.myce.member.dto.expo.ExpoPaymentDetailResponse;
 import com.myce.member.dto.expo.ExpoRefundReceiptResponse;
@@ -27,8 +28,8 @@ import com.myce.member.mapper.expo.MemberExpoMapper;
 import com.myce.member.service.MemberExpoService;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
+import com.myce.settlement.service.SettlementExpoAdminService;
 import com.myce.settlement.entity.Settlement;
-import com.myce.settlement.entity.code.SettlementStatus;
 import com.myce.settlement.repository.SettlementRepository;
 import com.myce.expo.entity.type.ExpoStatus;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +58,9 @@ public class MemberExpoServiceImpl implements MemberExpoService {
     private final TicketRepository ticketRepository;
     private final AdminCodeRepository adminCodeRepository;
     private final ExpoRefundReceiptMapper expoRefundReceiptMapper;
+    private final SettlementExpoAdminService settlementExpoAdminService;
     private final SettlementRepository settlementRepository;
+    private final MemberRepository memberRepository;
 
     @Override
     public Page<MemberExpoResponse> getMemberExpos(Long memberId, Pageable pageable) {
@@ -179,7 +182,14 @@ public class MemberExpoServiceImpl implements MemberExpoService {
         ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
 
-        return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, expoPaymentInfo);
+        // COMPLETED 상태일 때 정산 완료 정보 조회
+        Settlement settlement = null;
+        if (expo.getStatus() == ExpoStatus.COMPLETED) {
+            settlement = settlementRepository.findByExpoId(expoId).orElse(null);
+        }
+        
+        // Mapper에서 모든 정보를 한번에 처리
+        return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, expoPaymentInfo, settlement);
     }
 
     @Override
@@ -210,7 +220,7 @@ public class MemberExpoServiceImpl implements MemberExpoService {
     @Override
     @Transactional
     public void requestExpoSettlement(Long memberId, Long expoId, ExpoSettlementRequest request) {
-        // 박람회가 해당 회원의 것인지 확인
+        // 박람회가 해당 회원의 것인지 권한 확인
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
         
@@ -218,43 +228,9 @@ public class MemberExpoServiceImpl implements MemberExpoService {
             throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
         }
         
-        // 박람회 상태가 COMPLETED인지 확인
-        if (expo.getStatus() != ExpoStatus.COMPLETED) {
-            throw new CustomException(CustomErrorCode.INVALID_EXPO_STATUS);
-        }
+        // Settlement 로직은 SettlementExpoAdminService로 완전 위임
+        settlementExpoAdminService.requestSettlement(expoId, request);
         
-        // 이미 정산 신청이 되었는지 확인
-        if (settlementRepository.existsByExpoId(expoId)) {
-            throw new CustomException(CustomErrorCode.SETTLEMENT_ALREADY_REQUESTED);
-        }
-        
-        // 박람회 상태를 PUBLISH_ENDED로 변경
-        expo.updateStatus(ExpoStatus.PUBLISH_ENDED);
-        
-        // 정산 정보 조회
-        ExpoSettlementReceiptResponse settlementReceipt = getExpoSettlementReceipt(memberId, expoId);
-        
-        // 사업자 정보 조회 (계좌 정보 포함)
-        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(expoId, TargetType.EXPO)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
-        
-        // Settlement 엔티티 생성
-        Settlement settlement = Settlement.builder()
-                .expo(expo)
-                .adminMember(null) // 관리자는 나중에 할당
-                .totalAmount(settlementReceipt.getTotalRevenue())
-                .supplyAmount(settlementReceipt.getCommissionAmount()) // 수수료 금액
-                .settleAmount(settlementReceipt.getNetProfit()) // 순수익
-                .settlementStatus(SettlementStatus.PENDING)
-                .settlementAt(null) // 정산 완료 시 설정
-                .receiverName(request.getReceiverName())
-                .bankName(request.getBankName())
-                .bankAccount(request.getBankAccount())
-                .build();
-        
-        settlementRepository.save(settlement);
-        
-        log.info("정산 신청 완료 - 박람회 ID: {}, 회원 ID: {}, 정산 금액: {}", 
-                expoId, memberId, settlementReceipt.getNetProfit());
+        log.info("정산 신청 위임 완료 - 박람회 ID: {}, 회원 ID: {}", expoId, memberId);
     }
 }

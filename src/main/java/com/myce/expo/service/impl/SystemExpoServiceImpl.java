@@ -6,6 +6,7 @@ import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.service.SystemExpoService;
+import com.myce.settlement.service.SettlementSystemService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ import java.util.List;
 public class SystemExpoServiceImpl implements SystemExpoService {
     
     private final ExpoRepository expoRepository;
+    private final SettlementSystemService settlementSystemService;
     
     private static final List<ExpoStatus> ACTIVE_STATUSES = List.of(
             ExpoStatus.PUBLISHED,
@@ -76,7 +78,10 @@ public class SystemExpoServiceImpl implements SystemExpoService {
         
         
         for (Expo expo : endedExpos) {
-            expo.complete();
+            expo.complete(); // PUBLISHED → PUBLISH_ENDED
+            
+            // Settlement 자동 생성 (SettlementSystemService로 위임)
+            settlementSystemService.createInitialSettlement(expo);
         }
         
         if (!endedExpos.isEmpty()) {
@@ -94,4 +99,5 @@ public class SystemExpoServiceImpl implements SystemExpoService {
         // 현재는 박람회에서 Redis 캐시를 사용하지 않으므로 빈 구현
         
     }
+    
 }
