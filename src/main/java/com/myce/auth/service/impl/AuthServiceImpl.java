@@ -1,7 +1,6 @@
 package com.myce.auth.service.impl;
 
 import com.myce.auth.dto.CheckDuplicateResponse;
-import com.myce.auth.dto.FindLoginIdRequest;
 import com.myce.auth.dto.FindLoginIdResponse;
 import com.myce.auth.dto.SignupRequest;
 import com.myce.auth.dto.TempPasswordRequest;
