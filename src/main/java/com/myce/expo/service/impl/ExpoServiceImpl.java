@@ -150,12 +150,12 @@ public class ExpoServiceImpl implements ExpoService {
             }
         }
 
-        String kw = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        String keyWord = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
 
         Page<Expo> exposPage = expoRepository.findPublishedExposFiltered(
             ExpoStatus.PUBLISHED,
             categoryId,
-            kw,
+            keyWord,
             from,
             to,
             pageable
