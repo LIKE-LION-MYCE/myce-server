@@ -61,17 +61,4 @@ public interface ReservationPaymentInfoRepository extends JpaRepository<Reservat
            "AND rpi.status = 'SUCCESS'")
     BigDecimal sumTotalRevenueByExpoId(@Param("expoId") Long expoId);
     
-    // 특정 박람회의 티켓 종류별 판매 현황
-    @Query("SELECT t.name as ticketType, " +
-           "COUNT(rpi) as soldCount, " +
-           "AVG(rpi.totalAmount) as avgPrice, " +
-           "SUM(rpi.totalAmount) as totalRevenue " +
-           "FROM ReservationPaymentInfo rpi " +
-           "JOIN rpi.reservation r " +
-           "JOIN r.ticket t " +
-           "WHERE r.expo.id = :expoId " +
-           "AND rpi.status = 'SUCCESS' " +
-           "GROUP BY t.name " +
-           "ORDER BY totalRevenue DESC")
-    List<Object[]> getTicketSalesDetailByExpoId(@Param("expoId") Long expoId);
 }
