@@ -6,7 +6,11 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.system.dto.fee.AdFeeListResponse;
 import com.myce.system.dto.fee.AdFeeRequest;
+import com.myce.system.dto.fee.AdFeeResponse;
 import com.myce.system.dto.fee.FeeActiveRequest;
+
+import java.util.List;
+import java.util.stream.Collectors;
 import com.myce.system.entity.AdFeeSetting;
 import com.myce.system.repository.AdFeeSettingRepository;
 import com.myce.system.service.fee.AdFeeService;
@@ -79,6 +83,26 @@ public class AdFeeServiceImpl implements AdFeeService {
             updateAlreadyActiveSetting(adFeeSetting.getAdPosition().getId());
             adFeeSetting.active();
         } else adFeeSetting.inactive();
+    }
+
+    @Override
+    public List<AdFeeResponse> getActiveAdFees() {
+        // 활성화된 광고 위치들을 가져옴
+        List<AdPosition> activePositions = adPositionRepository.findAllByIsActiveTrue();
+        
+        return activePositions.stream()
+                .map(position -> {
+                    // 각 위치별로 활성화된 요금제를 찾음
+                    Optional<AdFeeSetting> activeFeeOpt = 
+                            adFeeSettingRepository.findByAdPositionIdAndIsActiveTrue(position.getId());
+                    
+                    if (activeFeeOpt.isPresent()) {
+                        return adFeeMapper.toAdFeeResponse(activeFeeOpt.get());
+                    }
+                    return null;
+                })
+                .filter(response -> response != null)
+                .collect(Collectors.toList());
     }
 
     private void updateAlreadyActiveSetting(Long adPositionId) {

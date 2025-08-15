@@ -208,6 +208,7 @@ public class ExpoServiceImpl implements ExpoService {
         BusinessProfile businessProfile = businessProfileRepository
                 .findByTargetIdAndTargetType(expoId, TargetType.EXPO)
                 .orElse(null);
+        
 
         // 카테고리 목록 조회
         List<String> categories = expo.getExpoCategories().stream()
@@ -219,6 +220,19 @@ public class ExpoServiceImpl implements ExpoService {
         int currentReservationCount = tickets.stream()
                 .mapToInt(Ticket::getRemainingQuantity)
                 .sum();
+
+        // 주최자 상세 정보 빌드
+        ExpoBasicResponse.OrganizerInfo organizerInfo = null;
+        if (businessProfile != null) {
+            organizerInfo = ExpoBasicResponse.OrganizerInfo.builder()
+                    .companyName(businessProfile.getCompanyName())
+                    .ceoName(businessProfile.getCeoName())
+                    .contactPhone(businessProfile.getContactPhone())
+                    .contactEmail(businessProfile.getContactEmail())
+                    .address(businessProfile.getAddress())
+                    .businessRegistrationNumber(businessProfile.getBusinessRegistrationNumber())
+                    .build();
+        }
 
         return ExpoBasicResponse.builder()
                 .expoId(expo.getId())
@@ -238,6 +252,7 @@ public class ExpoServiceImpl implements ExpoService {
                 .currentReservationCount(currentReservationCount)
                 .organizerName(businessProfile != null ? businessProfile.getCeoName() : "정보 없음")
                 .organizerContact(businessProfile != null ? businessProfile.getContactPhone() : "정보 없음")
+                .organizerInfo(organizerInfo)
                 .categories(categories)
                 .build();
     }
