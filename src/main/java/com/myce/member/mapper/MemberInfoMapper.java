@@ -15,6 +15,9 @@ public class MemberInfoMapper {
                 .phone(member.getPhone())
                 .email(member.getEmail())
                 .gender(member.getGender())
+                .gradeDescription(member.getMemberGrade().getDescription())
+                .gradeImageUrl("http://localhost:8080" + member.getMemberGrade().getGradeImageUrl())
+                .mileage(member.getMileage())
                 .build();
     }
 }

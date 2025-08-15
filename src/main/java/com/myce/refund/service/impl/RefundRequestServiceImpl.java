@@ -1,0 +1,102 @@
+package com.myce.refund.service.impl;
+
+import com.myce.expo.entity.Expo;
+import com.myce.expo.entity.type.ExpoStatus;
+import com.myce.expo.repository.ExpoRepository;
+import com.myce.payment.entity.Payment;
+import com.myce.payment.entity.Refund;
+import com.myce.payment.entity.type.PaymentTargetType;
+import com.myce.payment.entity.type.RefundStatus;
+import com.myce.payment.repository.PaymentRepository;
+import com.myce.payment.repository.RefundRepository;
+import com.myce.refund.dto.RefundRequestDto;
+import com.myce.refund.service.RefundRequestService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class RefundRequestServiceImpl implements RefundRequestService {
+
+    private final RefundRepository refundRepository;
+    private final PaymentRepository paymentRepository;
+    private final ExpoRepository expoRepository;
+
+    @Override
+    public void createRefundRequest(Long memberId, Long expoId, RefundRequestDto requestDto) {
+        // 1. expoId로 결제 정보 조회
+        Payment payment = paymentRepository.findByTargetIdAndTargetType(expoId, PaymentTargetType.EXPO)
+                .orElseThrow(() -> new IllegalArgumentException("해당 엑스포의 결제 정보를 찾을 수 없습니다."));
+
+        // 2. 이미 환불 신청이 있는지 확인
+        if (refundRepository.existsByPaymentAndStatus(payment, RefundStatus.PENDING)) {
+            throw new IllegalStateException("이미 환불 신청이 진행 중입니다.");
+        }
+
+        // 3. 엑스포 정보 조회 및 상태 확인
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 엑스포입니다."));
+        
+        // 4. 환불 가능 상태 확인
+        validateRefundEligibility(expo.getStatus());
+        
+        // 5. 현재 엑스포 상태에 따른 환불 타입 결정
+        boolean isPartialRefund = determineRefundType(expo.getStatus());
+        System.out.println("[환불 신청] 엑스포 ID: " + expoId + ", 현재 상태: " + expo.getStatus() + ", 부분환불 여부: " + isPartialRefund);
+        
+        // 6. 엑스포 상태를 PENDING_CANCEL로 변경
+        expo.updateStatus(ExpoStatus.PENDING_CANCEL);
+        
+        // 7. 환불 엔티티 생성 및 저장
+        Refund refund = Refund.builder()
+                .payment(payment)
+                .amount(requestDto.getAmount())
+                .reason(requestDto.getReason())
+                .status(RefundStatus.PENDING)
+                .isPartial(isPartialRefund)
+                .build();
+
+        refundRepository.save(refund);
+    }
+    
+    /**
+     * 환불 가능 상태인지 확인
+     * @param expoStatus 현재 엑스포 상태
+     * @throws IllegalStateException 환불 불가능한 상태인 경우
+     */
+    private void validateRefundEligibility(ExpoStatus expoStatus) {
+        switch (expoStatus) {
+            case PUBLISH_ENDED:
+            case COMPLETED:
+            case CANCELLED:
+            case REJECTED:
+                throw new IllegalStateException("현재 상태에서는 환불 신청이 불가능합니다.");
+            case PENDING_CANCEL:
+                throw new IllegalStateException("이미 환불 신청이 진행 중입니다.");
+            default:
+                // 환불 가능한 상태
+                break;
+        }
+    }
+    
+    /**
+     * 엑스포 상태에 따른 환불 타입 결정
+     * @param expoStatus 현재 엑스포 상태
+     * @return true: 부분 환불, false: 전액 환불
+     */
+    private boolean determineRefundType(ExpoStatus expoStatus) {
+        switch (expoStatus) {
+            case PENDING_PUBLISH:
+                // 게시 대기 중: 전액 환불 (등록금 + 이용료)
+                return false;
+            case PUBLISHED:
+                // 게시 중: 부분 환불 (사용한 일수 제외한 이용료만)
+                return true;
+            default:
+                // 기타 상태는 부분 환불로 처리
+                return true;
+        }
+    }
+}
