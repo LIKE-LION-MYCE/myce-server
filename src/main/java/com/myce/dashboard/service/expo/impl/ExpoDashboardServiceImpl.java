@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -199,6 +200,10 @@ public class ExpoDashboardServiceImpl implements ExpoDashboardService {
                 return (T) Integer.valueOf(((Number) value).intValue());
             } else if (type == BigDecimal.class && value instanceof Number) {
                 return (T) new BigDecimal(value.toString());
+            } else if (value instanceof LinkedHashMap) {
+                // Redis에서 복합 객체가 LinkedHashMap으로 역직렬화되는 경우
+                // 복합 객체는 캐시 미스로 처리하여 재계산하도록 함
+                return null;
             }
             
             return (T) value;
