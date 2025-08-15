@@ -83,8 +83,8 @@ public class SecurityConfig {
                         "/api/payment/**", "/api/reservations/**", "/api/reservers")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/**",
-                            "/api/categories", "/api/expos/**",
-                            "/api/reservations/**")
+                            "/api/categories", "/api/expos/**", "/api/reservations/**",
+                            "/api/expo/fees/active", "/api/ad/fees/active")
                         .permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/tickets/quantity",
                             "/api/reservations/**")

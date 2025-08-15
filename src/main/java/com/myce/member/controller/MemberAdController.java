@@ -111,4 +111,15 @@ public class MemberAdController {
         
         return ResponseEntity.ok(rejectInfo);
     }
+    
+    @PostMapping("/{advertisementId}/payment/complete")
+    public ResponseEntity<Void> completeAdvertisementPayment(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberAdService.completeAdvertisementPayment(memberId, advertisementId);
+        
+        return ResponseEntity.noContent().build();
+    }
 }
