@@ -3,9 +3,11 @@ package com.myce.member.service.impl;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.member.dto.MemberInfoResponse;
+import com.myce.member.dto.MemberInfoWithMileageResponse;
 import com.myce.member.dto.PasswordChangeRequest;
 import com.myce.member.entity.Member;
 import com.myce.member.mapper.MemberInfoMapper;
+import com.myce.member.repository.MemberGradeRepository;
 import com.myce.member.repository.MemberRepository;
 import com.myce.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
@@ -56,9 +58,9 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public MemberInfoResponse getMyInfo(Long memberId) {
+    public MemberInfoWithMileageResponse getMyInfo(Long memberId) {
         Member member = findMemberById(memberId);
-        return memberInfoMapper.toResponseDto(member);
+        return memberInfoMapper.toResponseDtoWithMileage(member, member.getMemberGrade().getMileageRate());
     }
 
     @Override

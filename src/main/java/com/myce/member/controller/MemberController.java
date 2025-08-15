@@ -2,6 +2,7 @@ package com.myce.member.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.member.dto.MemberInfoResponse;
+import com.myce.member.dto.MemberInfoWithMileageResponse;
 import com.myce.member.dto.MileageUpdateRequest;
 import com.myce.member.dto.PasswordChangeRequest;
 import com.myce.member.service.MemberGradeService;
@@ -43,7 +44,7 @@ public class MemberController {
     }
 
     @GetMapping("/my-info")
-    public ResponseEntity<MemberInfoResponse> getMyInfo(
+    public ResponseEntity<MemberInfoWithMileageResponse> getMyInfo(
         @AuthenticationPrincipal CustomUserDetails customUserDetails){
         Long memberId = customUserDetails.getMemberId();
 

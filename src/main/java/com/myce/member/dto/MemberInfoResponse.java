@@ -1,6 +1,7 @@
 package com.myce.member.dto;
 
 import com.myce.member.entity.type.Gender;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
