@@ -125,6 +125,40 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
             @Param("reserverId") Long reserverId,
             @Param("expoId") Long expoId);
 
+    @Query("""
+      SELECT NEW com.myce.reservation.dto.ExpoAdminReservationResponse(
+        rv.id,
+        r.reservationCode,
+        rv.name,
+        CASE
+          WHEN rv.gender = com.myce.member.entity.type.Gender.FEMALE THEN '여'
+          WHEN rv.gender = com.myce.member.entity.type.Gender.MALE   THEN '남'
+          ELSE '-'
+        END,
+        rv.birth,
+        rv.phone,
+        rv.email,
+        t.name,
+        qc.usedAt,
+        CASE
+          WHEN qc.status = com.myce.qrcode.entity.code.QrCodeStatus.USED    THEN '입장 완료'
+          WHEN qc.status = com.myce.qrcode.entity.code.QrCodeStatus.EXPIRED THEN '티켓 만료'
+          WHEN qc.id IS NULL                                                  THEN '발급 대기'
+          WHEN qc.status IN (com.myce.qrcode.entity.code.QrCodeStatus.APPROVED,
+                             com.myce.qrcode.entity.code.QrCodeStatus.ACTIVE) THEN '입장 전'
+          ELSE '발급 실패'
+        END
+      )
+      FROM Reserver rv
+      JOIN rv.reservation r
+      JOIN r.ticket t
+      LEFT JOIN com.myce.qrcode.entity.QrCode qc ON qc.reserver = rv
+      WHERE rv.id IN :reserverIds AND r.expo.id = :expoId
+    """)
+    List<ExpoAdminReservationResponse> findResponsesByReserverIds(
+            @Param("reserverIds") List<Long> reserverIds,
+            @Param("expoId") Long expoId);
+
     @Transactional(readOnly = true)
     @QueryHints(value = @QueryHint(name = "org.hibernate.fetchSize", value = "1000"))
     @Query("""

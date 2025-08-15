@@ -46,4 +46,6 @@ public interface QrCodeRepository extends JpaRepository<QrCode, Long> {
                                  @Param("newStatus") QrCodeStatus newStatus,
                                  @Param("currentTime") LocalDateTime currentTime);
 
+    List<QrCode> findByReserverIdIn(List<Long> reserverIds);
+
 }
