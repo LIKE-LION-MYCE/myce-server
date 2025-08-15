@@ -156,4 +156,38 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
         where res.id = :reservationId
     """)
     List<ExpoAdminPaymentDetailResponse> findDetailById(@Param("reservationId") Long reservationId);
+
+    @Query("""
+          SELECT DISTINCT rv
+          FROM Reserver rv
+          JOIN rv.reservation r
+          JOIN r.ticket t
+          LEFT JOIN com.myce.qrcode.entity.QrCode qc ON qc.reserver = rv
+          WHERE r.expo.id = :expoId
+            AND r.status = com.myce.reservation.entity.code.ReservationStatus.CONFIRMED
+            AND (:name IS NULL OR LOWER(rv.name) LIKE LOWER(CONCAT('%', :name, '%')))
+            AND (:phone IS NULL OR rv.phone LIKE CONCAT('%', :phone, '%'))
+            AND (:reservationCode IS NULL OR r.reservationCode LIKE CONCAT('%', :reservationCode, '%'))
+            AND (:ticketName IS NULL OR t.name = :ticketName)
+            AND (
+              :entranceStatus IS NULL OR
+              (
+                (:entranceStatus = '입장 완료' AND qc.status = com.myce.qrcode.entity.code.QrCodeStatus.USED)
+                OR (:entranceStatus = '티켓 만료' AND qc.status = com.myce.qrcode.entity.code.QrCodeStatus.EXPIRED)
+                OR (:entranceStatus = '발급 대기' AND qc.id IS NULL)
+                OR (:entranceStatus = '입장 전' AND qc.status IN (
+                      com.myce.qrcode.entity.code.QrCodeStatus.APPROVED,
+                      com.myce.qrcode.entity.code.QrCodeStatus.ACTIVE
+                    ))
+              )
+            )
+    """)
+    List<Reserver> findReserversByFilter(
+            @Param("expoId") Long expoId,
+            @Param("entranceStatus") String entranceStatus,
+            @Param("name") String name,
+            @Param("phone") String phone,
+            @Param("reservationCode") String reservationCode,
+            @Param("ticketName") String ticketName
+    );
 }
