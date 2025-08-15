@@ -47,13 +47,22 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
 
     @Override
     @Transactional
-    public void sendMail(Long memberId, LoginType loginType, Long expoId, ExpoAdminEmailRequest dto) {
+    public void sendMail(Long memberId,
+                         LoginType loginType,
+                         Long expoId,
+                         ExpoAdminEmailRequest dto,
+                         String entranceStatus,
+                         String name,
+                         String phone,
+                         String reservationCode,
+                         String ticketName) {
+
         validateMyAccess(expoId, memberId, loginType);
         String html = renderEmailHtml(expoId,dto);
 
         List<EmailLog.RecipientInfo> recipientInfos;
         if(dto.isSelectAllMatching()){
-            recipientInfos = reserverRepository.findReserversByExpo(expoId)
+            recipientInfos = reserverRepository.findReserversByFilter(expoId, entranceStatus, name, phone, reservationCode, ticketName)
                     .stream()
                     .map(r -> new EmailLog.RecipientInfo(r.getEmail(),r.getName()))
                     .toList();
@@ -64,7 +73,8 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
         List<String> emails = recipientInfos.stream()
                         .map(EmailLog.RecipientInfo::getEmail)
                         .toList();
-        emailSendService.sendMailToMultiple(emails, dto.getSubject(), html);
+        
+        emailSendService.sendMailToMultiple(emails, dto.getSubject(), html); //TODO: 추후 대량 이메일 전송 대비 배치 도입 고려
 
         emailLogRepository.save(mapper.toDocument(expoId,dto,recipientInfos));
     }

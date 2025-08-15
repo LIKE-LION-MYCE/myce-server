@@ -30,10 +30,15 @@ public class ExpoAdminEmailController {
     public ResponseEntity<Void> sendEmail(
             @PathVariable Long expoId,
             @RequestBody @Valid ExpoAdminEmailRequest dto,
+            @RequestParam(required = false) String entranceStatus,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String reservationCode,
+            @RequestParam(required = false) String ticketName,
             @AuthenticationPrincipal CustomUserDetails customUserDetails){
         Long memberId = customUserDetails.getMemberId();
         LoginType loginType = customUserDetails.getLoginType();
-        service.sendMail(memberId,loginType,expoId,dto);
+        service.sendMail(memberId,loginType,expoId,dto,entranceStatus,name,phone,reservationCode,ticketName);
         return ResponseEntity.ok().build();
     }
 
