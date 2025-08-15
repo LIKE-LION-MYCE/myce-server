@@ -64,7 +64,13 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
         Map<String, Object> portOnePayment = portOneApiService.getPaymentInfo(request.getImpUid(), accessToken);
         Integer paidAmount = verifyPaymentDetails(request, portOnePayment);
         identifyUser(request);
-        Payment payment = paymentMapper.toEntity(request, portOnePayment);
+        String payMethod = (String) portOnePayment.get("pay_method");
+        Payment payment = null;
+        if(payMethod == "card"){
+            payment = paymentMapper.toEntity(request, portOnePayment);
+        } else{
+            payment = paymentMapper.toEntityTransfer(request, portOnePayment);
+        }
         paymentRepository.save(payment);
         Object paymentInfo = savePaymentInfoDetails(request, paidAmount, payment, PaymentStatus.SUCCESS);
         return paymentMapper.toPaymentVerifyResponse(payment, paymentInfo);
