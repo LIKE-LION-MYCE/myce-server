@@ -5,13 +5,11 @@ import com.myce.reservation.dto.PreReservationRequest;
 import com.myce.reservation.dto.PreReservationResponse;
 import com.myce.reservation.dto.ReservationDetailResponse;
 import com.myce.reservation.dto.ReservationPaymentSummaryResponse;
-import com.myce.reservation.dto.ReservationPendingRequest;
 import com.myce.reservation.dto.ReservationSuccessResponse;
 import com.myce.reservation.dto.ReserverBulkUpdateRequest;
-import com.myce.reservation.dto.ResolveReserversRequest;
-import com.myce.reservation.dto.ResolveReserversResponse;
+import com.myce.reservation.dto.GuestReservationRequest;
 import com.myce.reservation.service.ReservationService;
-import com.myce.reservation.service.ReserverResolveService;
+import com.myce.reservation.service.GuestReservationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class ReservationController {
     
     private final ReservationService reservationService;
-    private final ReserverResolveService reserverResolveService;
+    private final GuestReservationService guestReservationService;
 
     @GetMapping("/{reservationId}")
     public ResponseEntity<ReservationDetailResponse> getReservationDetail(
@@ -48,23 +46,12 @@ public class ReservationController {
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * 입력받은 reserverInfos를 회원/게스트 식별 + Guest upsert까지 수행해
-     * 결제 검증 단계에서 사용할 식별자(memberId/guestId)를 채워 반환
-     */
-    @PostMapping("/resolvers")
-    public ResponseEntity<ResolveReserversResponse> resolveReservers(
-        @Valid @RequestBody ResolveReserversRequest request
+    @PatchMapping("/guestId")
+    public ResponseEntity<Void> updateGuestId(
+        @Valid @RequestBody GuestReservationRequest request
     ) {
-        ResolveReserversResponse response = reserverResolveService.resolve(request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/pending")
-    public ResponseEntity<Long> saveReservationPending(
-        @Valid @RequestBody ReservationPendingRequest request
-    ){
-        return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.saveReservationPending(request));
+        guestReservationService.updateGuestId(request);
+        return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/{reservationId}/confirm")

@@ -113,29 +113,6 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Transactional
     @Override
-    public Long saveReservationPending(ReservationPendingRequest request) {
-        // 티켓 가져오기
-        Ticket ticket = ticketRepository.findById(request.getTicketId())
-            .orElseThrow(() -> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
-
-        // 티켓 재고 검증
-        if(ticket.getRemainingQuantity() < request.getQuantity()){
-            throw new CustomException(CustomErrorCode.TICKET_SOLD_OUT);
-        }
-
-        // 예약 엔티티 생성
-        String reservationCode = reservationCodeService.generate(request.getExpoId());
-        Expo expo = expoRepository.findById(request.getExpoId())
-            .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
-
-        Reservation reservation = reservationMapper.toEntity(expo, ticket, request,
-            reservationCode, ReservationStatus.CONFIRMED_PENDING);
-
-        return reservationRepository.save(reservation).getId();
-    }
-
-    @Transactional
-    @Override
     public void updateStatusToConfirm(Long reservationId) {
         Reservation reservation = reservationRepository.findById(reservationId)
             .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));

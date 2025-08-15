@@ -14,7 +14,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ResolveReserversRequest {
+public class GuestReservationRequest {
+  @NotNull
+  private Long reservationId;
   @NotNull @Valid
   private List<ReserverInfo> reserverInfos;
 }
