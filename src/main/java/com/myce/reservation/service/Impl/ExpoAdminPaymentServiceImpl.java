@@ -6,9 +6,12 @@ import com.myce.common.exception.CustomException;
 import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.reservation.dto.ExpoAdminPaymentBasicResponse;
+import com.myce.reservation.dto.ExpoAdminPaymentDetailResponse;
 import com.myce.reservation.dto.ExpoAdminPaymentResponse;
+import com.myce.reservation.entity.Reserver;
 import com.myce.reservation.entity.code.ReservationStatus;
 import com.myce.reservation.repository.ReservationRepository;
+import com.myce.reservation.repository.ReserverRepository;
 import com.myce.reservation.service.ExpoAdminPaymentService;
 import com.myce.reservation.service.mapper.ExpoAdminPaymentMapper;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +19,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ExpoAdminPaymentServiceImpl implements ExpoAdminPaymentService {
 
     private final ExpoRepository expoRepository;
     private final ReservationRepository reservationRepository;
+    private final ReserverRepository reserverRepository;
     private final AdminPermissionRepository adminPermissionRepository;
     private final ExpoAdminPaymentMapper mapper;
 
@@ -40,6 +46,13 @@ public class ExpoAdminPaymentServiceImpl implements ExpoAdminPaymentService {
                 reservationRepository.findAllResponsesByExpoId(expoId, status, name, phone, pageable);
 
         return responses.map(mapper::toDto);
+    }
+
+    @Override
+    public List<ExpoAdminPaymentDetailResponse> getPaymentDetail(Long expoId, Long memberId, LoginType loginType, Long paymentId) {
+        validateMyAccess(expoId, memberId, loginType);
+
+        return reserverRepository.findDetailById(paymentId);
     }
 
     private void validateMyAccess(Long expoId, Long memberId, LoginType loginType) {

@@ -2,9 +2,11 @@ package com.myce.schedule.jobs;
 
 import com.myce.chat.document.ChatMessage;
 import com.myce.chat.document.ChatRoom;
+import com.myce.chat.dto.WebSocketMessage;
 import com.myce.chat.repository.ChatMessageRepository;
 import com.myce.chat.repository.ChatRoomRepository;
 import com.myce.chat.type.MessageSenderType;
+import com.myce.chat.type.WebSocketMessageType;
 import com.myce.schedule.TaskScheduler;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +18,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * 채팅 관리자 담당자 타임아웃 스케줄러 (3-state system)
- * 10분간 비활성인 관리자를 자동 해제하고 AI_ACTIVE로 전환
+ * 채팅 관리자 타임아웃 스케줄러 (하이브리드 시스템 백업)
+ * - Platform: 10분 비활성시 AI로 자동 전환 (고급 AI 인계 로직)
+ * - Expo: 10분 비활성시 단순 해제 (향후 수동 제어 시스템의 백업용)
  */
 @Slf4j
 @Component
@@ -32,21 +37,21 @@ public class AdminTimeoutScheduler implements TaskScheduler {
     private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
     
-    // 업계 표준: 10분간 비활성시 해제 (expo admin) 또는 AI 전환 (platform admin)
+    // 하이브리드 백업 시스템: 10분간 비활성시 자동 처리
     private static final int TIMEOUT_MINUTES = 10;
     
     @PostConstruct
     public void init() {
-        log.debug("[Scheduler] Registered admin timeout scheduler - 담당자 {}분 비활성시 자동 처리", TIMEOUT_MINUTES);
+        log.debug("[Scheduler] Registered hybrid admin timeout scheduler - {}분 비활성시 자동 처리 (platform→AI, expo→release)", TIMEOUT_MINUTES);
     }
 
     @Override
-    @Scheduled(cron = "${scheduler.admin-timeout: 0 */1 * * * *}") // 매 1분마다 실행, 설정으로 변경 가능
+    @Scheduled(cron = "${scheduler.admin-timeout}")
     public void run() {
         try {
             this.process();
         } catch (Exception e) {
-            log.error("담당자 타임아웃 스케줄러 실행 실패", e);
+            log.error("Error occurred during admin timeout scheduler execution", e);
         }
     }
 
@@ -83,10 +88,11 @@ public class AdminTimeoutScheduler implements TaskScheduler {
             }
         }
         
-        // Expo rooms: 기존 로직 (단순 해제)
+        // Expo rooms: 기존 로직 (단순 해제) + 배치 알림
         if (!expoRoomsToUpdate.isEmpty()) {
             chatRoomRepository.saveAll(expoRoomsToUpdate);
-            log.info("Expo 담당자 타임아웃 처리: {}건 해제됨", expoRoomsToUpdate.size());
+            sendBatchReleaseNotifications(expoRoomsToUpdate); // 추가: 배치 알림 전송
+            log.info("Expo 담당자 타임아웃 처리: {}건 해제됨 (배치 알림 포함)", expoRoomsToUpdate.size());
         }
         
         // Platform rooms: AI 전환 로직
@@ -184,5 +190,38 @@ public class AdminTimeoutScheduler implements TaskScheduler {
             "timestamp", LocalDateTime.now().toString(),
             "transitionReason", transitionReason
         );
+    }
+    
+    /**
+     * 엑스포 담당자 해제 알림을 배치로 전송
+     * 엑스포별로 그룹핑하여 효율적으로 전송
+     */
+    private void sendBatchReleaseNotifications(List<ChatRoom> releasedRooms) {
+        // 엑스포별로 채팅방 코드 그룹핑
+        Map<Long, List<String>> expoRoomCodes = releasedRooms.stream()
+            .collect(Collectors.groupingBy(
+                ChatRoom::getExpoId,
+                Collectors.mapping(ChatRoom::getRoomCode, Collectors.toList())
+            ));
+        
+        // 각 엑스포별로 배치 메시지 전송
+        for (Map.Entry<Long, List<String>> entry : expoRoomCodes.entrySet()) {
+            Long expoId = entry.getKey();
+            List<String> roomCodes = entry.getValue();
+            
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("roomCodes", roomCodes);
+            payload.put("message", "담당자가 자동 해제되었습니다.");
+            payload.put("timestamp", LocalDateTime.now());
+            
+            WebSocketMessage batchMessage = WebSocketMessage.builder()
+                    .type(WebSocketMessageType.ADMIN_RELEASED)
+                    .payload(payload)
+                    .build();
+            
+            // 해당 엑스포의 관리자들에게 배치 전송
+            String destination = "/topic/expo/" + expoId + "/admin-updates";
+            messagingTemplate.convertAndSend(destination, batchMessage);
+        }
     }
 }

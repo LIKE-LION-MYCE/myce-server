@@ -48,13 +48,13 @@ public class Settlement {
     @Column(name = "settlement_at", columnDefinition = "TIMESTAMP")
     private LocalDateTime settlementAt;
 
-    @Column(name = "receiver_name", nullable = false, length = 100)
+    @Column(name = "receiver_name", nullable = true, length = 100)
     private String receiverName;
 
-    @Column(name = "bank_name", nullable = false, length = 10)
+    @Column(name = "bank_name", nullable = true, length = 10)
     private String bankName;
 
-    @Column(name = "bank_account", nullable = false, length = 200)
+    @Column(name = "bank_account", nullable = true, length = 200)
     private String bankAccount;
 
     @CreationTimestamp
@@ -78,5 +78,20 @@ public class Settlement {
         this.receiverName = receiverName;
         this.bankName = bankName;
         this.bankAccount = bankAccount;
+    }
+    
+    /**
+     * 은행 정보 업데이트 및 정산 요청 상태로 변경
+     * 박람회 관리자가 정산 신청할 때 사용
+     * 
+     * @param receiverName 예금주명
+     * @param bankName 은행명
+     * @param bankAccount 계좌번호
+     */
+    public void updateBankInfo(String receiverName, String bankName, String bankAccount) {
+        this.receiverName = receiverName;
+        this.bankName = bankName;
+        this.bankAccount = bankAccount;
+        this.settlementStatus = SettlementStatus.SETTLEMENT_REQUESTED;
     }
 }

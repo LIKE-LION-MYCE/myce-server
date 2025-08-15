@@ -27,8 +27,7 @@ public class ExpoPaymentInfoMapper {
                 .expo(expo)
                 .status(PaymentStatus.PENDING)
                 .deposit(feeSetting.getDeposit() != null ? feeSetting.getDeposit() : 0)
-                .premiumDeposit(expo.getIsPremium() ? 
-                    (feeSetting.getPremiumDeposit() != null ? feeSetting.getPremiumDeposit() : 0) : 0)
+                .premiumDeposit(feeSetting.getPremiumDeposit() != null ? feeSetting.getPremiumDeposit() : 0)
                 .totalDay(totalDays)
                 .dailyUsageFee(feeSetting.getDailyUsageFee() != null ? feeSetting.getDailyUsageFee() : 0)
                 .totalAmount(totalAmount)

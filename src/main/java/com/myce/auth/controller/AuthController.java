@@ -38,8 +38,10 @@ public class AuthController {
     }
 
     @GetMapping("/find-id")
-    public ResponseEntity<FindLoginIdResponse> findLoginId(@RequestBody @Valid FindLoginIdRequest request) {
-        FindLoginIdResponse response = authService.getLoginId(request);
+    public ResponseEntity<FindLoginIdResponse> findLoginId(
+            @RequestParam(value = "name") String name,
+            @RequestParam(value = "email") String email) {
+        FindLoginIdResponse response = authService.getLoginId(name, email);
         return ResponseEntity.ok().body(response);
     }
 

@@ -65,7 +65,7 @@ public class ExpoAdminManagerServiceImpl implements ExpoAdminManagerService {
                 permission.updateAdminPermission(
                         dto.getIsExpoDetailUpdate(), dto.getIsBoothInfoUpdate(), dto.getIsScheduleUpdate(),
                         dto.getIsReserverListView(), dto.getIsPaymentView(), dto.getIsEmailLogView(),
-                        dto.getIsOperationsConfigUpdate(), dto.getIsSettlementView(), dto.getIsInquiryView()
+                        dto.getIsOperationsConfigUpdate(), dto.getIsInquiryView()
                 );
             }else{
                 throw new CustomException(CustomErrorCode.ADMIN_CODE_NOT_FOUND);

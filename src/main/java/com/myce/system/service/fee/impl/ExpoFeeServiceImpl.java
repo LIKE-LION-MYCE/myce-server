@@ -4,6 +4,7 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.system.dto.fee.ExpoFeeListResponse;
 import com.myce.system.dto.fee.ExpoFeeRequest;
+import com.myce.system.dto.fee.ExpoFeeResponse;
 import com.myce.system.dto.fee.FeeActiveRequest;
 import com.myce.system.entity.ExpoFeeSetting;
 import com.myce.system.repository.ExpoFeeSettingRepository;
@@ -60,6 +61,14 @@ public class ExpoFeeServiceImpl implements ExpoFeeService {
             updateAlreadyActiveSetting();
             expoFeeSetting.active();
         } else expoFeeSetting.inactive();
+    }
+
+    @Override
+    public ExpoFeeResponse getActiveExpoFee() {
+        ExpoFeeSetting expoFeeSetting = expoFeeSettingRepository.findByIsActiveTrue()
+                .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_EXPO_FEE_SETTING));
+        
+        return expoFeeMapper.toResponse(expoFeeSetting);
     }
 
     private void updateAlreadyActiveSetting() {

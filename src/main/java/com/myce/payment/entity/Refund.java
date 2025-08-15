@@ -53,4 +53,9 @@ public class Refund {
         this.isPartial = isPartial;
         this.refundedAt = refundedAt;
     }
+
+    public void updateToRefund() {
+        this.status = RefundStatus.REFUNDED;
+        this.refundedAt = LocalDateTime.now();
+    }
 }

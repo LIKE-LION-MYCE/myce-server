@@ -1,6 +1,8 @@
 package com.myce.member.controller;
 
+import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.member.dto.ad.AdRefundRequest;
 import com.myce.member.dto.ad.AdvertisementDetailResponse;
 import com.myce.member.dto.ad.AdvertisementPaymentDetailResponse;
 import com.myce.member.dto.ad.AdvertisementRefundReceiptResponse;
@@ -54,6 +56,29 @@ public class MemberAdController {
         return ResponseEntity.noContent().build();
     }
     
+    @PostMapping("/{advertisementId}/cancel-by-status")
+    public ResponseEntity<Void> cancelByStatus(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberAdService.cancelByStatus(memberId, advertisementId);
+        
+        return ResponseEntity.noContent().build();
+    }
+    
+    @PostMapping("/{advertisementId}/refund-request-by-status")
+    public ResponseEntity<Void> requestRefundByStatus(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId,
+            @RequestBody AdRefundRequest request) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberAdService.requestRefundByStatus(memberId, advertisementId, request);
+        
+        return ResponseEntity.noContent().build();
+    }
+    
     @GetMapping("/{advertisementId}/payment")
     public ResponseEntity<AdvertisementPaymentDetailResponse> getAdvertisementPaymentDetail(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
@@ -74,5 +99,27 @@ public class MemberAdController {
         AdvertisementRefundReceiptResponse refundReceipt = memberAdService.getAdvertisementRefundReceipt(memberId, advertisementId);
         
         return ResponseEntity.ok(refundReceipt);
+    }
+    
+    @GetMapping("/{advertisementId}/reject-info")
+    public ResponseEntity<AdRejectInfoResponse> getAdvertisementRejectInfo(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        AdRejectInfoResponse rejectInfo = memberAdService.getAdvertisementRejectInfo(memberId, advertisementId);
+        
+        return ResponseEntity.ok(rejectInfo);
+    }
+    
+    @PostMapping("/{advertisementId}/payment/complete")
+    public ResponseEntity<Void> completeAdvertisementPayment(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberAdService.completeAdvertisementPayment(memberId, advertisementId);
+        
+        return ResponseEntity.noContent().build();
     }
 }

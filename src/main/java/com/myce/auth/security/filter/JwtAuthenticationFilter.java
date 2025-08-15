@@ -3,6 +3,7 @@ package com.myce.auth.security.filter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.auth.dto.type.LoginType;
+import com.myce.auth.repository.TokenBlackListRepository;
 import com.myce.auth.security.util.JwtUtil;
 import com.myce.auth.service.AdminCodeDetailService;
 import com.myce.auth.service.impl.UserDetailsServiceImpl;
@@ -11,14 +12,15 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Map;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -31,6 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
     private final AdminCodeDetailService adminCodeDetailService;
+    private final TokenBlackListRepository tokenBlackListRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -88,6 +91,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (jwtUtil.isExpired(token)) {
                 setErrorResponse(response, EXPIRED_TOKEN_CODE);
+                return false;
+            }
+
+            if(tokenBlackListRepository.containsByAccessToken(token)) {
+                setErrorResponse(response, INVALID_TOKEN_CODE);
                 return false;
             }
         } catch (ExpiredJwtException e) {

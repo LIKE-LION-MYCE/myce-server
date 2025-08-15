@@ -31,7 +31,7 @@ public class ExpoFeeMapper {
         return expoFeeListResponse;
     }
 
-    private ExpoFeeResponse toResponse(ExpoFeeSetting expoFeeSetting) {
+    public ExpoFeeResponse toResponse(ExpoFeeSetting expoFeeSetting) {
         return ExpoFeeResponse.builder()
                 .id(expoFeeSetting.getId())
                 .name(expoFeeSetting.getName())

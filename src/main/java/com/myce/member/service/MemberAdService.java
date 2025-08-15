@@ -1,5 +1,7 @@
 package com.myce.member.service;
 
+import com.myce.advertisement.dto.AdRejectInfoResponse;
+import com.myce.member.dto.ad.AdRefundRequest;
 import com.myce.member.dto.ad.AdvertisementDetailResponse;
 import com.myce.member.dto.ad.AdvertisementPaymentDetailResponse;
 import com.myce.member.dto.ad.AdvertisementRefundReceiptResponse;
@@ -15,7 +17,15 @@ public interface MemberAdService {
     
     void cancelAdvertisement(Long memberId, Long advertisementId);
     
+    void cancelByStatus(Long memberId, Long advertisementId);
+    
+    void requestRefundByStatus(Long memberId, Long advertisementId, AdRefundRequest request);
+    
     AdvertisementPaymentDetailResponse getAdvertisementPaymentDetail(Long memberId, Long advertisementId);
     
     AdvertisementRefundReceiptResponse getAdvertisementRefundReceipt(Long memberId, Long advertisementId);
+    
+    AdRejectInfoResponse getAdvertisementRejectInfo(Long memberId, Long advertisementId);
+    
+    void completeAdvertisementPayment(Long memberId, Long advertisementId);
 }

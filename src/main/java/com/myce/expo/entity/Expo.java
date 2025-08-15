@@ -209,4 +209,21 @@ public class Expo {
         }
         this.status = ExpoStatus.COMPLETED;
     }
+    
+    // 상태별 취소 처리
+    public void cancelByStatus() {
+        switch (this.status) {
+            case PENDING_APPROVAL:
+            case PENDING_PAYMENT:
+                this.status = ExpoStatus.CANCELLED;
+                break;
+            default:
+                throw new IllegalStateException("취소할 수 없는 박람회 상태입니다: " + this.status);
+        }
+    }
+    
+    // 상태 직접 변경 메서드
+    public void updateStatus(ExpoStatus newStatus) {
+        this.status = newStatus;
+    }
 }

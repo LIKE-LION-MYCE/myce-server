@@ -1,6 +1,7 @@
 package com.myce.auth.security.util;
 
 import io.jsonwebtoken.*;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -60,10 +61,17 @@ public class JwtUtil {
     }
 
     public boolean isExpired(String token) {
+        return getExpirationTime(token).before(new Date());
+    }
+
+    public long getRemainingTimeForExpiration(String token) {
+        return getExpirationTime(token).getTime() - System.currentTimeMillis();
+    }
+
+    private Date getExpirationTime(String token) {
         return jwtParser.parseSignedClaims(token)
                 .getPayload()
-                .getExpiration()
-                .before(new Date());
+                .getExpiration();
     }
 
     public String createToken(String category, String loginType, Long id, String loginId, String role) {
@@ -112,5 +120,9 @@ public class JwtUtil {
         return jwtParser.parseSignedClaims(token)
                 .getPayload()
                 .get("category", String.class);
+    }
+
+    public long getRefreshTokenTime() {
+        return REFRESH_TOKEN_TIME;
     }
 }

@@ -4,6 +4,7 @@ import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.member.entity.Member;
+import com.myce.system.entity.AdPosition;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -120,5 +121,67 @@ public class Advertisement {
             throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
         }
         this.status = AdvertisementStatus.COMPLETED;
+    }
+    
+    // 상태별 취소 처리
+    public void cancelByStatus() {
+        switch (this.status) {
+            case PENDING_APPROVAL:
+            case PENDING_PAYMENT:
+                this.status = AdvertisementStatus.CANCELLED;
+                break;
+            case PUBLISHED:
+            case PENDING_CANCEL:
+                this.status = AdvertisementStatus.CANCELLED;
+                break;
+            default:
+                throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
+        }
+    }
+    
+    // 상태별 환불 신청 처리
+    public void requestRefundByStatus() {
+        switch (this.status) {
+            case PENDING_PUBLISH:
+            case PUBLISHED:
+                this.status = AdvertisementStatus.PENDING_CANCEL;
+                break;
+            default:
+                throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
+        }
+    }
+    
+    // 기존 메서드들 (하위 호환용)
+    public void cancelPendingApproval() {
+        if (this.status != AdvertisementStatus.PENDING_APPROVAL) {
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
+        }
+        this.status = AdvertisementStatus.CANCELLED;
+    }
+    
+    public void cancelPendingPayment() {
+        if (this.status != AdvertisementStatus.PENDING_PAYMENT) {
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
+        }
+        this.status = AdvertisementStatus.CANCELLED;
+    }
+    
+    // 상태 직접 변경 메서드
+    public void updateStatus(AdvertisementStatus newStatus) {
+        this.status = newStatus;
+    }
+    
+    public void requestRefund() {
+        if (this.status != AdvertisementStatus.PENDING_PUBLISH) {
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
+        }
+        this.status = AdvertisementStatus.PENDING_CANCEL;
+    }
+    
+    public void requestPartialRefund() {
+        if (this.status != AdvertisementStatus.PUBLISHED) {
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
+        }
+        this.status = AdvertisementStatus.PENDING_CANCEL;
     }
 }

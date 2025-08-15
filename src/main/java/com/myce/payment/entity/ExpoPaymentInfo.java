@@ -16,6 +16,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -82,5 +84,9 @@ public class ExpoPaymentInfo {
         this.dailyUsageFee = dailyUsageFee;
         this.totalAmount = totalAmount;
         this.commissionRate = commissionRate;
+    }
+
+    public void updateStatus(PaymentStatus newStatus) {
+        this.status = newStatus;
     }
 }

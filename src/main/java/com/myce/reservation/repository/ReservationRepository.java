@@ -1,5 +1,6 @@
 package com.myce.reservation.repository;
 
+import com.myce.expo.entity.Expo;
 import com.myce.reservation.dto.ExpoAdminPaymentBasicResponse;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.code.ReservationStatus;
@@ -11,6 +12,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,7 +25,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             "JOIN FETCH r.ticket t " +
             "WHERE r.userType = :userType AND r.userId = :userId")
     List<Reservation> findReservationsByUserTypeAndUserIdWithExpoAndTicket(@Param("userType") UserType userType,
-            @Param("userId") Long userId);
+                                                                           @Param("userId") Long userId);
 
     @Query("SELECT r FROM Reservation r " +
             "JOIN FETCH r.expo e " +
@@ -38,6 +41,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     @Query("""
             SELECT new com.myce.reservation.dto.ExpoAdminPaymentBasicResponse(
+                r.id,
                 r.reservationCode,
                 CASE
                     WHEN r.userType = com.myce.reservation.entity.code.UserType.MEMBER THEN m.name
@@ -89,12 +93,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     );
 
     @Query("""
-           select distinct r.userId
-           from Reservation r
-           where r.expo.id = :expoId
-             and r.status = :status
-             and r.userType = :userType
-           """)
+            select distinct r.userId
+            from Reservation r
+            where r.expo.id = :expoId
+              and r.status = :status
+              and r.userType = :userType
+            """)
     List<Long> findAllMemberIdByExpoIdAndStatusAndUserType(
             @Param("expoId") Long expoId,
             @Param("status") ReservationStatus status,
@@ -102,4 +106,39 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     );
 
     Optional<Reservation> findByReservationCode(String reservationCode);
+
+    List<Reservation> findByExpoIn(List<Expo> expos);
+
+    // reservation code 이미 있는지 확인
+    boolean existsByReservationCode(String reservationCode);
+
+    long countAllByCreatedAtAfter(LocalDateTime createdAt);
+           
+    List<Reservation> findByExpoId(Long expoId);
+    
+    // === 대시보드 통계용 쿼리 메서드들 ===
+    
+    // 특정 박람회의 누적 예약자 수
+    @Query("SELECT COUNT(r) FROM Reservation r WHERE r.expo.id = :expoId AND r.status != 'CANCELLED'")
+    Long countTotalReservationsByExpoId(@Param("expoId") Long expoId);
+    
+    // 특정 박람회의 오늘 예약자 수
+    @Query("SELECT COUNT(r) FROM Reservation r " +
+           "WHERE r.expo.id = :expoId " +
+           "AND r.status != 'CANCELLED' " +
+           "AND DATE(r.createdAt) = :today")
+    Long countTodayReservationsByExpoId(@Param("expoId") Long expoId, @Param("today") LocalDate today);
+    
+    // 특정 박람회의 날짜별 예약자 수 (일주일)
+    @Query("SELECT DATE(r.createdAt) as date, COUNT(r) as count " +
+           "FROM Reservation r " +
+           "WHERE r.expo.id = :expoId " +
+           "AND r.status != 'CANCELLED' " +
+           "AND r.createdAt >= :startDate " +
+           "AND r.createdAt <= :endDate " +
+           "GROUP BY DATE(r.createdAt) " +
+           "ORDER BY DATE(r.createdAt)")
+    List<Object[]> countReservationsByDateRange(@Param("expoId") Long expoId, 
+                                               @Param("startDate") LocalDateTime startDate, 
+                                               @Param("endDate") LocalDateTime endDate);
 }
