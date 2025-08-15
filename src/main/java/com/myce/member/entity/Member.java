@@ -113,5 +113,9 @@ public class Member {
     public void updateMileage(Integer mileage) {
         this.mileage = mileage;
     }
+    
+    public void updateRole(Role role) {
+        this.role = role;
+    }
 }
 

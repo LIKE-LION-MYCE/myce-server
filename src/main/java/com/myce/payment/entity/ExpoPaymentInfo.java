@@ -85,4 +85,8 @@ public class ExpoPaymentInfo {
         this.totalAmount = totalAmount;
         this.commissionRate = commissionRate;
     }
+
+    public void updateStatus(PaymentStatus newStatus) {
+        this.status = newStatus;
+    }
 }

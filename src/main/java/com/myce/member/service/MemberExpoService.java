@@ -29,4 +29,6 @@ public interface MemberExpoService {
     ExpoRefundReceiptResponse getExpoRefundReceipt(Long memberId, Long expoId);
     
     void requestExpoSettlement(Long memberId, Long expoId, ExpoSettlementRequest request);
+    
+    void completeExpoPayment(Long memberId, Long expoId);
 }
