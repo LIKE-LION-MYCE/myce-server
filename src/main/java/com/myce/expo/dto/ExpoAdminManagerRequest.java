@@ -15,6 +15,5 @@ public class ExpoAdminManagerRequest {
     private Boolean isPaymentView;
     private Boolean isEmailLogView;
     private Boolean isOperationsConfigUpdate;
-    private Boolean isSettlementView;
     private Boolean isInquiryView;
 }

@@ -13,6 +13,5 @@ public interface AdminPermissionRepository extends JpaRepository<AdminPermission
     boolean existsByAdminCodeIdAndAdminCodeExpoIdAndIsPaymentViewTrue(Long adminCodeId, Long expoId);
     boolean existsByAdminCodeIdAndAdminCodeExpoIdAndIsEmailLogViewTrue(Long adminCodeId, Long expoId);
     boolean existsByAdminCodeIdAndAdminCodeExpoIdAndIsOperationsConfigUpdateTrue(Long adminCodeId, Long expoId);
-    boolean existsByAdminCodeIdAndAdminCodeExpoIdAndIsSettlementViewTrue(Long adminCodeId, Long expoId);
     boolean existsByAdminCodeIdAndAdminCodeExpoIdAndIsInquiryViewTrue(Long adminCodeId, Long expoId);
 }

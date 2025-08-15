@@ -304,7 +304,6 @@ public class MemberExpoServiceImpl implements MemberExpoService {
                     .isPaymentView(true)
                     .isEmailLogView(true)
                     .isOperationsConfigUpdate(true)
-                    .isSettlementView(true)
                     .isInquiryView(true)
                     .build();
             adminPermissions.add(permission);
