@@ -3,6 +3,7 @@ package com.myce.reservation.service.mapper;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
 import com.myce.reservation.dto.PreReservationRequest;
+import com.myce.reservation.dto.ReservationPaymentSummaryResponse;
 import com.myce.reservation.dto.ReservationPendingRequest;
 import com.myce.reservation.dto.ReservationSuccessResponse;
 import com.myce.reservation.entity.Reservation;
@@ -41,6 +42,15 @@ public class ReservationMapper {
         .userId(req.getUserId())
         .status(reservationStatus)
         .reservationCode(reservationCode)
+        .build();
+  }
+
+  public ReservationPaymentSummaryResponse toPaymentSummary(Ticket ticket, String ticketName, Integer quantity){
+    return ReservationPaymentSummaryResponse.builder()
+        .ticketId(ticket.getId())
+        .ticketName(ticketName)
+        .ticketPrice(ticket.getPrice())
+        .ticketQuantity(quantity)
         .build();
   }
 }

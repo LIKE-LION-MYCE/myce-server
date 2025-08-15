@@ -6,6 +6,7 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
+import com.myce.expo.entity.type.TicketType;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
 import com.myce.member.entity.Guest;
@@ -15,6 +16,7 @@ import com.myce.member.repository.MemberRepository;
 import com.myce.reservation.dto.PreReservationRequest;
 import com.myce.reservation.dto.PreReservationResponse;
 import com.myce.reservation.dto.ReservationDetailResponse;
+import com.myce.reservation.dto.ReservationPaymentSummaryResponse;
 import com.myce.reservation.dto.ReservationPendingRequest;
 import com.myce.reservation.dto.ReservationSuccessResponse;
 import com.myce.reservation.dto.ReserverBulkUpdateRequest;
@@ -178,5 +180,20 @@ public class ReservationServiceImpl implements ReservationService {
 
         // 예약 번호 반환
         return new PreReservationResponse(saved.getId());
+    }
+
+    @Override
+    public ReservationPaymentSummaryResponse getPaymentSummary(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+            .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+        Ticket ticket = ticketRepository.findById(reservation.getTicket().getId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
+        // 티켓 타입
+        String ticketType = ticket.getType().toString();
+
+        // 티켓 이름
+        String ticketName = "[" + ticketType + "] " + ticket.getName();
+
+        return reservationMapper.toPaymentSummary(ticket, ticketName, reservation.getQuantity());
     }
 }
