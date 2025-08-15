@@ -37,7 +37,19 @@ public class ExpoBasicResponse {
     // 주최자 정보
     private String organizerName;
     private String organizerContact;
+    private OrganizerInfo organizerInfo;
     
     // 카테고리
     private List<String> categories;
+    
+    @Getter
+    @Builder
+    public static class OrganizerInfo {
+        private String companyName;
+        private String ceoName;
+        private String contactPhone;
+        private String contactEmail;
+        private String address;
+        private String businessRegistrationNumber;
+    }
 }

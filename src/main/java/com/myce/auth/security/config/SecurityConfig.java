@@ -82,7 +82,8 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.POST, "/api/auth/**", "/api/payment/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/**",
-                            "/api/categories", "/api/expos/**", "/api/tickest/quantity")
+                            "/api/categories", "/api/expos/**", "/api/tickest/quantity",
+                            "/api/expo/fees/active", "/api/ad/fees/active")
                         .permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",

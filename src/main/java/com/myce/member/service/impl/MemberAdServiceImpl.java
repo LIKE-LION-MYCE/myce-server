@@ -253,4 +253,30 @@ public class MemberAdServiceImpl implements MemberAdService {
                 .rejectedAt(rejectInfo.getCreatedAt())
                 .build();
     }
+
+    @Override
+    @Transactional
+    public void completeAdvertisementPayment(Long memberId, Long advertisementId) {
+        
+        // 광고 조회 및 권한 확인
+        Advertisement advertisement = adRepository.findByIdAndMemberId(advertisementId, memberId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
+
+        // 결제 대기 상태인지 확인
+        if (advertisement.getStatus() != AdvertisementStatus.PENDING_PAYMENT) {
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
+        }
+
+        // 1. 광고 상태를 PENDING_PUBLISH로 변경
+        advertisement.updateStatus(AdvertisementStatus.PENDING_PUBLISH);
+        adRepository.save(advertisement);
+
+        // 2. AdPaymentInfo 상태를 PENDING에서 SUCCESS로 업데이트
+        AdPaymentInfo paymentInfo = adPaymentInfoRepository.findByAdvertisementId(advertisementId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        paymentInfo.updateStatus(PaymentStatus.SUCCESS);
+        adPaymentInfoRepository.save(paymentInfo);
+
+        log.info("광고 결제 완료 처리 - 광고 ID: {}, 회원 ID: {}", advertisementId, memberId);
+    }
 }

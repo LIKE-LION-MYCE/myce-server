@@ -106,6 +106,17 @@ public class MemberExpoController {
         return ResponseEntity.ok(refundReceipt);
     }
     
+    @GetMapping("/{expoId}/refund-history")
+    public ResponseEntity<ExpoRefundReceiptResponse> getExpoRefundHistory(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        ExpoRefundReceiptResponse refundHistory = memberExpoService.getExpoRefundHistory(memberId, expoId);
+        
+        return ResponseEntity.ok(refundHistory);
+    }
+    
     @PostMapping("/{expoId}/settlement")
     public ResponseEntity<Void> requestExpoSettlement(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,

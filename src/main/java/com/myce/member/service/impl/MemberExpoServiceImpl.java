@@ -32,8 +32,13 @@ import com.myce.member.mapper.expo.MemberExpoMapper;
 import com.myce.member.repository.MemberRepository;
 import com.myce.member.service.MemberExpoService;
 import com.myce.payment.entity.ExpoPaymentInfo;
+import com.myce.payment.entity.Payment;
+import com.myce.payment.entity.Refund;
 import com.myce.payment.entity.type.PaymentStatus;
+import com.myce.payment.entity.type.PaymentTargetType;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
+import com.myce.payment.repository.PaymentRepository;
+import com.myce.payment.repository.RefundRepository;
 import com.myce.settlement.entity.Settlement;
 import com.myce.settlement.repository.SettlementRepository;
 import com.myce.settlement.service.SettlementExpoAdminService;
@@ -69,6 +74,8 @@ public class MemberExpoServiceImpl implements MemberExpoService {
     private final SettlementRepository settlementRepository;
     private final MemberRepository memberRepository;
     private final AdminPermissionRepository adminPermissionRepository;
+    private final RefundRepository refundRepository;
+    private final PaymentRepository paymentRepository;
 
     @Override
     public Page<MemberExpoResponse> getMemberExpos(Long memberId, Pageable pageable) {
@@ -229,6 +236,36 @@ public class MemberExpoServiceImpl implements MemberExpoService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
 
         return expoRefundReceiptMapper.toRefundReceiptDto(expo, businessProfile, expoPaymentInfo);
+    }
+    
+    @Override
+    public ExpoRefundReceiptResponse getExpoRefundHistory(Long memberId, Long expoId) {
+        // 박람회가 해당 회원의 것인지 확인
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+
+        if (!expo.getMember().getId().equals(memberId)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+
+        // Payment 조회 (target_type=EXPO, target_id=expoId)
+        Payment payment = paymentRepository.findByTargetIdAndTargetType(expoId, PaymentTargetType.EXPO)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        // 실제 환불 내역 조회
+        Refund refund = refundRepository.findByPayment(payment)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.REFUND_NOT_FOUND));
+
+        // 박람회 결제 정보 조회
+        ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        // 사업자 정보 조회
+        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(expoId,
+                        TargetType.EXPO)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
+
+        return expoRefundReceiptMapper.toRefundHistoryDto(expo, businessProfile, expoPaymentInfo, refund);
     }
     
     @Override
