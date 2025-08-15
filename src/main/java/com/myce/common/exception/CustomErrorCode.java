@@ -151,7 +151,10 @@ public enum CustomErrorCode {
     INVALID_EMAIL_LOG(HttpStatus.NOT_FOUND, "EM001", "유효하지 않은 이메일 로그 입니다."),
   
     // 기간 PE
-    PERIOD_TYPE_NOT_EXIST(HttpStatus.NOT_FOUND, "PE001", "기간 타입이 존재하지 않습니다.");
+    PERIOD_TYPE_NOT_EXIST(HttpStatus.NOT_FOUND, "PE001", "기간 타입이 존재하지 않습니다."),
+    
+    // 일반 시스템 오류
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "S999", "내부 서버 오류가 발생했습니다.");
 
     private final HttpStatus status;
     private final String errorCode;

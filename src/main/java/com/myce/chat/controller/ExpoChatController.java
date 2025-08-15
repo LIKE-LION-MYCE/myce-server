@@ -67,6 +67,7 @@ public class ExpoChatController {
             @PathVariable String roomCode,
             @RequestBody ChatReadRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
+        log.info("🟢 ExpoChatController.markAsRead called - expoId: {}, roomCode: {}", expoId, roomCode);
         chatService.markAsRead(expoId, roomCode, request.getLastReadMessageId(), userDetails);
         return ResponseEntity.ok().build();
     }

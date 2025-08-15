@@ -125,7 +125,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     
     /**
      * 개별 메시지의 읽지 않은 수 계산 (카카오톡 스타일)
-     * ExpoChatServiceImpl의 calculateMessageUnreadCount 로직 참고
+     * 플랫폼 채팅방은 AI 읽음 상태도 고려, 일반 채팅방은 기존 로직 유지
      */
     private Integer calculateMessageUnreadCount(ChatMessage message) {
         try {
@@ -135,19 +135,34 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             }
             
             String readStatusJson = chatRoom.getReadStatusJson();
+            boolean isPlatformRoom = message.getRoomCode() != null && message.getRoomCode().startsWith("platform-");
             
             // 메시지 발송자에 따라 상대방의 읽음 상태 확인
-            if ("ADMIN".equals(message.getSenderType())) {
-                // 관리자가 보낸 메시지 -> 사용자가 읽었는지 확인
+            if ("ADMIN".equals(message.getSenderType()) || "AI".equals(message.getSenderType())) {
+                // 관리자나 AI가 보낸 메시지 -> 사용자가 읽었는지 확인
                 String userLastReadId = extractLastReadMessageId(readStatusJson, "USER");
                 if (userLastReadId == null || message.getId().compareTo(userLastReadId) > 0) {
                     return 1; // 사용자가 안 읽음
                 }
             } else {
-                // 사용자가 보낸 메시지 -> 관리자가 읽었는지 확인
-                String adminLastReadId = extractLastReadMessageId(readStatusJson, "ADMIN");
-                if (adminLastReadId == null || message.getId().compareTo(adminLastReadId) > 0) {
-                    return 1; // 관리자가 안 읽음
+                // 사용자가 보낸 메시지 -> 상대방이 읽었는지 확인
+                if (isPlatformRoom) {
+                    // 플랫폼 채팅방: AI 또는 관리자 중 하나라도 읽었으면 읽음 처리
+                    String aiLastReadId = extractLastReadMessageId(readStatusJson, "AI");
+                    String adminLastReadId = extractLastReadMessageId(readStatusJson, "ADMIN");
+                    
+                    boolean aiRead = aiLastReadId != null && message.getId().compareTo(aiLastReadId) <= 0;
+                    boolean adminRead = adminLastReadId != null && message.getId().compareTo(adminLastReadId) <= 0;
+                    
+                    if (!aiRead && !adminRead) {
+                        return 1; // AI도 관리자도 안 읽음
+                    }
+                } else {
+                    // 일반 채팅방 (expo 포함): 관리자 읽음 상태만 확인 (기존 로직 유지)
+                    String adminLastReadId = extractLastReadMessageId(readStatusJson, "ADMIN");
+                    if (adminLastReadId == null || message.getId().compareTo(adminLastReadId) > 0) {
+                        return 1; // 관리자가 안 읽음
+                    }
                 }
             }
             

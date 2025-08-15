@@ -139,4 +139,20 @@ public class ChatMessage {
         return this;
     }
 
+    /**
+     * 시스템 메시지 생성 (상태 전환용)
+     */
+    public static ChatMessage createSystemMessage(String roomCode, String content) {
+        return ChatMessage.builder()
+            .roomCode(roomCode)
+            .senderType("SYSTEM")
+            .senderId(-99L)
+            .senderName("시스템")
+            .content(content)
+            .isSystemMessage(true)
+            .messageType("SYSTEM")
+            .fileInfoJson(null)
+            .build();
+    }
+
 }
