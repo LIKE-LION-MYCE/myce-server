@@ -26,6 +26,7 @@ public enum CustomErrorCode {
     GENDER_TYPE_INVALID(HttpStatus.BAD_REQUEST, "M006", "유효하지 않은 성별 값입니다."),
     ALREADY_EXIST_LOGIN_ID(HttpStatus.BAD_REQUEST, "M007", "이미 존재하는 아이디입니다."),
     ALREADY_EXIST_EMAIL(HttpStatus.BAD_REQUEST, "M008", "이미 존재하는 이메일입니다."),
+    MEMBER_ROLE_NOT_EXIST(HttpStatus.NOT_FOUND, "M009", "존재하지 않는 권한입니다."),
 
     // 비회원 G
     GUEST_NOT_EXIST(HttpStatus.NOT_FOUND, "G001", "비회원 정보가 존재하지 않습니다."),

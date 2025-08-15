@@ -6,20 +6,14 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.expo.entity.AdminCode;
+import com.myce.expo.entity.AdminPermission;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
+import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.AdminCodeRepository;
+import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
-import com.myce.expo.repository.AdminPermissionRepository;
-import com.myce.expo.entity.AdminPermission;
-import com.myce.member.entity.type.Role;
-import com.myce.member.entity.Member;
-import java.time.LocalDateTime;
-import java.util.UUID;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import com.myce.member.repository.MemberRepository;
 import com.myce.member.dto.expo.ExpoAdminCodeResponse;
 import com.myce.member.dto.expo.ExpoPaymentDetailResponse;
 import com.myce.member.dto.expo.ExpoRefundReceiptResponse;
@@ -27,34 +21,32 @@ import com.myce.member.dto.expo.ExpoSettlementReceiptResponse;
 import com.myce.member.dto.expo.ExpoSettlementRequest;
 import com.myce.member.dto.expo.MemberExpoDetailResponse;
 import com.myce.member.dto.expo.MemberExpoResponse;
+import com.myce.member.entity.Member;
+import com.myce.member.entity.type.Role;
 import com.myce.member.mapper.expo.ExpoAdminCodeMapper;
 import com.myce.member.mapper.expo.ExpoPaymentDetailMapper;
 import com.myce.member.mapper.expo.ExpoRefundReceiptMapper;
 import com.myce.member.mapper.expo.ExpoSettlementReceiptMapper;
 import com.myce.member.mapper.expo.MemberExpoDetailMapper;
 import com.myce.member.mapper.expo.MemberExpoMapper;
+import com.myce.member.repository.MemberRepository;
 import com.myce.member.service.MemberExpoService;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.entity.type.PaymentStatus;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
-import com.myce.settlement.service.SettlementExpoAdminService;
 import com.myce.settlement.entity.Settlement;
 import com.myce.settlement.repository.SettlementRepository;
-import com.myce.expo.entity.type.ExpoStatus;
-import com.myce.expo.entity.AdminPermission;
-import com.myce.member.entity.Member;
-import com.myce.member.entity.type.Role;
+import com.myce.settlement.service.SettlementExpoAdminService;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.ArrayList;
 
 @Slf4j
 @Service
@@ -255,7 +247,7 @@ public class MemberExpoServiceImpl implements MemberExpoService {
         
         log.info("정산 신청 위임 완료 - 박람회 ID: {}, 회원 ID: {}", expoId, memberId);
     }
-    
+
     @Override
     @Transactional
     public void completeExpoPayment(Long memberId, Long expoId) {
@@ -263,35 +255,35 @@ public class MemberExpoServiceImpl implements MemberExpoService {
         // 박람회 조회 및 권한 확인
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-        
+
         if (!expo.getMember().getId().equals(memberId)) {
             throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
         }
-        
+
         // 결제 대기 상태인지 확인
         if (expo.getStatus() != ExpoStatus.PENDING_PAYMENT) {
             throw new CustomException(CustomErrorCode.INVALID_EXPO_STATUS);
         }
-        
+
         // 1. 회원 역할을 EXPO_ADMIN으로 변경
         Member member = expo.getMember();
         member.updateRole(Role.EXPO_ADMIN);
         memberRepository.save(member);
-        
+
         // 2. 박람회 상태를 PENDING_PUBLISH로 변경
         expo.updateStatus(ExpoStatus.PENDING_PUBLISH);
         expoRepository.save(expo);
-        
+
         // 3. ExpoPaymentInfo 상태를 PENDING에서 SUCCESS로 업데이트
         ExpoPaymentInfo paymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
         paymentInfo.updateStatus(PaymentStatus.SUCCESS);
         expoPaymentInfoRepository.save(paymentInfo);
-        
+
         // 4. 5개의 EXPO_ADMIN_CODE 생성 및 권한 설정
         List<AdminCode> adminCodes = generateAdminCodes(expo, 5);
         adminCodeRepository.saveAll(adminCodes);
-        
+
         // 5. 각 AdminCode에 대한 AdminPermission 생성 (모든 권한 true)
         List<AdminPermission> adminPermissions = new ArrayList<>();
         for (AdminCode adminCode : adminCodes) {
@@ -310,47 +302,47 @@ public class MemberExpoServiceImpl implements MemberExpoService {
             adminPermissions.add(permission);
         }
         adminPermissionRepository.saveAll(adminPermissions);
-        
-        log.info("결제 완료 처리 완료 - 박람회 ID: {}, 회원 ID: {}, 생성된 관리자 코드: {}개", 
+
+        log.info("결제 완료 처리 완료 - 박람회 ID: {}, 회원 ID: {}, 생성된 관리자 코드: {}개",
                 expoId, memberId, adminCodes.size());
     }
-    
+
     /**
      * 관리자 코드 생성
      */
     private List<AdminCode> generateAdminCodes(Expo expo, int count) {
         List<AdminCode> adminCodes = new ArrayList<>();
         SecureRandom random = new SecureRandom();
-        
+
         // expo의 displayEndDate + 30일로 만료시간 설정
         LocalDateTime expiredAt = expo.getDisplayEndDate().atStartOfDay().plusDays(30);
-        
+
         for (int i = 0; i < count; i++) {
             String code = "CODE" + generateRandomCode(6, random);
-            
+
             AdminCode adminCode = AdminCode.builder()
                     .expoId(expo.getId())
                     .code(code)
                     .expiredAt(expiredAt)
                     .build();
-            
+
             adminCodes.add(adminCode);
         }
-        
+
         return adminCodes;
     }
-    
+
     /**
      * 랜덤 코드 생성 (숫자와 대문자 알파벳)
      */
     private String generateRandomCode(int length, SecureRandom random) {
         String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder code = new StringBuilder();
-        
+
         for (int i = 0; i < length; i++) {
             code.append(characters.charAt(random.nextInt(characters.length())));
         }
-        
+
         return code.toString();
     }
 }
