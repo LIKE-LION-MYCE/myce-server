@@ -26,4 +26,6 @@ public interface MemberAdService {
     AdvertisementRefundReceiptResponse getAdvertisementRefundReceipt(Long memberId, Long advertisementId);
     
     AdRejectInfoResponse getAdvertisementRejectInfo(Long memberId, Long advertisementId);
+    
+    void completeAdvertisementPayment(Long memberId, Long advertisementId);
 }

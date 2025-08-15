@@ -28,6 +28,9 @@ public class TicketServiceImpl implements TicketService {
             .type(t.getType())
             .price(t.getPrice())
             .remainingQuantity(t.getRemainingQuantity())
+            .saleStartDate(t.getSaleStartDate())
+            .saleEndDate(t.getSaleEndDate())
+            .description(t.getDescription())
             .build()
         )
         .toList();

@@ -70,4 +70,8 @@ public class AdPaymentInfo {
         this.totalAmount = totalAmount;
         this.status = status;
     }
+
+    public void updateStatus(PaymentStatus paymentStatus) {
+        this.status = paymentStatus;
+    }
 }
