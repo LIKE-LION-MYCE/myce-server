@@ -13,11 +13,17 @@ import com.myce.member.entity.Guest;
 import com.myce.member.entity.Member;
 import com.myce.member.repository.GuestRepository;
 import com.myce.member.repository.MemberRepository;
+import com.myce.payment.entity.Payment;
+import com.myce.payment.entity.ReservationPaymentInfo;
+import com.myce.payment.entity.type.PaymentTargetType;
+import com.myce.payment.repository.PaymentRepository;
+import com.myce.payment.repository.ReservationPaymentInfoRepository;
 import com.myce.reservation.dto.PreReservationRequest;
 import com.myce.reservation.dto.PreReservationResponse;
 import com.myce.reservation.dto.ReservationDetailResponse;
 import com.myce.reservation.dto.ReservationPaymentSummaryResponse;
 import com.myce.reservation.dto.ReservationPendingRequest;
+import com.myce.reservation.dto.ReservationPendingResponse;
 import com.myce.reservation.dto.ReservationSuccessResponse;
 import com.myce.reservation.dto.ReserverBulkUpdateRequest;
 import com.myce.reservation.entity.Reservation;
@@ -30,6 +36,9 @@ import com.myce.reservation.repository.ReservationRepository;
 import com.myce.reservation.repository.ReserverRepository;
 import com.myce.reservation.service.ReservationService;
 import com.myce.reservation.service.mapper.ReservationMapper;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +61,8 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationCodeService reservationCodeService;
     private final MemberRepository memberRepository;
     private final GuestRepository guestRepository;
+    private final PaymentRepository paymentRepository;
+    private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
 
     @Override
     public ReservationDetailResponse getReservationDetail(Long reservationId, CustomUserDetails currentUser) {
@@ -178,5 +189,25 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public void deletePendingReservation(Long reservationId) {
         reservationRepository.deleteById(reservationId);
+    }
+
+    @Override
+    public ReservationPendingResponse getVirtualAccountInfo(Long reservationId) {
+        Payment payment = paymentRepository.findByTargetIdAndTargetType(reservationId, PaymentTargetType.RESERVATION)
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_NOT_FOUND));
+        ReservationPaymentInfo reservationPaymentInfo = reservationPaymentInfoRepository.findByReservationId(reservationId)
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        // 오늘의 자정 직전 시간을 계산
+        LocalDateTime dueDate = LocalDate.now().atTime(23, 59, 59);
+
+        // 원하는 날짜/시간 포맷을 정의
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일 HH시 mm분 ss초");
+
+        // LocalDateTime 객체를 정의된 포맷의 String으로 변환합니다.
+        String formattedDueDate = dueDate.format(formatter);
+
+        return reservationMapper.toPendingResponse(payment, reservationPaymentInfo.getTotalAmount(),
+            formattedDueDate);
     }
 }

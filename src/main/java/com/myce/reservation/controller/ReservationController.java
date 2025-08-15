@@ -5,6 +5,7 @@ import com.myce.reservation.dto.PreReservationRequest;
 import com.myce.reservation.dto.PreReservationResponse;
 import com.myce.reservation.dto.ReservationDetailResponse;
 import com.myce.reservation.dto.ReservationPaymentSummaryResponse;
+import com.myce.reservation.dto.ReservationPendingResponse;
 import com.myce.reservation.dto.ReservationSuccessResponse;
 import com.myce.reservation.dto.ReserverBulkUpdateRequest;
 import com.myce.reservation.dto.GuestReservationRequest;
@@ -64,6 +65,13 @@ public class ReservationController {
     public ResponseEntity<ReservationSuccessResponse> getReservationSuccess(
         @PathVariable Long reservationId){
         ReservationSuccessResponse response = reservationService.getReservationCodeAndEmail(reservationId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{reservationId}/pending")
+    public ResponseEntity<ReservationPendingResponse> getReservationPending(
+        @PathVariable Long reservationId){
+        ReservationPendingResponse response = reservationService.getVirtualAccountInfo(reservationId);
         return ResponseEntity.ok(response);
     }
 

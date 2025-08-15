@@ -5,7 +5,7 @@ import com.myce.reservation.dto.PreReservationRequest;
 import com.myce.reservation.dto.PreReservationResponse;
 import com.myce.reservation.dto.ReservationDetailResponse;
 import com.myce.reservation.dto.ReservationPaymentSummaryResponse;
-import com.myce.reservation.dto.ReservationPendingRequest;
+import com.myce.reservation.dto.ReservationPendingResponse;
 import com.myce.reservation.dto.ReservationSuccessResponse;
 import com.myce.reservation.dto.ReserverBulkUpdateRequest;
 
@@ -24,4 +24,6 @@ public interface ReservationService {
     ReservationPaymentSummaryResponse getPaymentSummary(Long reservationId);
 
     void deletePendingReservation(Long reservationId);
+
+    ReservationPendingResponse getVirtualAccountInfo(Long reservationId);
 }
