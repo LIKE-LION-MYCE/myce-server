@@ -27,14 +27,19 @@ public class AdInfoMapper {
                 .build();
     }
 
-    public static AdPaymentHistoryResponse getPaymentInfoRequest(AdPaymentInfo adPaymentInfo){
+    public static AdPaymentHistoryResponse getPaymentInfoResponse(AdPaymentInfo adPaymentInfo,
+                                                                  Payment payment){
         Advertisement advertisement = adPaymentInfo.getAdvertisement();
+        PaymentTypeResult paymentTypeResult = getResult(payment, payment.getPaymentMethod());
 
         return AdPaymentHistoryResponse.builder()
                 .title(advertisement.getTitle())
                 .requesterName(advertisement.getMember().getName())
                 .startAt(advertisement.getDisplayStartDate())
                 .endAt(advertisement.getDisplayEndDate())
+                .paymentType(payment.getPaymentMethod().name())
+                .paymentCompanyName(paymentTypeResult.paymentCompanyName)
+                .paymentAccountInfo(paymentTypeResult.paymentAccountInfo)
                 .totalPrice(adPaymentInfo.getFeePerDay() * adPaymentInfo.getTotalDay())
                 .totalPayment(adPaymentInfo.getTotalAmount())
                 .build();
