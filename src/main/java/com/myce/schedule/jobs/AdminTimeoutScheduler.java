@@ -37,7 +37,7 @@ public class AdminTimeoutScheduler implements TaskScheduler {
     
     @PostConstruct
     public void init() {
-        log.debug("[Scheduler] Registered admin timeout scheduler - Auto release after {} minutes of inactivity", TIMEOUT_MINUTES);
+        log.info("Admin timeout scheduler has been registered. Auto release after {} minutes of inactivity", TIMEOUT_MINUTES);
     }
 
     @Override
@@ -46,7 +46,7 @@ public class AdminTimeoutScheduler implements TaskScheduler {
         try {
             this.process();
         } catch (Exception e) {
-            log.error("Admin timeout scheduler execution failed", e);
+            log.error("Error occurred during admin timeout scheduler execution", e);
         }
     }
 

@@ -182,9 +182,9 @@ public class MemberExpoServiceImpl implements MemberExpoService {
         ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
 
-        // COMPLETED 상태일 때 정산 완료 정보 조회
+        // SETTLEMENT_REQUESTED 또는 COMPLETED 상태일 때 정산 정보 조회
         Settlement settlement = null;
-        if (expo.getStatus() == ExpoStatus.COMPLETED) {
+        if (expo.getStatus() == ExpoStatus.SETTLEMENT_REQUESTED || expo.getStatus() == ExpoStatus.COMPLETED) {
             settlement = settlementRepository.findByExpoId(expoId).orElse(null);
         }
         

@@ -57,24 +57,34 @@ public class SettlementExpoAdminServiceImpl implements SettlementExpoAdminServic
             throw new CustomException(CustomErrorCode.INVALID_EXPO_STATUS);
         }
         
-        // 3. Check if settlement already requested
-        if (settlementRepository.existsByExpoId(expoId)) {
-            log.error("Settlement request failed - Settlement already requested: {}", expoId);
-            throw new CustomException(CustomErrorCode.SETTLEMENT_ALREADY_REQUESTED);
+        // 3. Check if settlement already exists and update or create
+        Settlement existingSettlement = settlementRepository.findByExpoId(expoId).orElse(null);
+        
+        if (existingSettlement != null) {
+            // Update existing settlement with bank information
+            existingSettlement.updateBankInfo(
+                request.getReceiverName(),
+                request.getBankName(), 
+                request.getBankAccount()
+            );
+            settlementRepository.save(existingSettlement);
+            log.info("Settlement updated with bank info - expoId: {}", expoId);
+        } else {
+            // Create new settlement if not exists (fallback)
+            // 5. Get settlement receipt data
+            ExpoSettlementReceiptResponse settlementReceipt = getSettlementReceiptData(expoId);
+            
+            // 6. Create settlement entity using mapper
+            Settlement settlement = SettlementRequestMapper.toRequestEntity(expo, request, settlementReceipt);
+            settlementRepository.save(settlement);
+            log.info("New settlement created - expoId: {}, netProfit: {}", 
+                    expoId, settlementReceipt.getNetProfit());
         }
         
         // 4. Update expo status to SETTLEMENT_REQUESTED
         expo.updateStatus(ExpoStatus.SETTLEMENT_REQUESTED);
         
-        // 5. Get settlement receipt data
-        ExpoSettlementReceiptResponse settlementReceipt = getSettlementReceiptData(expoId);
-        
-        // 6. Create settlement entity using mapper
-        Settlement settlement = SettlementRequestMapper.toRequestEntity(expo, request, settlementReceipt);
-        settlementRepository.save(settlement);
-        
-        log.info("Settlement request completed - expoId: {}, netProfit: {}", 
-                expoId, settlementReceipt.getNetProfit());
+        log.info("Settlement request completed - expoId: {}", expoId);
     }
     
     /**
