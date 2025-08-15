@@ -146,4 +146,42 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
               rv.id ASC
     """)
     Stream<ExcelReservationInfoData> streamAllForExcel(@Param("expoId") Long expoId);
+    
+    // === 대시보드 통계용 쿼리 메서드들 ===
+    
+    // 특정 박람회의 성별 통계
+    @Query("SELECT rv.gender, COUNT(rv) " +
+           "FROM Reserver rv " +
+           "JOIN rv.reservation r " +
+           "WHERE r.expo.id = :expoId " +
+           "AND r.status != 'CANCELLED' " +
+           "AND rv.gender IS NOT NULL " +
+           "GROUP BY rv.gender")
+    List<Object[]> countReserversByGender(@Param("expoId") Long expoId);
+    
+    // 특정 박람회의 연령대별 통계
+    @Query("SELECT " +
+           "CASE " +
+           "  WHEN YEAR(CURRENT_DATE) - YEAR(rv.birth) < 20 THEN '10-19' " +
+           "  WHEN YEAR(CURRENT_DATE) - YEAR(rv.birth) < 30 THEN '20-29' " +
+           "  WHEN YEAR(CURRENT_DATE) - YEAR(rv.birth) < 40 THEN '30-39' " +
+           "  WHEN YEAR(CURRENT_DATE) - YEAR(rv.birth) < 50 THEN '40-49' " +
+           "  ELSE '50+' " +
+           "END as ageGroup, " +
+           "COUNT(rv) as count " +
+           "FROM Reserver rv " +
+           "JOIN rv.reservation r " +
+           "WHERE r.expo.id = :expoId " +
+           "AND r.status != 'CANCELLED' " +
+           "AND rv.birth IS NOT NULL " +
+           "GROUP BY " +
+           "CASE " +
+           "  WHEN YEAR(CURRENT_DATE) - YEAR(rv.birth) < 20 THEN '10-19' " +
+           "  WHEN YEAR(CURRENT_DATE) - YEAR(rv.birth) < 30 THEN '20-29' " +
+           "  WHEN YEAR(CURRENT_DATE) - YEAR(rv.birth) < 40 THEN '30-39' " +
+           "  WHEN YEAR(CURRENT_DATE) - YEAR(rv.birth) < 50 THEN '40-49' " +
+           "  ELSE '50+' " +
+           "END " +
+           "ORDER BY ageGroup")
+    List<Object[]> countReserversByAgeGroup(@Param("expoId") Long expoId);
 }

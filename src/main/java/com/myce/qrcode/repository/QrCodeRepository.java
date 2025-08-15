@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -46,4 +47,32 @@ public interface QrCodeRepository extends JpaRepository<QrCode, Long> {
                                  @Param("newStatus") QrCodeStatus newStatus,
                                  @Param("currentTime") LocalDateTime currentTime);
 
+    // === 대시보드 통계용 쿼리 메서드들 ===
+    
+    // 특정 박람회의 예약 티켓 수 (발급된 QR코드 수)
+    @Query("SELECT COUNT(qr) FROM QrCode qr " +
+           "JOIN qr.reserver rv " +
+           "JOIN rv.reservation r " +
+           "WHERE r.expo.id = :expoId")
+    Long countReservedTicketsByExpoId(@Param("expoId") Long expoId);
+    
+    // 특정 박람회의 QR 체크인 성공 건수
+    @Query("SELECT COUNT(qr) FROM QrCode qr " +
+           "JOIN qr.reserver rv " +
+           "JOIN rv.reservation r " +
+           "WHERE r.expo.id = :expoId " +
+           "AND qr.status = 'USED'")
+    Long countSuccessfulCheckinsByExpoId(@Param("expoId") Long expoId);
+    
+    // 특정 박람회의 오늘 시간대별 입장인원
+    @Query("SELECT HOUR(qr.usedAt) as hour, COUNT(qr) as count " +
+           "FROM QrCode qr " +
+           "JOIN qr.reserver rv " +
+           "JOIN rv.reservation r " +
+           "WHERE r.expo.id = :expoId " +
+           "AND qr.status = 'USED' " +
+           "AND DATE(qr.usedAt) = :today " +
+           "GROUP BY HOUR(qr.usedAt) " +
+           "ORDER BY HOUR(qr.usedAt)")
+    List<Object[]> countHourlyCheckinsByExpoIdAndDate(@Param("expoId") Long expoId, @Param("today") LocalDate today);
 }

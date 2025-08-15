@@ -28,6 +28,22 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
     List<Long> findIdsByMemberIdAndStatusIn(@Param("memberId") Long memberId,
                                             @Param("statuses") Collection<ExpoStatus> statuses);
 
+    // 스케줄러용 - 활성 상태인 모든 박람회 ID 조회
+    @Query("""
+        select e.id
+        from Expo e
+        where e.status in :statuses
+    """)
+    List<Long> findIdsByStatusIn(@Param("statuses") Collection<ExpoStatus> statuses);
+    
+    // 스케줄러용 - 특정 상태의 박람회 ID 조회
+    @Query("""
+        select e.id
+        from Expo e
+        where e.status = :status
+    """)
+    List<Long> findIdsByStatus(@Param("status") ExpoStatus status);
+
     List<Expo> findByMemberIdOrderByCreatedAtDesc(Long memberId);
     Page<Expo> findByMemberIdOrderByCreatedAtDesc(Long memberId, Pageable pageable);
     Boolean existsByIdAndMemberId(Long id, Long memberId);
