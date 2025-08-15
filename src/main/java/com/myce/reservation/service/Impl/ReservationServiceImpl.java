@@ -173,4 +173,10 @@ public class ReservationServiceImpl implements ReservationService {
 
         return reservationMapper.toPaymentSummary(ticket, ticketName, reservation.getQuantity());
     }
+
+    @Transactional
+    @Override
+    public void deletePendingReservation(Long reservationId) {
+        reservationRepository.deleteById(reservationId);
+    }
 }

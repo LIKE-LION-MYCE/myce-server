@@ -79,4 +79,11 @@ public class ReservationController {
         ReservationPaymentSummaryResponse response = reservationService.getPaymentSummary(reservationId);
         return ResponseEntity.ok(response);
     }
+
+    // 결제 실패 또는 취소 시, 삭제
+    @DeleteMapping("/{reservationId}")
+    public ResponseEntity<Void> deleteReservation(@PathVariable Long reservationId){
+        reservationService.deletePendingReservation(reservationId);
+        return ResponseEntity.noContent().build();
+    }
 }
