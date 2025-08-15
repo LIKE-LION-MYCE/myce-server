@@ -114,4 +114,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     long countAllByCreatedAtAfter(LocalDateTime createdAt);
            
     List<Reservation> findByExpoId(Long expoId);
+
+    List<Reservation> findByUserIdAndUserTypeAndStatus(Long userId, UserType userType, ReservationStatus status);
 }
