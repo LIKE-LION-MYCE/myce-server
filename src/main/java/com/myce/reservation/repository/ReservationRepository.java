@@ -41,6 +41,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     @Query("""
             SELECT new com.myce.reservation.dto.ExpoAdminPaymentBasicResponse(
+                r.id,
                 r.reservationCode,
                 CASE
                     WHEN r.userType = com.myce.reservation.entity.code.UserType.MEMBER THEN m.name

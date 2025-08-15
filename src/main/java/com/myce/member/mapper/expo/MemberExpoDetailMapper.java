@@ -15,7 +15,8 @@ public class MemberExpoDetailMapper {
     public MemberExpoDetailResponse toMemberExpoDetailResponse(Expo expo, 
                                                                ExpoPaymentInfo paymentInfo, 
                                                                List<Ticket> tickets,
-                                                               BusinessProfile businessProfile) {
+                                                               BusinessProfile businessProfile,
+                                                               String categoryName) {
         
         return MemberExpoDetailResponse.builder()
                 .expoId(expo.getId())
@@ -33,6 +34,8 @@ public class MemberExpoDetailMapper {
                 .description(expo.getDescription())
                 .status(expo.getStatus())
                 .isPremium(determineIsPremium(paymentInfo))
+                .category(categoryName)
+                .memberLoginId(expo.getMember().getLoginId())
                 .paymentInfo(buildPaymentInfo(paymentInfo))
                 .tickets(buildTicketInfoList(tickets))
                 .businessInfo(buildBusinessInfo(businessProfile))

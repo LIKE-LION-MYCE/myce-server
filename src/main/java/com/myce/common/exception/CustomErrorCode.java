@@ -26,6 +26,7 @@ public enum CustomErrorCode {
     GENDER_TYPE_INVALID(HttpStatus.BAD_REQUEST, "M006", "유효하지 않은 성별 값입니다."),
     ALREADY_EXIST_LOGIN_ID(HttpStatus.BAD_REQUEST, "M007", "이미 존재하는 아이디입니다."),
     ALREADY_EXIST_EMAIL(HttpStatus.BAD_REQUEST, "M008", "이미 존재하는 이메일입니다."),
+    MEMBER_ROLE_NOT_EXIST(HttpStatus.NOT_FOUND, "M009", "존재하지 않는 권한입니다."),
 
     // 비회원 G
     GUEST_NOT_EXIST(HttpStatus.NOT_FOUND, "G001", "비회원 정보가 존재하지 않습니다."),
@@ -42,13 +43,13 @@ public enum CustomErrorCode {
     QR_ALREADY_EXISTS(HttpStatus.CONFLICT, "Q002", "이미 QR 코드가 발급된 예약자입니다."),
     QR_ALREADY_USED(HttpStatus.BAD_REQUEST, "Q003", "이미 사용된 QR 코드입니다."),
     QR_EXPIRED(HttpStatus.BAD_REQUEST, "Q004", "만료된 QR 코드입니다."),
-    QR_INVALID_STATUS(HttpStatus.BAD_REQUEST, "Q005", "ACTIVE 상태의 QR만 재발급 가능합니다."),
+    QR_INVALID_STATUS(HttpStatus.BAD_REQUEST, "Q005", "입장 전(APPROVE, ACTIVE) 상태의 QR만 재발급 가능합니다."),
     QR_UNAUTHORIZED(HttpStatus.FORBIDDEN, "Q006", "해당 박람회의 관리자만 처리할 수 있습니다."),
     RESERVER_NOT_FOUND(HttpStatus.NOT_FOUND, "Q007", "예약자를 찾을 수 없습니다."),
     QR_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q008", "QR 코드 생성 중 오류가 발생했습니다."),
     QR_REISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q009", "QR 코드 재발급 중 오류가 발생했습니다."),
     QR_APPROVED(HttpStatus.BAD_REQUEST, "Q010", "QR 코드 발급 기간이 아닙니다."),
-    QR_NOT_MANUAL_CHECK_IN(HttpStatus.BAD_REQUEST, "Q011", "ACTIVE 상태의 QR만 수기입장 처리가 가능합니다."),
+    QR_NOT_MANUAL_CHECK_IN(HttpStatus.BAD_REQUEST, "Q011", "입장 전(APPROVE, ACTIVE) 상태의 QR만 수기입장 처리가 가능합니다."),
 
     // S3 S
     S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S001", "S3 파일 업로드에 실패했습니다."),
