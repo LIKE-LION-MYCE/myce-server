@@ -179,12 +179,36 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         
         // 플랫폼 채팅방인지 확인 (expoId가 null인 경우)
         if (chatRoom.getExpoId() == null) {
-            // 플랫폼 채팅방 처리
+            // 플랫폼 채팅방 처리 - 실제 사용자 정보 조회
+            String actualUserName = chatRoom.getMemberName();
+            Long actualUserId = chatRoom.getMemberId();
+            
+            // 캐시된 memberName이 올바르지 않으면 DB에서 조회
+            if (actualUserName == null || 
+                actualUserName.contains("AI") || 
+                actualUserName.contains("상담사") || 
+                actualUserName.equals("플랫폼 사용자")) {
+                
+                try {
+                    Optional<Member> memberOpt = memberRepository.findById(actualUserId);
+                    if (memberOpt.isPresent()) {
+                        actualUserName = memberOpt.get().getName();
+                        log.debug("Platform room user name corrected: {} -> {}", chatRoom.getMemberName(), actualUserName);
+                    } else {
+                        actualUserName = "사용자 " + actualUserId;
+                        log.warn("User not found for platform room: userId={}", actualUserId);
+                    }
+                } catch (Exception e) {
+                    actualUserName = "사용자 " + actualUserId;
+                    log.error("Failed to fetch user name for platform room: userId={}, error={}", actualUserId, e.getMessage());
+                }
+            }
+            
             return ChatRoomMapper.toDto(
                     chatRoom,
-                    -1L,  // AI 상담사 ID
-                    "AI 상담사",  // AI 상담사 이름
-                    "AI",  // AI 역할
+                    actualUserId,  // Real user ID
+                    actualUserName,  // Real user name  
+                    "USER",  // User role
                     chatRoom.getExpoTitle(),  // "플랫폼 상담"
                     0  // 읽지 않은 메시지 수
             );
@@ -325,16 +349,27 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         Optional<ChatRoom> existingRoom = chatRoomRepository.findByRoomCode(platformRoomCode);
         
         if (existingRoom.isEmpty()) {
+            // Fetch actual user name from database
+            String memberName = "플랫폼 사용자"; // Default fallback
+            try {
+                Optional<Member> memberOpt = memberRepository.findById(memberId);
+                if (memberOpt.isPresent()) {
+                    memberName = memberOpt.get().getName();
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch member name for platform room creation: {}", e.getMessage());
+            }
+            
             ChatRoom platformRoom = ChatRoom.builder()
                 .roomCode(platformRoomCode)
                 .expoId(null)  // 플랫폼 방은 expoId 없음
                 .memberId(memberId)
-                .memberName("플랫폼 사용자")  
+                .memberName(memberName)  // Use actual user name
                 .expoTitle("플랫폼 상담")    // Frontend에서 이 이름으로 표시됨
                 .build();
                 
             chatRoomRepository.save(platformRoom);
-            log.info("플랫폼 채팅방 자동 생성 - memberId: {}, roomCode: {}", memberId, platformRoomCode);
+            log.info("플랫폼 채팅방 자동 생성 - memberId: {}, roomCode: {}, memberName: {}", memberId, platformRoomCode, memberName);
         }
     }
     

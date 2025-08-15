@@ -260,16 +260,27 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
         Optional<ChatRoom> existingRoom = chatRoomRepository.findByRoomCode(roomCode);
         
         if (existingRoom.isEmpty()) {
+            // Fetch actual user name from database
+            String memberName = "플랫폼 사용자"; // Default fallback
+            try {
+                Optional<Member> memberOpt = memberRepository.findById(memberId);
+                if (memberOpt.isPresent()) {
+                    memberName = memberOpt.get().getName();
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch member name for platform room creation: {}", e.getMessage());
+            }
+            
             ChatRoom newRoom = ChatRoom.builder()
                 .roomCode(roomCode)
                 .expoId(null)  // 플랫폼 방은 expoId 없음
                 .memberId(memberId)
-                .memberName("플랫폼 사용자")  // 기본값
+                .memberName(memberName)  // Use actual user name
                 .expoTitle("플랫폼 상담")    // 플랫폼 방 표시용
                 .build();
                 
             chatRoomRepository.save(newRoom);
-            log.info("플랫폼 채팅방 생성 완료 - roomCode: {}, memberId: {}", roomCode, memberId);
+            log.info("플랫폼 채팅방 생성 완료 - roomCode: {}, memberId: {}, memberName: {}", roomCode, memberId, memberName);
         }
     }
 
@@ -291,13 +302,30 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
      */
     @Override
     public void assignAdminIfNeeded(ChatRoom chatRoom, String adminCode) {
+        log.info("🔧 assignAdminIfNeeded called - room: {}, adminCode: {}, currentState: {}, hasAssignedAdmin: {}", 
+                chatRoom.getRoomCode(), adminCode, chatRoom.getCurrentState(), chatRoom.hasAssignedAdmin());
+        
         if (!chatRoom.hasAssignedAdmin()) {
-            chatRoom.assignAdmin(adminCode);
-            chatRoom.setAdminDisplayName(getAdminDisplayName(adminCode));
+            log.info("🔧 No admin assigned, attempting to assign: {}", adminCode);
+            // Atomic assignment with collision protection
+            boolean assigned = chatRoom.assignAdmin(adminCode);
+            if (assigned) {
+                chatRoom.setAdminDisplayName(getAdminDisplayName(adminCode));
+                log.info("✅ Admin assigned successfully: {} to room {} - NEW STATE: {}", 
+                        adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentState());
+            } else {
+                log.warn("❌ Admin assignment failed (collision): {} for room {}", adminCode, chatRoom.getRoomCode());
+                throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+            }
         } else if (!chatRoom.getCurrentAdminCode().equals(adminCode)) {
+            log.warn("❌ Admin permission denied: {} attempted access to room {} (owned by {})", 
+                     adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentAdminCode());
             throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
         } else {
+            // Same admin updating activity
             chatRoom.updateAdminActivity();
+            log.debug("🔧 Admin activity updated: {} for room {} - STATE: {}", 
+                     adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentState());
         }
     }
 

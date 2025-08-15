@@ -164,54 +164,59 @@ public class AIChatServiceImpl implements AIChatService {
             if (chatRoomOpt.isPresent()) {
                 ChatRoom chatRoom = chatRoomOpt.get();
                 
-                // IMPORTANT: 관리자를 먼저 배정하여 AI 응답을 즉시 차단
+                log.info("🔄 Starting handoff transaction - roomCode: {}, adminCode: {}, currentState: waiting={}, hasAdmin={}", 
+                    roomCode, adminCode, chatRoom.isWaitingForAdmin(), chatRoom.hasAssignedAdmin());
+                
+                // STEP 1: IMMEDIATE STATE TRANSITION - Block AI responses first
                 chatRoom.assignAdmin(adminCode);
-                chatRoom.stopWaitingForAdmin();  // 대기 상태 종료
+                chatRoom.stopWaitingForAdmin();
                 ChatRoom savedRoom = chatRoomRepository.save(chatRoom);
                 
-                log.info("관리자 배정 완료 - roomCode: {}, adminCode: {}, hasAdmin: {}", 
+                log.info("✅ Admin assigned and AI blocked - roomCode: {}, adminCode: {}, hasAdmin: {}", 
                     roomCode, adminCode, savedRoom.hasAssignedAdmin());
                 
-                // 대화 요약 생성 (관리자 배정 후 생성)
+                // STEP 2: GENERATE AI SUMMARY (for system message only)
                 String conversationSummary = generateConversationSummary(roomCode);
                 
-                // 요약을 AI 메시지로 전송 (사용자와 관리자 모두 확인용)
-                if (!conversationSummary.isEmpty()) {
-                    ChatMessage summaryMessage = ChatMessage.builder()
-                        .roomCode(roomCode)
-                        .senderType(MessageSenderType.AI.name())
-                        .senderId(AI_SENDER_ID)
-                        .senderName("AI 상담사 (인계 요약)")
-                        .content(conversationSummary)
-                        .build();
-                    
-                    ChatMessage savedSummary = chatMessageRepository.save(summaryMessage);
-                    
-                    // 요약 메시지 WebSocket 브로드캐스트
-                    broadcastAIMessage(savedSummary, roomCode);
-                    
-                    // 인계 완료 메시지 추가
-                    ChatMessage handoffCompleteMessage = ChatMessage.builder()
-                        .roomCode(roomCode)
-                        .senderType(MessageSenderType.AI.name())
-                        .senderId(AI_SENDER_ID)
-                        .senderName(AI_SENDER_NAME)
-                        .content("찍찍! 상담원님께 인계해드렸습니다. 곧 전문적인 도움을 받으실 수 있어요!")
-                        .build();
-                    
-                    ChatMessage savedHandoffMessage = chatMessageRepository.save(handoffCompleteMessage);
-                    
-                    // 인계 완료 메시지 WebSocket 브로드캐스트
-                    broadcastAIMessage(savedHandoffMessage, roomCode);
-                }
+                // STEP 2.5: SEND HANDOFF-TO-OPERATOR SYSTEM MESSAGE (persistent)
+                ChatMessage handoffSystemMessage = ChatMessage.builder()
+                    .roomCode(roomCode)
+                    .senderType("SYSTEM")
+                    .senderId(-99L)
+                    .senderName("시스템")
+                    .content("HANDOFF_TO_OPERATOR:" + conversationSummary)
+                    .build();
                 
-                // 버튼 상태 업데이트 브로드캐스트 (HUMAN_ACTIVE 상태로)
-                broadcastButtonStateUpdate(roomCode, "HUMAN_ACTIVE");
+                ChatMessage savedSystemMessage = chatMessageRepository.save(handoffSystemMessage);
                 
-                log.info("AI에서 관리자로 handoff 완료 (요약 포함) - roomCode: {}, adminCode: {}", roomCode, adminCode);
+                // Broadcast system message (not regular chat message)
+                Map<String, Object> systemMessagePayload = Map.of(
+                    "type", "HANDOFF_TO_OPERATOR",
+                    "roomCode", roomCode,
+                    "adminName", savedRoom.getAdminDisplayName(),
+                    "timestamp", LocalDateTime.now().toString(),
+                    "aiSummary", conversationSummary,
+                    "messageId", savedSystemMessage.getId()
+                );
+                
+                Map<String, Object> roomState = createRoomStateInfo(savedRoom, "handoff_to_operator");
+                Map<String, Object> broadcastMessage = Map.of(
+                    "type", "SYSTEM_MESSAGE",
+                    "payload", systemMessagePayload,
+                    "roomState", roomState
+                );
+                
+                messagingTemplate.convertAndSend("/topic/chat/" + roomCode, broadcastMessage);
+                
+                // STEP 3: UPDATE BUTTON STATE TO ADMIN_ACTIVE
+                broadcastButtonStateUpdate(roomCode, "ADMIN_ACTIVE");
+                
+                
+                log.info("🎯 Complete handoff workflow finished - roomCode: {}, adminCode: {}, finalState: hasAdmin={}", 
+                    roomCode, adminCode, savedRoom.hasAssignedAdmin());
             }
         } catch (Exception e) {
-            log.error("AI handoff 실패 - roomCode: {}, adminCode: {}", roomCode, adminCode, e);
+            log.error("❌ AI handoff failed - roomCode: {}, adminCode: {}", roomCode, adminCode, e);
             throw new RuntimeException("관리자 handoff에 실패했습니다.", e);
         }
     }
@@ -288,14 +293,12 @@ public class AIChatServiceImpl implements AIChatService {
     @Transactional
     public MessageResponse requestAdminHandoff(String roomCode) {
         try {
-            // 1. 채팅방 대기 상태 업데이트
+            // 1. 채팅방 조회
             Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
             if (chatRoomOpt.isPresent()) {
                 ChatRoom chatRoom = chatRoomOpt.get();
-                chatRoom.startWaitingForAdmin();
-                chatRoomRepository.save(chatRoom);
                 
-                // 2. AI 대기 메시지 생성 및 저장
+                // 2. AI 대기 메시지 먼저 생성 및 저장 (상태 변경 전에!)
                 ChatMessage waitingMessage = ChatMessage.builder()
                     .roomCode(roomCode)
                     .senderType(MessageSenderType.AI.name())
@@ -309,7 +312,11 @@ public class AIChatServiceImpl implements AIChatService {
                 // 3. 채팅방 마지막 메시지 정보 업데이트
                 updateChatRoomLastMessage(roomCode, savedMessage.getId(), savedMessage.getContent());
                 
-                log.info("관리자 연결 요청 시작 - roomCode: {}", roomCode);
+                // 4. 이제 채팅방 상태를 대기 상태로 변경 (AI 메시지 후에!)
+                chatRoom.startWaitingForAdmin();
+                chatRoomRepository.save(chatRoom);
+                
+                log.info("관리자 연결 요청 시작 - roomCode: {} (AI 메시지 먼저 전송)", roomCode);
                 
                 return ChatMessageMapper.toSendResponse(savedMessage, roomCode);
             } else {
@@ -366,7 +373,36 @@ public class AIChatServiceImpl implements AIChatService {
                 // 관리자 해제 및 AI 복귀
                 chatRoom.releaseAdmin();
                 chatRoom.stopWaitingForAdmin();
-                chatRoomRepository.save(chatRoom);
+                ChatRoom savedRoom = chatRoomRepository.save(chatRoom);
+                
+                // HANDOFF-TO-AI SYSTEM MESSAGE (persistent)
+                ChatMessage aiReturnSystemMessage = ChatMessage.builder()
+                    .roomCode(roomCode)
+                    .senderType("SYSTEM")
+                    .senderId(-99L)
+                    .senderName("시스템")
+                    .content("HANDOFF_TO_AI:AI가 상담을 이어받습니다")
+                    .build();
+                
+                ChatMessage savedSystemMessage = chatMessageRepository.save(aiReturnSystemMessage);
+                
+                // Broadcast system message
+                Map<String, Object> systemMessagePayload = Map.of(
+                    "type", "HANDOFF_TO_AI",
+                    "roomCode", roomCode,
+                    "timestamp", LocalDateTime.now().toString(),
+                    "message", "AI가 상담을 이어받습니다. 언제든 도움이 필요하시면 말씀해주세요.",
+                    "messageId", savedSystemMessage.getId()
+                );
+                
+                Map<String, Object> roomState = createRoomStateInfo(savedRoom, "handoff_to_ai");
+                Map<String, Object> broadcastMessage = Map.of(
+                    "type", "SYSTEM_MESSAGE",
+                    "payload", systemMessagePayload,
+                    "roomState", roomState
+                );
+                
+                messagingTemplate.convertAndSend("/topic/chat/" + roomCode, broadcastMessage);
                 
                 // AI 복귀 메시지 생성
                 ChatMessage returnMessage = ChatMessage.builder()
@@ -687,6 +723,68 @@ public class AIChatServiceImpl implements AIChatService {
     }
     
     /**
+     * Unified message broadcasting for both AI and operator modes
+     * Ensures consistent message format across all chat participants
+     */
+    private void broadcastUnifiedMessage(ChatMessage message, String roomCode, String messageType) {
+        try {
+            Map<String, Object> payload = Map.of(
+                "roomId", roomCode,
+                "messageId", message.getId(),
+                "senderId", message.getSenderId(),
+                "senderType", message.getSenderType(),
+                "senderName", message.getSenderName(),
+                "content", message.getContent(),
+                "sentAt", message.getSentAt().toString()
+            );
+            
+            Map<String, Object> broadcastMessage = Map.of(
+                "type", messageType,
+                "payload", payload
+            );
+            
+            String channel = "/topic/chat/" + roomCode;
+            messagingTemplate.convertAndSend(channel, broadcastMessage);
+            
+            log.info("📡 Unified message broadcast completed - roomCode: {}, type: {}, messageId: {}, channel: {}", 
+                roomCode, messageType, message.getId(), channel);
+            
+        } catch (Exception e) {
+            log.error("❌ Unified message broadcast failed - roomCode: {}, type: {}, messageId: {}", 
+                roomCode, messageType, message.getId(), e);
+        }
+    }
+    
+    /**
+     * Broadcast admin assignment update to all participants
+     */
+    private void broadcastAdminAssignmentUpdate(String roomCode, ChatRoom chatRoom) {
+        try {
+            if (chatRoom.hasAssignedAdmin()) {
+                Map<String, Object> assignmentPayload = Map.of(
+                    "roomCode", roomCode,
+                    "currentAdminCode", chatRoom.getCurrentAdminCode(),
+                    "adminDisplayName", chatRoom.getAdminDisplayName(),
+                    "hasAssignedAdmin", true
+                );
+                
+                Map<String, Object> assignmentMessage = Map.of(
+                    "type", "ADMIN_ASSIGNMENT_UPDATE",
+                    "payload", assignmentPayload
+                );
+                
+                String channel = "/topic/chat/" + roomCode;
+                messagingTemplate.convertAndSend(channel, assignmentMessage);
+                
+                log.info("📡 Admin assignment update broadcast - roomCode: {}, adminCode: {}", 
+                    roomCode, chatRoom.getCurrentAdminCode());
+            }
+        } catch (Exception e) {
+            log.error("❌ Admin assignment update broadcast failed - roomCode: {}", roomCode, e);
+        }
+    }
+
+    /**
      * AI 메시지 WebSocket 브로드캐스트
      */
     private void broadcastAIMessage(ChatMessage aiMessage, String roomCode) {
@@ -706,13 +804,11 @@ public class AIChatServiceImpl implements AIChatService {
                 "payload", payload
             );
             
-            messagingTemplate.convertAndSend(
-                "/topic/chat/" + roomCode,
-                broadcastMessage
-            );
+            String channel = "/topic/chat/" + roomCode;
+            messagingTemplate.convertAndSend(channel, broadcastMessage);
             
-            log.debug("AI 메시지 WebSocket 브로드캐스트 완료 - roomCode: {}, messageId: {}", 
-                roomCode, aiMessage.getId());
+            log.warn("🔊 AI 메시지 WebSocket 브로드캐스트 완료 - roomCode: {}, messageId: {}, channel: {}, content: '{}'", 
+                roomCode, aiMessage.getId(), channel, aiMessage.getContent().substring(0, Math.min(50, aiMessage.getContent().length())));
             
         } catch (Exception e) {
             log.error("AI 메시지 WebSocket 브로드캐스트 실패 - roomCode: {}, messageId: {}", 
@@ -773,5 +869,49 @@ public class AIChatServiceImpl implements AIChatService {
             case "HUMAN_INACTIVE" -> "request_ai";
             default -> "request_handoff";
         };
+    }
+    
+    /**
+     * 채팅방 상태 정보 생성 (WebSocket 메시지에 포함)
+     */
+    private Map<String, Object> createRoomStateInfo(ChatRoom chatRoom, String transitionReason) {
+        if (chatRoom == null) {
+            return Map.of(
+                "current", "AI_ACTIVE",
+                "description", "AI 상담 중",
+                "buttonText", "Request Human",
+                "timestamp", LocalDateTime.now().toString(),
+                "transitionReason", transitionReason != null ? transitionReason : "unknown"
+            );
+        }
+        
+        ChatRoom.ChatRoomState currentState = chatRoom.getCurrentState();
+        Map<String, Object> stateInfo = Map.of(
+            "current", currentState.name(),
+            "description", currentState.getDescription(),
+            "buttonText", currentState.getButtonText(),
+            "timestamp", LocalDateTime.now().toString(),
+            "transitionReason", transitionReason != null ? transitionReason : "message_flow"
+        );
+        
+        // Add admin info for admin active states
+        if (currentState == ChatRoom.ChatRoomState.ADMIN_ACTIVE && chatRoom.hasAssignedAdmin()) {
+            Map<String, Object> adminInfo = Map.of(
+                "adminCode", chatRoom.getCurrentAdminCode(),
+                "displayName", chatRoom.getAdminDisplayName() != null ? chatRoom.getAdminDisplayName() : "관리자",
+                "lastActivity", chatRoom.getLastAdminActivity() != null ? chatRoom.getLastAdminActivity().toString() : ""
+            );
+            
+            return Map.of(
+                "current", currentState.name(),
+                "description", currentState.getDescription(),
+                "buttonText", currentState.getButtonText(),
+                "timestamp", LocalDateTime.now().toString(),
+                "transitionReason", transitionReason != null ? transitionReason : "message_flow",
+                "adminInfo", adminInfo
+            );
+        }
+        
+        return stateInfo;
     }
 }

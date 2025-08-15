@@ -156,9 +156,14 @@ public class ChatWebSocketController {
                 "sentAt", messageResponse.getSentAt().toString()
             );
             
+            // Add room state information to all messages
+            ChatRoom roomForState = chatRoomRepository.findByRoomCode(roomId).orElse(null);
+            Map<String, Object> roomState = createRoomStateInfo(roomForState, "user_message");
+            
             Map<String, Object> broadcastMessage = Map.of(
                 "type", "MESSAGE",
-                "payload", payload
+                "payload", payload,
+                "roomState", roomState
             );
                     
             messagingTemplate.convertAndSend(
@@ -166,22 +171,23 @@ public class ChatWebSocketController {
                 broadcastMessage
             );
             
-            // AI 응답 처리 (플랫폼 방에서만, 그리고 관리자가 배정되지 않은 경우에만)
+            // AI 응답 처리 (상태 기반)
             // 데이터베이스에서 최신 채팅방 상태를 다시 조회하여 정확한 상태 확인
             ChatRoom currentRoom = chatRoomRepository.findByRoomCode(roomId).orElse(null);
             boolean isAIEnabled = aiChatService.isAIEnabled(roomId);
-            boolean hasAdmin = currentRoom != null && currentRoom.hasAssignedAdmin();
-            boolean isWaitingForAdmin = currentRoom != null && currentRoom.isWaitingForAdmin();
             
-            log.warn("🤖 DEBUG: AI 응답 조건 확인 - roomId: {}, AI활성화: {}, 관리자배정: {}, 대기중: {}, 현재관리자: {}, 트리거된유저: {}", 
-                roomId, isAIEnabled, hasAdmin, isWaitingForAdmin, 
-                currentRoom != null ? currentRoom.getCurrentAdminCode() : "없음", userId);
-            
-            // AI는 다음 경우에만 응답:
-            // 1. AI가 활성화된 방이고
-            // 2. 관리자가 배정되지 않았고
-            // 3. 관리자 대기 중이어도 AI는 계속 응답 (완전 인계 전까지)
-            if (isAIEnabled && !hasAdmin) {
+            if (currentRoom != null && isAIEnabled) {
+                ChatRoom.ChatRoomState currentState = currentRoom.getCurrentState();
+                
+                log.warn("🤖 DEBUG: AI 응답 조건 확인 - roomId: {}, AI활성화: {}, 현재상태: {}, 트리거된유저: {}", 
+                    roomId, isAIEnabled, currentState, userId);
+                
+                // AI는 AI_ACTIVE 또는 WAITING_FOR_ADMIN 상태에서만 응답
+                // (ADMIN_ACTIVE 상태에서는 AI 응답 안함)
+                boolean shouldAIRespond = (currentState == ChatRoom.ChatRoomState.AI_ACTIVE || 
+                                         currentState == ChatRoom.ChatRoomState.WAITING_FOR_ADMIN);
+                
+                if (shouldAIRespond) {
                 try {
                     MessageResponse aiResponse = aiChatService.sendAIMessage(roomId, content);
                     
@@ -194,9 +200,12 @@ public class ChatWebSocketController {
                         "sentAt", aiResponse.getSentAt().toString()
                     );
                     
+                    Map<String, Object> aiRoomState = createRoomStateInfo(currentRoom, "ai_response");
+                    
                     Map<String, Object> aiBroadcastMessage = Map.of(
                         "type", "AI_MESSAGE",
-                        "payload", aiPayload
+                        "payload", aiPayload,
+                        "roomState", aiRoomState
                     );
                     
                     log.warn("🤖 DEBUG: AI 메시지 브로드캐스트 시작 - topic: /topic/chat/{}, payload: {}", 
@@ -212,9 +221,13 @@ public class ChatWebSocketController {
                 } catch (Exception aiError) {
                     log.error("AI 응답 처리 실패 - roomId: {}", roomId, aiError);
                 }
+                } else {
+                    log.debug("AI 응답 건너뜀 - roomId: {}, 상태: {}, 이유: AI가 응답할 수 없는 상태", 
+                        roomId, currentState);
+                }
             } else {
-                log.debug("AI 응답 건너뜀 - roomId: {}, 이유: AI비활성화={}, 관리자배정됨={}", 
-                    roomId, !isAIEnabled, hasAdmin);
+                log.debug("AI 응답 건너뜀 - roomId: {}, 이유: AI비활성화={}, 방없음={}", 
+                    roomId, !isAIEnabled, currentRoom == null);
             }
             
             // 사용자 메시지 전송 후 박람회 관리자들에게 unread count 업데이트 알림
@@ -298,29 +311,70 @@ public class ChatWebSocketController {
                 adminCode = chatWebSocketService.determineAdminCode(userId, ADMIN_CODE_TYPE);
             }
             
-            // If room is waiting for admin, call AI handoff system
-            if (chatRoom.isWaitingForAdmin()) {
-                // Call AI handoff system for proper summary and transition
-                try {
-                    chatRoomService.handoffAIToAdmin(roomCode, adminCode);
-                    log.info("AI handoff completed for waiting room - roomCode: {}, adminCode: {}, hasAdmin: {}", 
-                        roomCode, adminCode, chatRoom.hasAssignedAdmin());
-                } catch (Exception handoffError) {
-                    log.error("AI handoff failed - roomCode: {}, adminCode: {}", roomCode, adminCode, handoffError);
-                }
-            } else {
-                // Regular admin assignment
-                log.debug("Regular admin assignment - roomCode: {}, adminCode: {}, currentAdmin: {}", 
-                    roomCode, adminCode, chatRoom.getCurrentAdminCode());
-                chatWebSocketService.assignAdminIfNeeded(chatRoom, adminCode);
-                log.debug("After assignment - roomCode: {}, hasAdmin: {}, currentAdmin: {}", 
-                    roomCode, chatRoom.hasAssignedAdmin(), chatRoom.getCurrentAdminCode());
+            // Admin collision protection: Check if this admin has permission
+            if (chatRoom.hasAssignedAdmin() && !chatRoom.hasAdminPermission(adminCode)) {
+                String errorMsg = String.format("상담 권한이 없습니다. 현재 담당자: %s", 
+                                                chatRoom.getAdminDisplayName());
+                log.warn("❌ Admin message blocked: {} attempted to send message to room {} (owned by {})", 
+                         adminCode, roomCode, chatRoom.getCurrentAdminCode());
+                
+                // Send error message back to the unauthorized admin
+                Map<String, Object> errorPayload = Map.of(
+                    "error", "PERMISSION_DENIED",
+                    "message", errorMsg,
+                    "currentAdmin", chatRoom.getAdminDisplayName()
+                );
+                messagingTemplate.convertAndSendToUser(
+                    userId.toString(),
+                    "/queue/errors",
+                    errorPayload
+                );
+                return;
             }
+
+            // State-driven admin assignment logic
+            ChatRoom.ChatRoomState currentState = chatRoom.getCurrentState();
+            log.debug("Admin message handling - roomCode: {}, currentState: {}", roomCode, currentState);
             
-            // Save chatRoom changes immediately to ensure they are persisted before any AI logic runs
-            ChatRoom savedChatRoom = chatRoomRepository.save(chatRoom);
-            log.debug("ChatRoom saved - roomCode: {}, hasAdmin: {}, currentAdmin: {}", 
-                roomCode, savedChatRoom.hasAssignedAdmin(), savedChatRoom.getCurrentAdminCode());
+            switch (currentState) {
+                case WAITING_FOR_ADMIN -> {
+                    // Call AI handoff system for proper summary and transition
+                    try {
+                        chatRoomService.handoffAIToAdmin(roomCode, adminCode);
+                        // Refresh the chatRoom from DB to get the updated state
+                        chatRoom = chatRoomRepository.findByRoomCode(roomCode)
+                            .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
+                        log.info("AI handoff completed - roomCode: {}, adminCode: {}, newState: {}", 
+                            roomCode, adminCode, chatRoom.getCurrentState());
+                    } catch (Exception handoffError) {
+                        log.error("AI handoff failed - roomCode: {}, adminCode: {}", roomCode, adminCode, handoffError);
+                    }
+                }
+                case AI_ACTIVE -> {
+                    // Block direct messaging during AI chat - admins must use intervention button
+                    log.warn("❌ Direct admin message blocked during AI_ACTIVE state - roomCode: {}, adminCode: {}", 
+                        roomCode, adminCode);
+                    
+                    // Send error message back to admin
+                    Map<String, Object> errorPayload = Map.of(
+                        "error", "INTERVENTION_REQUIRED",
+                        "message", "AI 상담 중에는 직접 메시지를 보낼 수 없습니다. '개입하기' 버튼을 사용해주세요.",
+                        "suggestedAction", "USE_INTERVENTION_BUTTON"
+                    );
+                    messagingTemplate.convertAndSendToUser(
+                        userId.toString(),
+                        "/queue/errors",
+                        errorPayload
+                    );
+                    return; // Block the message entirely
+                }
+                case ADMIN_ACTIVE -> {
+                    // Admin already active - just update admin activity
+                    chatRoom.updateAdminActivity();
+                    chatRoomRepository.save(chatRoom);
+                    log.debug("Admin activity updated - roomCode: {}, state: {}", roomCode, currentState);
+                }
+            }
             
             // 담당자 배정 브로드캐스트
             if (chatRoom.hasAssignedAdmin()) {
@@ -369,9 +423,13 @@ public class ChatWebSocketController {
                 "sentAt", messageResponse.getSentAt().toString()
             );
             
+            // Add room state information to admin messages
+            Map<String, Object> adminRoomState = createRoomStateInfo(chatRoom, "admin_message");
+            
             Map<String, Object> broadcastMessage = Map.of(
                 "type", "ADMIN_MESSAGE",
-                "payload", payload
+                "payload", payload,
+                "roomState", adminRoomState
             );
                     
             messagingTemplate.convertAndSend(
@@ -488,9 +546,14 @@ public class ChatWebSocketController {
                 "sentAt", handoffResponse.getSentAt().toString()
             );
             
+            // Add room state for handoff request
+            ChatRoom handoffRoom = chatRoomRepository.findByRoomCode(roomId).orElse(null);
+            Map<String, Object> handoffRoomState = createRoomStateInfo(handoffRoom, "handoff_requested");
+            
             Map<String, Object> handoffBroadcast = Map.of(
                 "type", "AI_HANDOFF_REQUEST",
-                "payload", handoffPayload
+                "payload", handoffPayload,
+                "roomState", handoffRoomState
             );
             
             String topicChannel = "/topic/chat/" + roomId;
@@ -541,9 +604,14 @@ public class ChatWebSocketController {
                 "sentAt", cancelResponse.getSentAt().toString()
             );
             
+            // Add room state for cancel handoff
+            ChatRoom cancelRoom = chatRoomRepository.findByRoomCode(roomId).orElse(null);
+            Map<String, Object> cancelRoomState = createRoomStateInfo(cancelRoom, "handoff_cancelled");
+            
             Map<String, Object> cancelBroadcast = Map.of(
                 "type", "AI_MESSAGE",
-                "payload", cancelPayload
+                "payload", cancelPayload,
+                "roomState", cancelRoomState
             );
             
             messagingTemplate.convertAndSend(
@@ -559,6 +627,150 @@ public class ChatWebSocketController {
         } catch (Exception e) {
             log.error("핸드오프 취소 처리 실패 - roomId: {}", message.get("roomId"), e);
             sendErrorMessage(headerAccessor, "핸드오프 취소에 실패했습니다.");
+        }
+    }
+
+    /**
+     * 관리자 사전 개입 (AI_ACTIVE 상태에서 직접 관리자가 개입)
+     * /app/proactive-intervention -> AI_ACTIVE에서 바로 HUMAN_ACTIVE로 전환
+     */
+    @MessageMapping("/proactive-intervention")
+    public void proactiveIntervention(@Payload Map<String, Object> message,
+                                    SimpMessageHeaderAccessor headerAccessor) {
+        try {
+            Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
+            if (userId == null) {
+                throw new IllegalStateException("인증되지 않은 사용자");
+            }
+            
+            String roomId = (String) message.get("roomId");
+            
+            // Get current room and verify it's in AI_ACTIVE state
+            ChatRoom currentRoom = chatRoomRepository.findByRoomCode(roomId)
+                .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
+                
+            if (currentRoom.getCurrentState() != ChatRoom.ChatRoomState.AI_ACTIVE) {
+                throw new IllegalStateException("AI 활성 상태가 아닌 방에서는 사전 개입할 수 없습니다");
+            }
+            
+            log.info("관리자 사전 개입 시작 - roomId: {}, userId: {}, currentState: {}", 
+                roomId, userId, currentRoom.getCurrentState());
+            
+            // Determine admin code based on room type
+            String adminCode;
+            if (roomId.startsWith("platform-")) {
+                adminCode = "PLATFORM_ADMIN";
+            } else {
+                adminCode = chatWebSocketService.determineAdminCode(userId, ADMIN_CODE_TYPE);
+            }
+            
+            // Assign admin directly (no handoff process needed)
+            chatWebSocketService.assignAdminIfNeeded(currentRoom, adminCode);
+            ChatRoom savedRoom = chatRoomRepository.save(currentRoom);
+            log.info("🔧 Room saved after intervention - roomId: {}, state: {}, hasAssignedAdmin: {}", 
+                    savedRoom.getRoomCode(), savedRoom.getCurrentState(), savedRoom.hasAssignedAdmin());
+            
+            // Save intervention system message to database for persistence
+            ChatMessage interventionSystemMessage = ChatMessage.createSystemMessage(
+                roomId, 
+                "ADMIN_INTERVENTION_START:관리자가 상담에 참여했습니다.\n더 자세하고 전문적인 도움을 드리겠습니다."
+            );
+            ChatMessage savedSystemMessage = chatMessageRepository.save(interventionSystemMessage);
+            
+            // Send intervention system message (not a regular chat message)
+            Map<String, Object> systemMessagePayload = Map.of(
+                "type", "ADMIN_INTERVENTION_START",
+                "roomCode", roomId,
+                "adminName", currentRoom.getAdminDisplayName(),
+                "timestamp", java.time.LocalDateTime.now().toString(),
+                "message", "관리자가 상담에 참여했습니다.\n더 자세하고 전문적인 도움을 드리겠습니다.",
+                "messageId", savedSystemMessage.getId()
+            );
+            
+            // Refresh room state after admin assignment
+            ChatRoom updatedRoom = chatRoomRepository.findByRoomCode(roomId)
+                .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
+            Map<String, Object> interventionRoomState = createRoomStateInfo(updatedRoom, "proactive_intervention");
+            
+            // Broadcast system message (not a regular chat message)
+            Map<String, Object> broadcastMessage = Map.of(
+                "type", "SYSTEM_MESSAGE",
+                "payload", systemMessagePayload,
+                "roomState", interventionRoomState
+            );
+            
+            messagingTemplate.convertAndSend(
+                "/topic/chat/" + roomId,
+                broadcastMessage
+            );
+            
+            // Update button state to ADMIN_ACTIVE
+            sendButtonStateUpdate(roomId, "ADMIN_ACTIVE");
+            
+            log.info("관리자 사전 개입 완료 - roomId: {}, userId: {}, newState: {}", 
+                roomId, userId, updatedRoom.getCurrentState());
+            
+        } catch (Exception e) {
+            log.error("관리자 사전 개입 실패 - roomId: {}", message.get("roomId"), e);
+            sendErrorMessage(headerAccessor, "관리자 개입에 실패했습니다.");
+        }
+    }
+
+    /**
+     * 관리자 인계 수락 (WAITING_FOR_ADMIN → ADMIN_ACTIVE)
+     * 사용자가 요청한 관리자 연결을 관리자가 수락
+     */
+    @MessageMapping("/accept-handoff")
+    public void acceptHandoff(@Payload Map<String, Object> message,
+                             SimpMessageHeaderAccessor headerAccessor) {
+        try {
+            Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
+            if (userId == null) {
+                throw new IllegalStateException("인증되지 않은 사용자");
+            }
+            
+            String roomId = (String) message.get("roomId");
+            
+            // Determine admin code based on room type (same logic as proactiveIntervention)
+            String adminCode;
+            if (roomId.startsWith("platform-")) {
+                adminCode = "PLATFORM_ADMIN";
+            } else {
+                adminCode = chatWebSocketService.determineAdminCode(userId, ADMIN_CODE_TYPE);
+            }
+            
+            // Get current room and verify it's in WAITING_FOR_ADMIN state
+            ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND));
+            
+            if (chatRoom.getCurrentState() != ChatRoom.ChatRoomState.WAITING_FOR_ADMIN) {
+                throw new IllegalStateException("채팅방이 관리자 대기 상태가 아닙니다: " + chatRoom.getCurrentState());
+            }
+            
+            log.info("관리자 인계 수락 시작 - roomCode: {}, adminCode: {}, currentState: {}", 
+                roomId, adminCode, chatRoom.getCurrentState());
+            
+            // Call AI handoff system for proper summary and transition
+            chatRoomService.handoffAIToAdmin(roomId, adminCode);
+            
+            // Refresh the chatRoom from DB to get the updated state
+            chatRoom = chatRoomRepository.findByRoomCode(roomId)
+                .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
+            
+            log.info("관리자 인계 수락 완료 - roomCode: {}, adminCode: {}, newState: {}", 
+                roomId, adminCode, chatRoom.getCurrentState());
+            
+        } catch (Exception e) {
+            log.error("관리자 인계 수락 실패 - roomId: {}, error: {}", 
+                message.get("roomId"), e.getMessage(), e);
+            
+            String sessionId = headerAccessor.getSessionId();
+            Map<String, Object> error = Map.of(
+                "type", "ERROR",
+                "error", "ACCEPT_HANDOFF_FAILED",
+                "message", "관리자 인계 수락에 실패했습니다: " + e.getMessage()
+            );
+            messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", error);
         }
     }
 
@@ -590,9 +802,14 @@ public class ChatWebSocketController {
                 "sentAt", aiReturnResponse.getSentAt().toString()
             );
             
+            // Add room state for AI return
+            ChatRoom returnRoom = chatRoomRepository.findByRoomCode(roomId).orElse(null);
+            Map<String, Object> returnRoomState = createRoomStateInfo(returnRoom, "ai_return_requested");
+            
             Map<String, Object> returnBroadcast = Map.of(
                 "type", "AI_RETURN",
-                "payload", returnPayload
+                "payload", returnPayload,
+                "roomState", returnRoomState
             );
             
             messagingTemplate.convertAndSend(
@@ -687,10 +904,14 @@ public class ChatWebSocketController {
     }
     
     /**
-     * 버튼 상태 업데이트 브로드캐스트
+     * 버튼 상태 업데이트 브로드캐스트 (상태 기반)
      */
     private void sendButtonStateUpdate(String roomId, String newState) {
         try {
+            // Get current room state for accurate state information
+            ChatRoom currentRoom = chatRoomRepository.findByRoomCode(roomId).orElse(null);
+            Map<String, Object> buttonRoomState = createRoomStateInfo(currentRoom, "button_state_update");
+            
             Map<String, Object> statePayload = Map.of(
                 "roomId", roomId,
                 "state", newState,
@@ -700,7 +921,8 @@ public class ChatWebSocketController {
             
             Map<String, Object> stateBroadcast = Map.of(
                 "type", "BUTTON_STATE_UPDATE",
-                "payload", statePayload
+                "payload", statePayload,
+                "roomState", buttonRoomState
             );
             
             String channel = "/topic/chat/" + roomId;
@@ -724,8 +946,7 @@ public class ChatWebSocketController {
         return switch (state) {
             case "AI_ACTIVE" -> "Request Human";
             case "WAITING_FOR_ADMIN" -> "Cancel Request";
-            case "HUMAN_ACTIVE" -> "Request AI";
-            case "HUMAN_INACTIVE" -> "Continue with AI";
+            case "ADMIN_ACTIVE" -> "Request AI";
             default -> "Request Human";
         };
     }
@@ -737,10 +958,121 @@ public class ChatWebSocketController {
         return switch (state) {
             case "AI_ACTIVE" -> "request_handoff";
             case "WAITING_FOR_ADMIN" -> "cancel_handoff";
-            case "HUMAN_ACTIVE" -> "request_ai";
-            case "HUMAN_INACTIVE" -> "request_ai";
+            case "ADMIN_ACTIVE" -> "request_ai";
             default -> "request_handoff";
         };
+    }
+    
+    /**
+     * 채팅방 상태 델타 정보 생성 (효율적인 state broadcasting)
+     * 변경된 필드만 전송하여 네트워크 효율성 향상
+     */
+    private Map<String, Object> createRoomStateDelta(ChatRoom chatRoom, String transitionReason, ChatRoom.ChatRoomState previousState) {
+        if (chatRoom == null) {
+            return Map.of(
+                "current", "AI_ACTIVE",
+                "timestamp", java.time.LocalDateTime.now().toString(),
+                "transitionReason", transitionReason != null ? transitionReason : "unknown"
+            );
+        }
+        
+        ChatRoom.ChatRoomState currentState = chatRoom.getCurrentState();
+        Map<String, Object> delta = new java.util.HashMap<>();
+        
+        // Always include current state and timestamp
+        delta.put("current", currentState.name());
+        delta.put("timestamp", java.time.LocalDateTime.now().toString());
+        delta.put("transitionReason", transitionReason != null ? transitionReason : "message_flow");
+        
+        // Only include description and buttonText if state actually changed
+        if (previousState == null || !previousState.equals(currentState)) {
+            delta.put("description", currentState.getDescription());
+            delta.put("buttonText", currentState.getButtonText());
+            delta.put("stateChanged", true);
+        } else {
+            delta.put("stateChanged", false);
+        }
+        
+        // Add admin info only for admin active states (conditional data)
+        if (currentState == ChatRoom.ChatRoomState.ADMIN_ACTIVE && chatRoom.hasAssignedAdmin()) {
+            delta.put("adminInfo", Map.of(
+                "adminCode", chatRoom.getCurrentAdminCode(),
+                "displayName", chatRoom.getAdminDisplayName() != null ? chatRoom.getAdminDisplayName() : "관리자",
+                "lastActivity", chatRoom.getLastAdminActivity() != null ? chatRoom.getLastAdminActivity().toString() : ""
+            ));
+        }
+        
+        // Add handoff info only for waiting state (conditional data)
+        if (currentState == ChatRoom.ChatRoomState.WAITING_FOR_ADMIN && chatRoom.getHandoffRequestedAt() != null) {
+            delta.put("handoffInfo", Map.of(
+                "requestedAt", chatRoom.getHandoffRequestedAt().toString(),
+                "aiSummaryGenerated", false
+            ));
+        }
+        
+        return delta;
+    }
+
+    /**
+     * 채팅방 상태 정보 생성 (모든 WebSocket 메시지에 포함)
+     * Legacy method for backward compatibility
+     */
+    private Map<String, Object> createRoomStateInfo(ChatRoom chatRoom, String transitionReason) {
+        if (chatRoom == null) {
+            return Map.of(
+                "current", "AI_ACTIVE",
+                "description", "AI 상담 중",
+                "buttonText", "Request Human",
+                "timestamp", java.time.LocalDateTime.now().toString(),
+                "transitionReason", transitionReason != null ? transitionReason : "unknown"
+            );
+        }
+        
+        ChatRoom.ChatRoomState currentState = chatRoom.getCurrentState();
+        Map<String, Object> stateInfo = Map.of(
+            "current", currentState.name(),
+            "description", currentState.getDescription(),
+            "buttonText", currentState.getButtonText(),
+            "timestamp", java.time.LocalDateTime.now().toString(),
+            "transitionReason", transitionReason != null ? transitionReason : "message_flow"
+        );
+        
+        // Add admin info for admin active states
+        if (currentState == ChatRoom.ChatRoomState.ADMIN_ACTIVE && chatRoom.hasAssignedAdmin()) {
+            Map<String, Object> adminInfo = Map.of(
+                "adminCode", chatRoom.getCurrentAdminCode(),
+                "displayName", chatRoom.getAdminDisplayName() != null ? chatRoom.getAdminDisplayName() : "관리자",
+                "lastActivity", chatRoom.getLastAdminActivity() != null ? chatRoom.getLastAdminActivity().toString() : ""
+            );
+            
+            return Map.of(
+                "current", currentState.name(),
+                "description", currentState.getDescription(),
+                "buttonText", currentState.getButtonText(),
+                "timestamp", java.time.LocalDateTime.now().toString(),
+                "transitionReason", transitionReason != null ? transitionReason : "message_flow",
+                "adminInfo", adminInfo
+            );
+        }
+        
+        // Add handoff info for waiting state
+        if (currentState == ChatRoom.ChatRoomState.WAITING_FOR_ADMIN && chatRoom.getHandoffRequestedAt() != null) {
+            Map<String, Object> handoffInfo = Map.of(
+                "requestedAt", chatRoom.getHandoffRequestedAt().toString(),
+                "aiSummaryGenerated", false // Will be true after handoff completion
+            );
+            
+            return Map.of(
+                "current", currentState.name(),
+                "description", currentState.getDescription(),
+                "buttonText", currentState.getButtonText(),
+                "timestamp", java.time.LocalDateTime.now().toString(),
+                "transitionReason", transitionReason != null ? transitionReason : "message_flow",
+                "handoffInfo", handoffInfo
+            );
+        }
+        
+        return stateInfo;
     }
     
     /**
