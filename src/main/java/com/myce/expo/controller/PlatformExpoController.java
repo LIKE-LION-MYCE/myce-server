@@ -1,5 +1,6 @@
 package com.myce.expo.controller;
 
+import com.myce.auth.dto.CustomUserDetails;
 import com.myce.common.dto.PageResponse;
 import com.myce.expo.dto.ExpoApplicationResponse;
 import com.myce.expo.dto.ExpoApplicationDetailResponse;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -178,10 +180,14 @@ public class PlatformExpoController {
      * 박람회 정산 승인
      */
     @PostMapping("/{expoId}/settlement-approve")
-    public ResponseEntity<Void> approveSettlement(@PathVariable Long expoId) {
+    public ResponseEntity<Void> approveSettlement(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId) {
         
+        Long adminMemberId = customUserDetails.getMemberId();
+        log.info("박람회 정산 승인 요청 - expoId: {}, adminMemberId: {}", expoId, adminMemberId);
         
-        platformExpoManageService.approveSettlement(expoId);
+        platformExpoManageService.approveSettlement(expoId, adminMemberId);
         
         return ResponseEntity.ok().build();
     }

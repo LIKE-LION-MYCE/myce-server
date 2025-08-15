@@ -107,8 +107,12 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
         AdPaymentInfo paymentInfo = adPaymentInfoRepository
                 .findByAdvertisementId(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        Payment payment = paymentRepository
+                .findByTargetIdAndTargetType(adId, PaymentTargetType.AD)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
         log.info("getPaymentHistory - AdPaymentInfo : {}", paymentInfo);
-        return AdInfoMapper.getPaymentInfoRequest(paymentInfo);
+        return AdInfoMapper.getPaymentInfoResponse(paymentInfo, payment);
     }
 
     public AdCancelHistoryResponse getCancelHistory(Long adId) {

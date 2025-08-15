@@ -37,16 +37,16 @@ public class AdminTimeoutScheduler implements TaskScheduler {
     
     @PostConstruct
     public void init() {
-        log.debug("[Scheduler] Registered admin timeout scheduler - 담당자 {}분 비활성시 자동 해제", TIMEOUT_MINUTES);
+        log.info("Admin timeout scheduler has been registered. Auto release after {} minutes of inactivity", TIMEOUT_MINUTES);
     }
 
     @Override
-    @Scheduled(cron = "${scheduler.admin-timeout: 0 */1 * * * *}") // 매 1분마다 실행, 설정으로 변경 가능
+    @Scheduled(cron = "${scheduler.admin-timeout}")
     public void run() {
         try {
             this.process();
         } catch (Exception e) {
-            log.error("담당자 타임아웃 스케줄러 실행 실패", e);
+            log.error("Error occurred during admin timeout scheduler execution", e);
         }
     }
 
@@ -74,7 +74,7 @@ public class AdminTimeoutScheduler implements TaskScheduler {
             room.releaseAdmin();
             rooms.add(room);
             
-            log.info("비활성 담당자 해제 예정: [{}] {} ({}분간 비활성)", 
+            log.info("Releasing inactive admin: [{}] {} ({} minutes inactive)", 
                     room.getRoomCode(), adminDisplayName, TIMEOUT_MINUTES);
         }
         
@@ -86,7 +86,7 @@ public class AdminTimeoutScheduler implements TaskScheduler {
             sendBatchReleaseNotifications(rooms);
         }
         
-        log.info("담당자 타임아웃 처리 완료: {}건 일괄 업데이트됨", rooms.size());
+        log.info("Admin timeout processing completed: {} rooms batch updated", rooms.size());
     }
     
     /**

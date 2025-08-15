@@ -10,13 +10,14 @@ import com.myce.expo.entity.Expo;
 import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.notification.service.EmailSendService;
+import com.myce.reservation.repository.ReserverRepository;
+import com.myce.system.document.EmailLog;
 import com.myce.system.dto.email.ExpoAdminEmailRequest;
 import com.myce.system.service.email.ExpoAdminEmailService;
 import com.myce.system.service.email.mapper.ExpoAdminEmailMapper;
 import com.myce.system.repository.EmailLogRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -33,10 +34,10 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
     private final BusinessProfileRepository businessProfileRepository;
     private final AdminPermissionRepository adminPermissionRepository;
 
+    private final ReserverRepository reserverRepository;
     private final EmailLogRepository emailLogRepository;
     private final EmailSendService emailSendService;
     private final SpringTemplateEngine templateEngine;
-    private final MongoTemplate mongoTemplate;
     private final ExpoAdminEmailMapper mapper;
     
     //TODO : 추후 링크 교체, 또는 @Value로 값 주입
@@ -46,16 +47,36 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
 
     @Override
     @Transactional
-    public void sendMail(Long memberId, LoginType loginType, Long expoId, ExpoAdminEmailRequest dto) {
+    public void sendMail(Long memberId,
+                         LoginType loginType,
+                         Long expoId,
+                         ExpoAdminEmailRequest dto,
+                         String entranceStatus,
+                         String name,
+                         String phone,
+                         String reservationCode,
+                         String ticketName) {
+
         validateMyAccess(expoId, memberId, loginType);
         String html = renderEmailHtml(expoId,dto);
 
-        List<String> emails = dto.getRecipientInfos().stream()
-                        .map(info -> info.getEmail())
-                        .toList();
-        emailSendService.sendMailToMultiple(emails, dto.getSubject(), html);
+        List<EmailLog.RecipientInfo> recipientInfos;
+        if(dto.isSelectAllMatching()){
+            recipientInfos = reserverRepository.findReserversByFilter(expoId, entranceStatus, name, phone, reservationCode, ticketName)
+                    .stream()
+                    .map(r -> new EmailLog.RecipientInfo(r.getEmail(),r.getName()))
+                    .toList();
+        }else{
+            recipientInfos = dto.getRecipientInfos();
+        }
 
-        emailLogRepository.save(mapper.toDocument(expoId,dto));
+        List<String> emails = recipientInfos.stream()
+                        .map(EmailLog.RecipientInfo::getEmail)
+                        .toList();
+        
+        emailSendService.sendMailToMultiple(emails, dto.getSubject(), html); //TODO: 추후 대량 이메일 전송 대비 배치 도입 고려
+
+        emailLogRepository.save(mapper.toDocument(expoId,dto,recipientInfos));
     }
 
     private String renderEmailHtml(Long expoId, ExpoAdminEmailRequest dto){
@@ -69,10 +90,14 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
         String contactPhone = profile.map(BusinessProfile::getContactPhone).orElse(null);
         String contactEmail = profile.map(BusinessProfile::getContactEmail).orElse(null);
 
+        String contentHtml = Optional.ofNullable(dto.getContent())
+                .map(s -> s.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br/>"))
+                .orElse("");
+
         Context ctx = new Context(Locale.KOREA);
         ctx.setVariable("preheader", toPreheader(dto.getContent(), 80));
         ctx.setVariable("subject", dto.getSubject());
-        ctx.setVariable("content", dto.getContent());
+        ctx.setVariable("content", contentHtml);
         ctx.setVariable("expoName",expoName);
         ctx.setVariable("contactPhone",contactPhone);
         ctx.setVariable("contactEmail",contactEmail);

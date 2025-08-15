@@ -2,16 +2,22 @@ package com.myce.member.service.impl;
 
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.member.dto.MemberInfoListResponse;
 import com.myce.member.dto.MemberInfoResponse;
 import com.myce.member.dto.MemberInfoWithMileageResponse;
 import com.myce.member.dto.PasswordChangeRequest;
 import com.myce.member.entity.Member;
+import com.myce.member.entity.type.Role;
 import com.myce.member.mapper.MemberInfoMapper;
 import com.myce.member.repository.MemberGradeRepository;
 import com.myce.member.repository.MemberRepository;
 import com.myce.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +56,15 @@ public class MemberServiceImpl implements MemberService {
 
         member.resetPassword(passwordEncoder.encode(newPassword));
         log.debug("[Member] Change password of member. memberId={}", memberId);
+    }
+
+    @Override
+    public MemberInfoListResponse getMemberInfoByRole(int page, String roleKeyword) {
+        Role role = Role.fromName(roleKeyword);
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        Pageable pageable = PageRequest.of(page, 15, sort);
+        Page<Member> memberPage = memberRepository.findByRole(role, pageable);
+        return memberInfoMapper.toListResponseDto(memberPage);
     }
 
     private Member findMemberById(Long memberId) {

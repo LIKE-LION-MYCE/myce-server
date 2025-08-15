@@ -41,6 +41,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     @Query("""
             SELECT new com.myce.reservation.dto.ExpoAdminPaymentBasicResponse(
+                r.id,
                 r.reservationCode,
                 CASE
                     WHEN r.userType = com.myce.reservation.entity.code.UserType.MEMBER THEN m.name
@@ -114,6 +115,32 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     long countAllByCreatedAtAfter(LocalDateTime createdAt);
            
     List<Reservation> findByExpoId(Long expoId);
+
+    // === 대시보드 통계용 쿼리 메서드들 ===
+
+    // 특정 박람회의 누적 예약자 수
+    @Query("SELECT COUNT(r) FROM Reservation r WHERE r.expo.id = :expoId AND r.status != 'CANCELLED'")
+    Long countTotalReservationsByExpoId(@Param("expoId") Long expoId);
+
+    // 특정 박람회의 오늘 예약자 수
+    @Query("SELECT COUNT(r) FROM Reservation r " +
+           "WHERE r.expo.id = :expoId " +
+           "AND r.status != 'CANCELLED' " +
+           "AND DATE(r.createdAt) = :today")
+    Long countTodayReservationsByExpoId(@Param("expoId") Long expoId, @Param("today") LocalDate today);
+
+    // 특정 박람회의 날짜별 예약자 수 (일주일)
+    @Query("SELECT DATE(r.createdAt) as date, COUNT(r) as count " +
+           "FROM Reservation r " +
+           "WHERE r.expo.id = :expoId " +
+           "AND r.status != 'CANCELLED' " +
+           "AND r.createdAt >= :startDate " +
+           "AND r.createdAt <= :endDate " +
+           "GROUP BY DATE(r.createdAt) " +
+           "ORDER BY DATE(r.createdAt)")
+    List<Object[]> countReservationsByDateRange(@Param("expoId") Long expoId,
+                                               @Param("startDate") LocalDateTime startDate,
+                                               @Param("endDate") LocalDateTime endDate);
 
     List<Reservation> findByUserIdAndUserTypeAndStatus(Long userId, UserType userType, ReservationStatus status);
 }

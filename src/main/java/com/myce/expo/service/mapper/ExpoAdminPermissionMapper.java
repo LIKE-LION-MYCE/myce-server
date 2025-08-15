@@ -19,7 +19,6 @@ public class ExpoAdminPermissionMapper {
                     .isPaymentView(true)
                     .isEmailLogView(true)
                     .isOperationsConfigUpdate(true)
-                    .isSettlementView(true)
                     .isInquiryView(true)
                     .build();
         }
@@ -32,7 +31,6 @@ public class ExpoAdminPermissionMapper {
                 .isPaymentView(adminPermission.getIsPaymentView())
                 .isEmailLogView(adminPermission.getIsEmailLogView())
                 .isOperationsConfigUpdate(adminPermission.getIsOperationsConfigUpdate())
-                .isSettlementView(adminPermission.getIsSettlementView())
                 .isInquiryView(adminPermission.getIsInquiryView())
                 .build();
     }

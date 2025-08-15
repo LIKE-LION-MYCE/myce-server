@@ -71,13 +71,13 @@ public class PlatformAdServiceImpl implements PlatformAdService {
         if (isApply) {
             return List.of(AdvertisementStatus.PENDING_APPROVAL,
                     AdvertisementStatus.PENDING_PAYMENT,
-                    AdvertisementStatus.PENDING_PUBLISH,
-                    AdvertisementStatus.REJECTED,
-                    AdvertisementStatus.CANCELLED,
-                    AdvertisementStatus.COMPLETED);
+                    AdvertisementStatus.REJECTED);
         } else {
             return List.of(AdvertisementStatus.PUBLISHED,
-                    AdvertisementStatus.PENDING_CANCEL);
+                    AdvertisementStatus.PENDING_CANCEL,
+                    AdvertisementStatus.PENDING_PUBLISH,
+                    AdvertisementStatus.CANCELLED,
+                    AdvertisementStatus.COMPLETED);
         }
     }
 

@@ -2,6 +2,7 @@ package com.myce.member.mapper.expo;
 
 import com.myce.common.entity.BusinessProfile;
 import com.myce.expo.entity.Expo;
+import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.member.dto.expo.ExpoRefundReceiptResponse;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import org.springframework.stereotype.Component;
@@ -36,9 +37,19 @@ public class ExpoRefundReceiptMapper {
         // 총 이용료 계산
         int totalUsageFee = expoPaymentInfo.getTotalDay() * expoPaymentInfo.getDailyUsageFee();
         
-        // 금액 계산
-        int usedAmount = usedDays * expoPaymentInfo.getDailyUsageFee();
-        int refundAmount = remainingDays * expoPaymentInfo.getDailyUsageFee();
+        // 금액 계산 - 엑스포 상태에 따라 환불 금액 결정
+        int usedAmount;
+        int refundAmount;
+        
+        if (expo.getStatus() == ExpoStatus.PENDING_PUBLISH) {
+            // 게시 대기 상태: 전액 환불 (등록금 + 전체 이용료)
+            usedAmount = 0;
+            refundAmount = depositAmount + totalUsageFee;
+        } else {
+            // 게시 중 또는 기타 상태: 부분 환불 (남은 이용료만)
+            usedAmount = usedDays * expoPaymentInfo.getDailyUsageFee();
+            refundAmount = remainingDays * expoPaymentInfo.getDailyUsageFee();
+        }
         
         return ExpoRefundReceiptResponse.builder()
                 .expoTitle(expo.getTitle())
