@@ -160,8 +160,17 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
 
         switch (request.getTargetType()) {
             case RESERVATION:
+                // 예약 정보 조회
                 Reservation reservation = reservationRepository.findById(request.getTargetId())
                         .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+
+                // 비회원 적림금 지급 방지 추가
+                if (reservation.getUserType() == UserType.GUEST) {
+                    log.info("비회원 예매이므로 적립금을 0으로 설정 ReservationId: {}", reservation.getId());
+                    request.setSavedMileage(0);
+                }
+
+                // PaymentInfo 생성 후 저장
                 ReservationPaymentInfo reservationPaymentInfo = paymentMapper.toReservationPaymentInfo(request,
                         reservation, paidAmount, paymentStatus);
                 savedPaymentInfo = reservationPaymentInfoRepository.save(reservationPaymentInfo);
