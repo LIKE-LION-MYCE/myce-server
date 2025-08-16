@@ -1,10 +1,10 @@
 package com.myce.payment.service.verification.impl;
 
-import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.repository.AdRepository;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.member.service.MemberAdService;
 import com.myce.member.service.MemberExpoService;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
@@ -24,7 +24,6 @@ import com.myce.payment.service.verification.PaymentVerificationService;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.code.UserType;
 import com.myce.reservation.repository.ReservationRepository;
-import com.myce.system.entity.AdFeeSetting;
 import com.myce.system.repository.AdFeeSettingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +50,7 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
     private final AdRepository adRepository;
     private final AdFeeSettingRepository adFeeSettingRepository;
     private final MemberExpoService memberExpoService;
+    private final MemberAdService memberAdService;
 
     // 카드 결제 검증 및 저장
     @Override
@@ -159,6 +159,7 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
     private Object savePaymentInfoDetails(PaymentVerifyRequest request, Integer paidAmount,
         PaymentStatus paymentStatus, UserIdentifier userIdentifier) {
         Object savedPaymentInfo;
+        Long memberId = null;
 
         switch (request.getTargetType()) {
             case RESERVATION:
@@ -178,14 +179,16 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
                 savedPaymentInfo = reservationPaymentInfoRepository.save(reservationPaymentInfo);
                 break;
             case AD:
-                Advertisement advertisement = adRepository.findById(request.getTargetId())
-                        .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
-                AdFeeSetting adFeeSetting = adFeeSettingRepository.findByAdPositionIdAndIsActiveTrue(
-                                advertisement.getAdPosition().getId())
-                        .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
-                AdPaymentInfo adPaymentInfo = paymentMapper.toAdPaymentInfo(advertisement, adFeeSetting,
-                        paidAmount, paymentStatus);
+                // 이미 PaymentInfo 있으므로 SUCCESS로만
+                AdPaymentInfo adPaymentInfo = adPaymentInfoRepository.findByAdvertisementId(request.getTargetId())
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+                adPaymentInfo.updateStatus(paymentStatus);
                 savedPaymentInfo = adPaymentInfoRepository.save(adPaymentInfo);
+
+                memberId = userIdentifier.getUserId();
+
+                // completeAdvertisementPayment 호출
+                memberAdService.completeAdvertisementPayment(memberId, request.getTargetId());
                 break;
             case EXPO:
                 // 이미 PaymentInfo 있으므로 SUCCESS로만
@@ -195,7 +198,7 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
                 savedPaymentInfo = expoPaymentInfoRepository.save(expoPaymentInfo);
 
                 // SecurityContext에서 사용자 정보 가져오기
-                Long memberId = userIdentifier.getUserId();
+                memberId = userIdentifier.getUserId();
 
                 // completeExpoPayment 호출
                 memberExpoService.completeExpoPayment(memberId, request.getTargetId());
