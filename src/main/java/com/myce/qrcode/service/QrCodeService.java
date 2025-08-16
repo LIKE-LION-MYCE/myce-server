@@ -12,4 +12,5 @@ public interface QrCodeService {
     String getQrImageUrlByReserverId(Long reserverId);
     String getQrImageUrlByToken(String token);
     QrVerifyResponse verifyQrCode(String token, Long adminMemberId, LoginType loginType);
+    void issueQrForReservation(Long reservationId);
 }

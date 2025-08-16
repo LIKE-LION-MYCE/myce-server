@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -253,10 +254,10 @@ public class QrCodeServiceImpl implements QrCodeService {
         
         QrCode qrCode = qrCodeRepository.findByQrToken(token)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.QR_NOT_FOUND));
-        
+
         // 관리자 권한 검증
         validateAdminPermission(adminMemberId, qrCode.getReserver(), loginType);
-        
+
         // 매퍼를 통해 응답 생성 (상태만 체크)
         QrVerifyResponse response = qrResponseMapper.toVerifyResponse(qrCode);
         
@@ -309,5 +310,106 @@ public class QrCodeServiceImpl implements QrCodeService {
      */
     private void notifyMemberViaSseEmitters(Long memberId, String content) {
         sseService.notifyMemberViaSseEmitters(memberId, content);
+    }
+
+    @Override
+    @Transactional
+    public void issueQrForReservation(Long reservationId) {
+        log.info("예매 완료 시 QR 코드 즉시 생성 시작 - 예약 ID: {}", reservationId);
+        
+        // 해당 예약의 모든 예약자 조회
+        List<Reserver> reservers = reserverRepository.findByReservationId(reservationId);
+        
+        if (reservers.isEmpty()) {
+            log.warn("예약자를 찾을 수 없습니다 - 예약 ID: {}", reservationId);
+            return;
+        }
+        
+        Reservation reservation = reservers.get(0).getReservation();
+        Expo expo = reservation.getExpo();
+        LocalDate today = LocalDate.now();
+        LocalDate expoStartDate = expo.getStartDate();
+        LocalDate twoDaysBefore = expoStartDate.minusDays(2);
+        
+        // 박람회 시작 2일 전부터 즉시 QR 생성 (스케줄러 백업)
+        if (today.isAfter(twoDaysBefore) || today.isEqual(twoDaysBefore)) {
+            log.info("박람회 시작 2일 전 이후 예매 감지 - 즉시 QR 생성. 박람회: {}, 시작일: {}, 오늘: {}", 
+                    expo.getTitle(), expoStartDate, today);
+            
+            int successCount = 0;
+            int failCount = 0;
+            
+            for (Reserver reserver : reservers) {
+                try {
+                    // 기존 QR이 있는지 확인
+                    if (qrCodeRepository.findByReserver(reserver).isPresent()) {
+                        log.debug("이미 QR 코드가 존재함 - 예약자 ID: {}", reserver.getId());
+                        continue;
+                    }
+                    
+                    // 날짜에 따라 적절한 상태로 QR 코드 생성
+                    createQrCodeWithAppropriateStatus(reserver);
+                    log.debug("즉시 QR 코드 생성 완료 - 예약자 ID: {}", reserver.getId());
+                    
+                    // 알림 전송
+                    sendQrIssuedNotification(reserver, false);
+                    successCount++;
+                } catch (Exception e) {
+                    log.error("즉시 QR 코드 생성 실패 - 예약자 ID: {}, 오류: {}", 
+                            reserver.getId(), e.getMessage(), e);
+                    failCount++;
+                }
+            }
+            
+            log.info("예매 완료 시 QR 코드 즉시 생성 완료 - 예약 ID: {}, 성공: {} 명, 실패: {} 명", 
+                    reservationId, successCount, failCount);
+        } else {
+            log.info("박람회 시작까지 2일 이상 남음 - 스케줄러에서 생성 예정. 박람회: {}, 시작일: {}, 오늘: {}", 
+                    expo.getTitle(), expoStartDate, today);
+        }
+    }
+    
+    /**
+     * 현재 날짜에 따라 적절한 상태로 QR 코드 생성
+     */
+    private void createQrCodeWithAppropriateStatus(Reserver reserver) {
+        try {
+            String token = UUID.randomUUID().toString();
+            
+            // QR 이미지 생성
+            BitMatrix matrix = new MultiFormatWriter()
+                    .encode(token, BarcodeFormat.QR_CODE, 300, 300);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(matrix, "PNG", out);
+            byte[] image = out.toByteArray();
+            
+            String imageUrl = uploadToStorage(image, token);
+            
+            // 티켓 use_start_date와 현재 날짜 비교하여 상태 결정
+            LocalDate today = LocalDate.now();
+            LocalDate ticketUseStartDate = reserver.getReservation().getTicket().getUseStartDate();
+            
+            QrCodeStatus status = today.isBefore(ticketUseStartDate) ? QrCodeStatus.APPROVED : QrCodeStatus.ACTIVE;
+            
+            // 티켓 정보를 통해 QR 코드 활성화/만료 시간 계산
+            LocalDateTime activatedAt = calculateActivatedAt(reserver);
+            LocalDateTime expiredAt = calculateExpiredAt(reserver);
+            
+            QrCode qr = QrCode.builder()
+                    .reserver(reserver)
+                    .qrToken(token)
+                    .qrImageUrl(imageUrl)
+                    .status(status)
+                    .activatedAt(activatedAt)
+                    .expiredAt(expiredAt)
+                    .build();
+            
+            qrCodeRepository.save(qr);
+            
+            log.info("날짜 기반 QR 코드 생성 완료 - 예약자 ID: {}, 상태: {}", reserver.getId(), status);
+        } catch (Exception e) {
+            log.error("날짜 기반 QR 코드 생성 실패 - 예약자 ID: {}, 오류: {}", reserver.getId(), e.getMessage(), e);
+            throw new CustomException(CustomErrorCode.QR_GENERATION_FAILED);
+        }
     }
 }

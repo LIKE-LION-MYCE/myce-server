@@ -92,10 +92,10 @@ public class Advertisement {
         }
         this.status = AdvertisementStatus.PENDING_PAYMENT;
     }
-    
+
     public void cancel() {
         if (this.status != AdvertisementStatus.PUBLISHED &&
-            this.status != AdvertisementStatus.PENDING_CANCEL) {
+                this.status != AdvertisementStatus.PENDING_CANCEL) {
             throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
         }
         this.status = AdvertisementStatus.CANCELLED;

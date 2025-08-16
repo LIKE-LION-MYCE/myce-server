@@ -13,6 +13,7 @@ import com.myce.member.entity.Guest;
 import com.myce.member.entity.Member;
 import com.myce.member.repository.GuestRepository;
 import com.myce.member.repository.MemberRepository;
+import com.myce.member.entity.MemberGrade;
 import com.myce.payment.entity.Payment;
 import com.myce.payment.entity.ReservationPaymentInfo;
 import com.myce.payment.entity.type.PaymentTargetType;
@@ -36,10 +37,12 @@ import com.myce.reservation.repository.ReservationRepository;
 import com.myce.reservation.repository.ReserverRepository;
 import com.myce.reservation.service.ReservationService;
 import com.myce.reservation.service.mapper.ReservationMapper;
+import com.myce.qrcode.service.QrCodeService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +53,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class ReservationServiceImpl implements ReservationService {
     
     private final ReservationRepository reservationRepository;
@@ -63,6 +67,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final GuestRepository guestRepository;
     private final PaymentRepository paymentRepository;
     private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
+    private final QrCodeService qrCodeService;
 
     @Override
     public ReservationDetailResponse getReservationDetail(Long reservationId, CustomUserDetails currentUser) {
@@ -74,7 +79,20 @@ public class ReservationServiceImpl implements ReservationService {
 
         List<Reserver> reservers = reserverRepository.findByReservation(reservation);
         
-        return reservationDetailMapper.toResponseDto(reservation, reservers);
+        // 결제 정보 조회
+        ReservationPaymentInfo paymentInfo = reservationPaymentInfoRepository.findByReservationId(reservationId).orElse(null);
+        Payment payment = paymentRepository.findByTargetIdAndTargetType(reservationId, PaymentTargetType.RESERVATION).orElse(null);
+        
+        // 회원 등급 정보 조회 (회원인 경우만)
+        MemberGrade memberGrade = null;
+        if (reservation.getUserType() == UserType.MEMBER) {
+            Member member = memberRepository.findById(reservation.getUserId()).orElse(null);
+            if (member != null) {
+                memberGrade = member.getMemberGrade();
+            }
+        }
+        
+        return reservationDetailMapper.toResponseDto(reservation, reservers, paymentInfo, payment, memberGrade);
     }
     
     @Override
@@ -129,6 +147,15 @@ public class ReservationServiceImpl implements ReservationService {
             .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
 
         reservation.updateStatus(ReservationStatus.CONFIRMED);
+        
+        // 예매 확정 시 QR 코드 즉시 생성 (2일 이내 예매인 경우)
+        try {
+            qrCodeService.issueQrForReservation(reservationId);
+        } catch (Exception e) {
+            // QR 생성 실패가 예매 확정에 영향을 주지 않도록 로그만 남김
+            // (QR은 스케줄러에서도 생성되므로 백업 메커니즘 존재)
+            log.warn("예매 확정 시 QR 코드 즉시 생성 실패 - 예약 ID: {}, 오류: {}", reservationId, e.getMessage());
+        }
     }
 
     @Override

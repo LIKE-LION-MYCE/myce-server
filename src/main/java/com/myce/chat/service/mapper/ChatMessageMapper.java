@@ -2,6 +2,9 @@ package com.myce.chat.service.mapper;
 
 import com.myce.chat.document.ChatMessage;
 import com.myce.chat.dto.MessageResponse;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 
 public class ChatMessageMapper {
 

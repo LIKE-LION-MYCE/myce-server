@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -20,6 +21,7 @@ public class ReservationDetailResponse {
     private ExpoInfo expoInfo;
     private ReservationInfo reservationInfo;
     private List<ReserverInfo> reserverInfos;
+    private PaymentInfo paymentInfo;
     
     @Getter
     @NoArgsConstructor
@@ -31,6 +33,8 @@ public class ReservationDetailResponse {
         private String title;
         private String location;
         private String locationDetail;
+        private LocalDate startDate;
+        private LocalDate endDate;
         private LocalDate displayStartDate;
         private LocalDate displayEndDate;
         private LocalTime startTime;
@@ -49,6 +53,8 @@ public class ReservationDetailResponse {
         private Integer ticketPrice;
         private String ticketName;
         private String ticketType;
+        private LocalDate ticketUseStartDate;
+        private LocalDate ticketUseEndDate;
     }
     
     @Getter
@@ -62,5 +68,22 @@ public class ReservationDetailResponse {
         private String phone;
         private String email;
         private String qrCodeUrl;
+    }
+    
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class PaymentInfo {
+        private Integer usedMileage;
+        private Integer savedMileage;
+        private Integer totalAmount;
+        private String paymentStatus;
+        private String paymentMethod;
+        private String paymentDetail;
+        private LocalDateTime paidAt;
+        private String memberGrade;
+        private BigDecimal mileageRate;
+        private String gradeDescription;
     }
 }

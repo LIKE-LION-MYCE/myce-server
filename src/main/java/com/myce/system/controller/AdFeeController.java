@@ -2,8 +2,11 @@ package com.myce.system.controller;
 
 import com.myce.system.dto.fee.AdFeeListResponse;
 import com.myce.system.dto.fee.AdFeeRequest;
+import com.myce.system.dto.fee.AdFeeResponse;
 import com.myce.system.dto.fee.FeeActiveRequest;
 import com.myce.system.service.fee.AdFeeService;
+
+import java.util.List;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -42,5 +45,11 @@ public class AdFeeController {
     public ResponseEntity<Void> updateActivation(@PathVariable Long id, @RequestBody FeeActiveRequest request) {
         adFeeService.updateAdFeeActivation(id, request);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<List<AdFeeResponse>> getActiveAdFees() {
+        List<AdFeeResponse> responses = adFeeService.getActiveAdFees();
+        return ResponseEntity.ok(responses);
     }
 }

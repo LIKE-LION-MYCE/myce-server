@@ -262,4 +262,6 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
             "END " +
             "ORDER BY ageGroup")
     List<Object[]> countReserversByAgeGroup(@Param("expoId") Long expoId);
+
+    List<Reserver> findByReservationId(Long reservationId);
 }

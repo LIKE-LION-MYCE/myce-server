@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -56,7 +57,14 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
                 .findByTargetIdAndTargetType(ad.getId(), PaymentTargetType.AD)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
 
-        ad.denyCancel();
+        if(ad.getDisplayEndDate().isBefore(LocalDate.now())){
+            ad.complete();
+        }else if(ad.getDisplayStartDate().isBefore(LocalDate.now())){
+            ad.approve();
+        }else{
+            ad.denyCancel();
+        }
+
         refundRepository.deleteByPayment(payment);
     }
 

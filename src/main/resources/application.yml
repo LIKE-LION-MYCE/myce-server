@@ -5,6 +5,7 @@ logging:
   level:
     root: info
     com.myce: debug
+    com.myce.common.aop.ControllerLoggingAspect: debug
 
 spring:
   profiles:
@@ -165,9 +166,11 @@ port-one:
   test-mode: false
 scheduler:
   test: "0 * * * * *" # every minute
-  days: "0 0 0 * * *" # every day
+  ad-publish: "0 0 0 * * *" # 배너 게시 상태 체크, 일일 단위
   qr-code-activate: 0 10 0 * * * # QR 코드 활성화 - 매일 00:10에 실행
   qr-code-expire: 0 20 0 * * * # QR 코드 만료 처리 - 매일 00:20에 실행
   expo-qr-generate: 0 0 0 * * * # 박람회 QR코드 일괄 생성 - 매일 00:00에 실행
   admin-timeout: 0 */1 * * * * # 1분마다 (테스트용) -> 담당자 배졍
-  expo-publish: "0 */1 * * * *" # 1분마다 박람회 게시 상태 체크 및 종료 처리 (테스트용)
+  expo-publish: "0 */10 * * * *" # 10분마다 박람회 게시 상태 체크 및 종료 처리
+  expo-notification: "0 0 9 * * *" # 박람회 시작 하루 전 알림 - 매일 오전 9시에 실행
+  event-notification: "0 0 * * * *" # 이벤트 시작 1시간 전 알림 - 매시 정각에 실행

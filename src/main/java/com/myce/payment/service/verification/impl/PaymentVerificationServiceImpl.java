@@ -1,12 +1,11 @@
 package com.myce.payment.service.verification.impl;
 
-import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.repository.AdRepository;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
-import com.myce.expo.entity.Expo;
-import com.myce.expo.repository.ExpoRepository;
+import com.myce.member.service.MemberAdService;
+import com.myce.member.service.MemberExpoService;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.UserIdentifier;
@@ -25,10 +24,7 @@ import com.myce.payment.service.verification.PaymentVerificationService;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.code.UserType;
 import com.myce.reservation.repository.ReservationRepository;
-import com.myce.system.entity.AdFeeSetting;
-import com.myce.system.entity.ExpoFeeSetting;
 import com.myce.system.repository.AdFeeSettingRepository;
-import com.myce.system.repository.ExpoFeeSettingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -52,9 +48,9 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
     private final ExpoPaymentInfoRepository expoPaymentInfoRepository;
     private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
     private final AdRepository adRepository;
-    private final ExpoRepository expoRepository;
     private final AdFeeSettingRepository adFeeSettingRepository;
-    private final ExpoFeeSettingRepository expoFeeSettingRepository;
+    private final MemberExpoService memberExpoService;
+    private final MemberAdService memberAdService;
 
     // 카드 결제 검증 및 저장
     @Override
@@ -63,7 +59,7 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
         String accessToken = portOneApiService.getAccessToken();
         Map<String, Object> portOnePayment = portOneApiService.getPaymentInfo(request.getImpUid(), accessToken);
         Integer paidAmount = verifyPaymentDetails(request, portOnePayment);
-        identifyUser(request);
+        UserIdentifier userIdentifier = identifyUser(request);
         String payMethod = (String) portOnePayment.get("pay_method");
         Payment payment = null;
         if(payMethod == "card"){
@@ -72,7 +68,7 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
             payment = paymentMapper.toEntityTransfer(request, portOnePayment);
         }
         paymentRepository.save(payment);
-        Object paymentInfo = savePaymentInfoDetails(request, paidAmount, payment, PaymentStatus.SUCCESS);
+        Object paymentInfo = savePaymentInfoDetails(request, paidAmount, PaymentStatus.SUCCESS, userIdentifier);
         return paymentMapper.toPaymentVerifyResponse(payment, paymentInfo);
     }
 
@@ -83,10 +79,10 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
         String accessToken = portOneApiService.getAccessToken();
         Map<String, Object> portOnePayment = portOneApiService.getPaymentInfo(request.getImpUid(), accessToken);
         Integer paidAmount = verifyVbankDetails(request, portOnePayment);
-        identifyUser(request);
+        UserIdentifier userIdentifier = identifyUser(request);
         Payment payment = paymentMapper.toEntity(request, portOnePayment);
         paymentRepository.save(payment);
-        Object paymentInfo = savePaymentInfoDetails(request, paidAmount, payment, PaymentStatus.PENDING);
+        Object paymentInfo = savePaymentInfoDetails(request, paidAmount, PaymentStatus.PENDING, userIdentifier);
         return paymentMapper.toPaymentVerifyResponse(payment, paymentInfo);
     }
 
@@ -161,8 +157,9 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
 
     // 결제 대상별 세부 결제 정보 저장(Reservation, Ad, Expo)
     private Object savePaymentInfoDetails(PaymentVerifyRequest request, Integer paidAmount,
-                                          Payment payment, PaymentStatus paymentStatus) {
+        PaymentStatus paymentStatus, UserIdentifier userIdentifier) {
         Object savedPaymentInfo;
+        Long memberId = null;
 
         switch (request.getTargetType()) {
             case RESERVATION:
@@ -182,23 +179,29 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
                 savedPaymentInfo = reservationPaymentInfoRepository.save(reservationPaymentInfo);
                 break;
             case AD:
-                Advertisement advertisement = adRepository.findById(request.getTargetId())
-                        .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
-                AdFeeSetting adFeeSetting = adFeeSettingRepository.findByAdPositionIdAndIsActiveTrue(
-                                advertisement.getAdPosition().getId())
-                        .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
-                AdPaymentInfo adPaymentInfo = paymentMapper.toAdPaymentInfo(advertisement, adFeeSetting,
-                        paidAmount, paymentStatus);
+                // 이미 PaymentInfo 있으므로 SUCCESS로만
+                AdPaymentInfo adPaymentInfo = adPaymentInfoRepository.findByAdvertisementId(request.getTargetId())
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+                adPaymentInfo.updateStatus(paymentStatus);
                 savedPaymentInfo = adPaymentInfoRepository.save(adPaymentInfo);
+
+                memberId = userIdentifier.getUserId();
+
+                // completeAdvertisementPayment 호출
+                memberAdService.completeAdvertisementPayment(memberId, request.getTargetId());
                 break;
             case EXPO:
-                Expo expo = expoRepository.findById(request.getTargetId())
-                        .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
-                ExpoFeeSetting expoFeeSetting = expoFeeSettingRepository.findByIsActiveTrue()
-                        .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
-                ExpoPaymentInfo expoPaymentInfo = paymentMapper.toExpoPaymentInfo(expo, expoFeeSetting,
-                        paidAmount, paymentStatus);
+                // 이미 PaymentInfo 있으므로 SUCCESS로만
+                ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findByExpoId(request.getTargetId())
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+                expoPaymentInfo.updateStatus(paymentStatus);
                 savedPaymentInfo = expoPaymentInfoRepository.save(expoPaymentInfo);
+
+                // SecurityContext에서 사용자 정보 가져오기
+                memberId = userIdentifier.getUserId();
+
+                // completeExpoPayment 호출
+                memberExpoService.completeExpoPayment(memberId, request.getTargetId());
                 break;
             default:
                 throw new CustomException(CustomErrorCode.INVALID_PAYMENT_TARGET_TYPE);

@@ -11,11 +11,13 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.common.repository.RejectInfoRepository;
+import com.myce.member.dto.ad.AdRefundReceiptResponse;
 import com.myce.member.dto.ad.AdRefundRequest;
 import com.myce.member.dto.ad.AdvertisementDetailResponse;
 import com.myce.member.dto.ad.AdvertisementPaymentDetailResponse;
 import com.myce.member.dto.ad.AdvertisementRefundReceiptResponse;
 import com.myce.member.dto.ad.MemberAdvertisementResponse;
+import com.myce.member.mapper.ad.AdRefundReceiptMapper;
 import com.myce.member.mapper.ad.AdvertisementDetailMapper;
 import com.myce.member.mapper.ad.AdvertisementPaymentDetailMapper;
 import com.myce.member.mapper.ad.AdvertisementRefundReceiptMapper;
@@ -52,6 +54,7 @@ public class MemberAdServiceImpl implements MemberAdService {
     private final AdvertisementDetailMapper advertisementDetailMapper;
     private final AdvertisementPaymentDetailMapper advertisementPaymentDetailMapper;
     private final AdvertisementRefundReceiptMapper advertisementRefundReceiptMapper;
+    private final AdRefundReceiptMapper adRefundReceiptMapper;
     private final BusinessProfileRepository businessProfileRepository;
     private final AdPaymentInfoRepository adPaymentInfoRepository;
     private final PaymentRepository paymentRepository;
@@ -262,11 +265,6 @@ public class MemberAdServiceImpl implements MemberAdService {
         Advertisement advertisement = adRepository.findByIdAndMemberId(advertisementId, memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
 
-        // 결제 대기 상태인지 확인
-        if (advertisement.getStatus() != AdvertisementStatus.PENDING_PAYMENT) {
-            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
-        }
-
         // 1. 광고 상태를 PENDING_PUBLISH로 변경
         advertisement.updateStatus(AdvertisementStatus.PENDING_PUBLISH);
         adRepository.save(advertisement);
@@ -278,5 +276,30 @@ public class MemberAdServiceImpl implements MemberAdService {
         adPaymentInfoRepository.save(paymentInfo);
 
         log.info("광고 결제 완료 처리 - 광고 ID: {}, 회원 ID: {}", advertisementId, memberId);
+    }
+    
+    @Override
+    public AdRefundReceiptResponse getAdvertisementRefundHistory(Long memberId, Long advertisementId) {
+        // 광고가 해당 회원의 것인지 확인
+        Advertisement advertisement = adRepository.findByIdAndMemberId(advertisementId, memberId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
+
+        Payment payment = paymentRepository.findByTargetIdAndTargetType(advertisementId, PaymentTargetType.AD)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        // 비즈니스 프로필 조회
+        BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(advertisementId, TargetType.ADVERTISEMENT)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
+        
+        // 광고 결제 정보 조회
+        AdPaymentInfo adPaymentInfo = adPaymentInfoRepository.findByAdvertisementId(advertisementId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        
+        // 실제 환불 내역 조회 (REFUND 테이블에서)
+        Refund refund = refundRepository.findByPayment(payment)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.REFUND_NOT_FOUND));
+
+        
+        return adRefundReceiptMapper.toRefundHistoryDto(advertisement, businessProfile, adPaymentInfo, refund);
     }
 }

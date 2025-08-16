@@ -82,8 +82,8 @@ public class ChatRoomController {
         int pageSize = Math.min(size, 1000);
         Pageable pageable = PageRequest.of(page, pageSize);
 
-        // TODO: 채팅방 접근 권한 검증 로직 추가 필요
-        // 현재는 인증된 사용자라면 모든 채팅방 메시지 조회 가능
+        // 채팅방 접근 권한 검증 로직 추가
+        chatRoomService.validateChatRoomAccess(roomCode, customUserDetails.getMemberId(), customUserDetails.getRole());
 
         PageResponse<MessageResponse> response = chatMessageService.getMessages(roomCode, pageable);
         
