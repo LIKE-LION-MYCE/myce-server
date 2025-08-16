@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface MemberMyPageService {
     
-    List<ReservedExpoResponse> getReservedExpos(Long memberId);
+    Page<ReservedExpoResponse> getReservedExpos(Long memberId, Pageable pageable);
 
     List<FavoriteExpoResponse> getFavoriteExpos(Long memberId);
 

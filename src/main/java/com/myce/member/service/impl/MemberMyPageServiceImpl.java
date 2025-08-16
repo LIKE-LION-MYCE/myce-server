@@ -43,10 +43,10 @@ public class MemberMyPageServiceImpl implements MemberMyPageService {
     private final FavoriteRepository favoriteRepository;
 
     @Override
-    public List<ReservedExpoResponse> getReservedExpos(Long memberId) {
-        List<Reservation> reservations = reservationRepository.findReservationsByUserTypeAndUserIdWithExpoAndTicket(
-                UserType.MEMBER, memberId);
-        return reservedExpoMapper.toResponseDtoList(reservations);
+    public Page<ReservedExpoResponse> getReservedExpos(Long memberId, Pageable pageable) {
+        Page<Reservation> reservations = reservationRepository.findReservationsByUserTypeAndUserIdWithExpoAndTicket(
+                UserType.MEMBER, memberId, pageable);
+        return reservations.map(reservedExpoMapper::toResponseDto);
     }
 
     @Override

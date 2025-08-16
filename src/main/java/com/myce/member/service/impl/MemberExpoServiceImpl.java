@@ -302,6 +302,9 @@ public class MemberExpoServiceImpl implements MemberExpoService {
             throw new CustomException(CustomErrorCode.INVALID_EXPO_STATUS);
         }
 
+        //TODO : 결제 API 연동, PAYMENT 생성 까지
+
+
         // 1. 회원 역할을 EXPO_ADMIN으로 변경
         Member member = expo.getMember();
         member.updateRole(Role.EXPO_ADMIN);

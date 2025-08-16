@@ -13,6 +13,7 @@ import com.myce.member.entity.Guest;
 import com.myce.member.entity.Member;
 import com.myce.member.repository.GuestRepository;
 import com.myce.member.repository.MemberRepository;
+import com.myce.member.entity.MemberGrade;
 import com.myce.payment.entity.Payment;
 import com.myce.payment.entity.ReservationPaymentInfo;
 import com.myce.payment.entity.type.PaymentTargetType;
@@ -74,7 +75,20 @@ public class ReservationServiceImpl implements ReservationService {
 
         List<Reserver> reservers = reserverRepository.findByReservation(reservation);
         
-        return reservationDetailMapper.toResponseDto(reservation, reservers);
+        // 결제 정보 조회
+        ReservationPaymentInfo paymentInfo = reservationPaymentInfoRepository.findByReservationId(reservationId).orElse(null);
+        Payment payment = paymentRepository.findByTargetIdAndTargetType(reservationId, PaymentTargetType.RESERVATION).orElse(null);
+        
+        // 회원 등급 정보 조회 (회원인 경우만)
+        MemberGrade memberGrade = null;
+        if (reservation.getUserType() == UserType.MEMBER) {
+            Member member = memberRepository.findById(reservation.getUserId()).orElse(null);
+            if (member != null) {
+                memberGrade = member.getMemberGrade();
+            }
+        }
+        
+        return reservationDetailMapper.toResponseDto(reservation, reservers, paymentInfo, payment, memberGrade);
     }
     
     @Override

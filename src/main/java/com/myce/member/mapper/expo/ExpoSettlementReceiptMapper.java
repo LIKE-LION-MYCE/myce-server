@@ -18,22 +18,33 @@ public class ExpoSettlementReceiptMapper {
             ExpoPaymentInfo expoPaymentInfo,
             Settlement settlement) {
 
-        // 티켓별 판매 정보 계산
+        // 티켓별 판매 정보 계산 (프론트 표시용)
         List<ExpoSettlementReceiptResponse.TicketSalesInfo> ticketSales = tickets.stream()
                 .map(this::buildTicketSalesInfo)
                 .toList();
 
-        // 총 매출 계산
-        int totalRevenue = ticketSales.stream()
-                .mapToInt(ExpoSettlementReceiptResponse.TicketSalesInfo::getTotalSales)
-                .sum();
-
-        // 결제 시점에 저장된 수수료율 사용
-        BigDecimal commissionRate = expoPaymentInfo.getCommissionRate();
-        int commissionAmount = totalRevenue * commissionRate.intValue() / 100;
-
-        // 순수익 계산
-        int netProfit = totalRevenue - commissionAmount;
+        // Settlement 테이블에서 금액 정보 우선 사용
+        int totalRevenue, commissionAmount, netProfit;
+        BigDecimal commissionRate;
+        
+        if (settlement != null && settlement.getTotalAmount() != null) {
+            // Settlement 테이블에서 정확한 값 사용
+            totalRevenue = settlement.getTotalAmount();
+            commissionAmount = settlement.getSupplyAmount() != null ? settlement.getSupplyAmount() : 0;
+            netProfit = settlement.getSettleAmount() != null ? settlement.getSettleAmount() : 0;
+            
+            // 수수료율은 ExpoPaymentInfo에서 가져오기 (백분율 표시용)
+            commissionRate = expoPaymentInfo.getCommissionRate();
+        } else {
+            // Settlement이 없으면 기존 로직 (실시간 계산)
+            totalRevenue = ticketSales.stream()
+                    .mapToInt(ExpoSettlementReceiptResponse.TicketSalesInfo::getTotalSales)
+                    .sum();
+            
+            commissionRate = expoPaymentInfo.getCommissionRate();
+            commissionAmount = totalRevenue * commissionRate.intValue() / 100;
+            netProfit = totalRevenue - commissionAmount;
+        }
 
         // Builder로 기본 정보 설정
         ExpoSettlementReceiptResponse.ExpoSettlementReceiptResponseBuilder builder = ExpoSettlementReceiptResponse.builder()
