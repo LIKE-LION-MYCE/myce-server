@@ -17,6 +17,7 @@ import com.myce.system.repository.MessageTemplateSettingRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,13 +38,16 @@ public class EventNotificationScheduler implements TaskScheduler {
     private final MessageTemplateSettingRepository messageTemplateSettingRepository;
     private final SseService sseService;
 
+    @Value("${scheduler.event-notification}")
+    private String cronExpression;
+
     @PostConstruct
     public void init() {
-        log.info("[Scheduler] 이벤트 시작 1시간 전 알림 스케줄러 초기화");
+        log.info("[Scheduler] 이벤트 시작 1시간 전 알림 스케줄러 초기화, cron: {}", cronExpression);
     }
 
     @Override
-    @Scheduled(cron = "0 0 * * * *") // 매시 정각에 실행
+    @Scheduled(cron = "${scheduler.event-notification}")
     @Transactional
     public void run() {
         log.info("[Scheduler] 이벤트 시작 1시간 전 알림 스케줄러 실행");
