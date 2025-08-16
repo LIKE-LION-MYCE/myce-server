@@ -133,4 +133,22 @@ public class PaymentMapper {
         if (unixTimestamp == null) return null;
         return LocalDateTime.ofInstant(Instant.ofEpochSecond(unixTimestamp), ZoneId.systemDefault());
     }
+
+    // PaymentVerifyRequest와 PortOne 응답을 기반으로 Payment 엔티티 생성
+    public Payment toEntityTransfer(PaymentVerifyRequest request, Map<String, Object> portOnePayment) {
+        return Payment.builder()
+            .targetType(request.getTargetType())
+            .targetId(request.getTargetId())
+            .paymentMethod(toPaymentMethod(portOnePayment))
+            .provider((String) portOnePayment.get("pg_provider"))
+            .merchantUid(request.getMerchantUid())
+            .impUid(request.getImpUid())
+            .cardCompany((String) portOnePayment.get("card_name"))
+            .cardNumber((String) portOnePayment.get("card_number"))
+            .accountBank((String) portOnePayment.get("bank_name"))
+            .accountNumber((String) portOnePayment.get("bank_code"))
+            .country((String) portOnePayment.get("country"))
+            .paidAt(toPaidAtLocalDateTime(portOnePayment.get("paid_at")))
+            .build();
+    }
 }

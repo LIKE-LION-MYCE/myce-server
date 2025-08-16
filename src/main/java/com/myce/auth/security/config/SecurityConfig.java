@@ -79,11 +79,17 @@ public class SecurityConfig {
                 .addFilterAt(loginFilter, UsernamePasswordAuthenticationFilter.class);
 
         http.authorizeHttpRequests(auth ->
-                auth.requestMatchers(HttpMethod.POST, "/api/auth/**", "/api/payment/**")
+                auth.requestMatchers(HttpMethod.POST, "/api/auth/**", "/api/payment/**",
+                        "/api/payment/**", "/api/reservations/**", "/api/reservers")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/**",
-                            "/api/categories", "/api/expos/**", "/api/tickest/quantity",
+                            "/api/categories", "/api/expos/**", "/api/reservations/**",
                             "/api/expo/fees/active", "/api/ad/fees/active")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/tickets/quantity",
+                            "/api/reservations/**")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/**", "/api/reservations/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/api/auth/**")
                         .permitAll()

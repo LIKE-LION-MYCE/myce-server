@@ -27,6 +27,7 @@ public enum CustomErrorCode {
     ALREADY_EXIST_LOGIN_ID(HttpStatus.BAD_REQUEST, "M007", "이미 존재하는 아이디입니다."),
     ALREADY_EXIST_EMAIL(HttpStatus.BAD_REQUEST, "M008", "이미 존재하는 이메일입니다."),
     MEMBER_ROLE_NOT_EXIST(HttpStatus.NOT_FOUND, "M009", "존재하지 않는 권한입니다."),
+    MEMBER_GRADE_NOT_EXIST(HttpStatus.NOT_FOUND, "M010", "회원 등급이 존재하지 않습니다."),
 
     // 비회원 G
     GUEST_NOT_EXIST(HttpStatus.NOT_FOUND, "G001", "비회원 정보가 존재하지 않습니다."),
@@ -151,7 +152,10 @@ public enum CustomErrorCode {
     INVALID_EMAIL_LOG(HttpStatus.NOT_FOUND, "EM001", "유효하지 않은 이메일 로그 입니다."),
   
     // 기간 PE
-    PERIOD_TYPE_NOT_EXIST(HttpStatus.NOT_FOUND, "PE001", "기간 타입이 존재하지 않습니다.");
+    PERIOD_TYPE_NOT_EXIST(HttpStatus.NOT_FOUND, "PE001", "기간 타입이 존재하지 않습니다."),
+    
+    // 일반 시스템 오류
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "S999", "내부 서버 오류가 발생했습니다.");
 
     private final HttpStatus status;
     private final String errorCode;

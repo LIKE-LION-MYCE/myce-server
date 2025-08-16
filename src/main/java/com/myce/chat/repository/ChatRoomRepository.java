@@ -62,4 +62,11 @@ public interface ChatRoomRepository extends MongoRepository<ChatRoom, String> {
      * 특정 박람회의 모든 채팅방 조회 (active 여부 무관)
      */
     List<ChatRoom> findByExpoId(Long expoId);
+
+    /**
+     * 플랫폼 채팅방 조회 (플랫폼 관리자용)
+     * expoId가 null인 모든 활성 채팅방 (platform-* rooms)
+     */
+    @Query(value = "{ 'expoId': null, 'isActive': true }", sort = "{ 'lastMessageAt': -1 }")
+    List<ChatRoom> findByExpoIdIsNullAndIsActiveTrueOrderByLastMessageAtDesc();
 }
