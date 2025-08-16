@@ -65,6 +65,8 @@ public class ReservationDetailMapper {
                 .ticketPrice(reservation.getTicket().getPrice())
                 .ticketName(reservation.getTicket().getName())
                 .ticketType(reservation.getTicket().getType().toString())
+                .ticketUseStartDate(reservation.getTicket().getUseStartDate())
+                .ticketUseEndDate(reservation.getTicket().getUseEndDate())
                 .build();
     }
     

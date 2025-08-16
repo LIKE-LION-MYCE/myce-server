@@ -33,7 +33,7 @@ public class MemberExpoDetailMapper {
                 .displayEndDate(expo.getDisplayEndDate())
                 .description(expo.getDescription())
                 .status(expo.getStatus())
-                .isPremium(determineIsPremium(paymentInfo))
+                .isPremium(expo.getIsPremium())
                 .category(categoryName)
                 .memberLoginId(expo.getMember().getLoginId())
                 .paymentInfo(buildPaymentInfo(paymentInfo))
@@ -42,21 +42,6 @@ public class MemberExpoDetailMapper {
                 .build();
     }
     
-    private Boolean determineIsPremium(ExpoPaymentInfo paymentInfo) {
-        if (paymentInfo == null) {
-            return false;
-        }
-        
-        // 프리미엄 등록금이 기본 등록금보다 크면 프리미엄으로 판단
-        Integer deposit = paymentInfo.getDeposit();
-        Integer premiumDeposit = paymentInfo.getPremiumDeposit();
-        
-        if (deposit == null || premiumDeposit == null) {
-            return false;
-        }
-        
-        return premiumDeposit > deposit;
-    }
     
     private MemberExpoDetailResponse.PaymentInfo buildPaymentInfo(ExpoPaymentInfo paymentInfo) {
         if (paymentInfo == null) {

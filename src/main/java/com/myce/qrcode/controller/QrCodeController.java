@@ -30,6 +30,17 @@ public class QrCodeController {
         return ResponseEntity.ok().build(); // 201 Created
     }
 
+    @PostMapping("/reservation/{reservationId}/generate")
+    public ResponseEntity<Void> generateQrForReservation(@PathVariable Long reservationId) {
+        try {
+            qrCodeService.issueQrForReservation(reservationId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            // QR 생성 실패 시에도 200 반환 (스케줄러에서 처리되므로)
+            return ResponseEntity.ok().build();
+        }
+    }
+
     @PostMapping("/reissue/{reserverId}")
     public ResponseEntity<Void> reissue(@PathVariable Long reserverId,
                                         @AuthenticationPrincipal CustomUserDetails customUserDetails) {
