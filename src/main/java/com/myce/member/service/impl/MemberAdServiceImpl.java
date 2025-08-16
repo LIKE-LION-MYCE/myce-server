@@ -265,13 +265,6 @@ public class MemberAdServiceImpl implements MemberAdService {
         Advertisement advertisement = adRepository.findByIdAndMemberId(advertisementId, memberId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
 
-        // 결제 대기 상태인지 확인
-        if (advertisement.getStatus() != AdvertisementStatus.PENDING_PAYMENT) {
-            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
-        }
-
-        //TODO : 결제 API 연동, PAYMENT 생성 까지
-
         // 1. 광고 상태를 PENDING_PUBLISH로 변경
         advertisement.updateStatus(AdvertisementStatus.PENDING_PUBLISH);
         adRepository.save(advertisement);
