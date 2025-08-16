@@ -5,6 +5,7 @@ logging:
   level:
     root: info
     com.myce: debug
+    com.myce.common.aop.ControllerLoggingAspect: debug
 
 spring:
   profiles:
