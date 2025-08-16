@@ -130,7 +130,9 @@ public class ChatWebSocketController {
                           SimpMessageHeaderAccessor headerAccessor) {
         try {
             Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
-            if (userId == null) {
+            String token = (String) headerAccessor.getSessionAttributes().get("token");
+            
+            if (userId == null || token == null) {
                 throw new IllegalStateException("인증되지 않은 사용자");
             }
             
@@ -143,7 +145,7 @@ public class ChatWebSocketController {
                 headerAccessor.getSessionId());
             
             MessageResponse messageResponse = chatWebSocketService.sendMessage(
-                userId, roomId, content
+                userId, roomId, content, token
             );
             
             Map<String, Object> payload = Map.of(
@@ -332,48 +334,53 @@ public class ChatWebSocketController {
                 return;
             }
 
-            // State-driven admin assignment logic
-            ChatRoom.ChatRoomState currentState = chatRoom.getCurrentState();
-            log.debug("Admin message handling - roomCode: {}, currentState: {}", roomCode, currentState);
-            
-            switch (currentState) {
-                case WAITING_FOR_ADMIN -> {
-                    // Call AI handoff system for proper summary and transition
-                    try {
-                        chatRoomService.handoffAIToAdmin(roomCode, adminCode);
-                        // Refresh the chatRoom from DB to get the updated state
-                        chatRoom = chatRoomRepository.findByRoomCode(roomCode)
-                            .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
-                        log.info("AI handoff completed - roomCode: {}, adminCode: {}, newState: {}", 
-                            roomCode, adminCode, chatRoom.getCurrentState());
-                    } catch (Exception handoffError) {
-                        log.error("AI handoff failed - roomCode: {}, adminCode: {}", roomCode, adminCode, handoffError);
+            // State-driven admin assignment logic (only for platform rooms)
+            if (roomCode.startsWith("platform-")) {
+                ChatRoom.ChatRoomState currentState = chatRoom.getCurrentState();
+                log.debug("Platform admin message handling - roomCode: {}, currentState: {}", roomCode, currentState);
+                
+                switch (currentState) {
+                    case WAITING_FOR_ADMIN -> {
+                        // Call AI handoff system for proper summary and transition
+                        try {
+                            chatRoomService.handoffAIToAdmin(roomCode, adminCode);
+                            // Refresh the chatRoom from DB to get the updated state
+                            chatRoom = chatRoomRepository.findByRoomCode(roomCode)
+                                .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
+                            log.info("AI handoff completed - roomCode: {}, adminCode: {}, newState: {}", 
+                                roomCode, adminCode, chatRoom.getCurrentState());
+                        } catch (Exception handoffError) {
+                            log.error("AI handoff failed - roomCode: {}, adminCode: {}", roomCode, adminCode, handoffError);
+                        }
+                    }
+                    case AI_ACTIVE -> {
+                        // Block direct messaging during AI chat - admins must use intervention button
+                        log.warn("❌ Direct admin message blocked during AI_ACTIVE state - roomCode: {}, adminCode: {}", 
+                            roomCode, adminCode);
+                        
+                        // Send error message back to admin
+                        Map<String, Object> errorPayload = Map.of(
+                            "error", "INTERVENTION_REQUIRED",
+                            "message", "AI 상담 중에는 직접 메시지를 보낼 수 없습니다. '개입하기' 버튼을 사용해주세요.",
+                            "suggestedAction", "USE_INTERVENTION_BUTTON"
+                        );
+                        messagingTemplate.convertAndSendToUser(
+                            userId.toString(),
+                            "/queue/errors",
+                            errorPayload
+                        );
+                        return; // Block the message entirely
+                    }
+                    case ADMIN_ACTIVE -> {
+                        // Admin already active - just update admin activity
+                        chatRoom.updateAdminActivity();
+                        chatRoomRepository.save(chatRoom);
+                        log.debug("Admin activity updated - roomCode: {}, state: {}", roomCode, currentState);
                     }
                 }
-                case AI_ACTIVE -> {
-                    // Block direct messaging during AI chat - admins must use intervention button
-                    log.warn("❌ Direct admin message blocked during AI_ACTIVE state - roomCode: {}, adminCode: {}", 
-                        roomCode, adminCode);
-                    
-                    // Send error message back to admin
-                    Map<String, Object> errorPayload = Map.of(
-                        "error", "INTERVENTION_REQUIRED",
-                        "message", "AI 상담 중에는 직접 메시지를 보낼 수 없습니다. '개입하기' 버튼을 사용해주세요.",
-                        "suggestedAction", "USE_INTERVENTION_BUTTON"
-                    );
-                    messagingTemplate.convertAndSendToUser(
-                        userId.toString(),
-                        "/queue/errors",
-                        errorPayload
-                    );
-                    return; // Block the message entirely
-                }
-                case ADMIN_ACTIVE -> {
-                    // Admin already active - just update admin activity
-                    chatRoom.updateAdminActivity();
-                    chatRoomRepository.save(chatRoom);
-                    log.debug("Admin activity updated - roomCode: {}, state: {}", roomCode, currentState);
-                }
+            } else {
+                // Expo chat rooms - no AI state restrictions, allow direct admin messages
+                log.debug("Expo admin message handling - roomCode: {}, adminCode: {}", roomCode, adminCode);
             }
             
             // 담당자 배정 브로드캐스트
