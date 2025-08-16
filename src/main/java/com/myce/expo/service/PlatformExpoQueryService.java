@@ -4,6 +4,7 @@ import com.myce.common.dto.PageResponse;
 import com.myce.expo.dto.ExpoApplicationResponse;
 import com.myce.expo.dto.ExpoApplicationDetailResponse;
 import com.myce.expo.dto.ExpoRejectionInfoResponse;
+import com.myce.expo.dto.ExpoCancelDetailResponse;
 import com.myce.member.dto.expo.ExpoPaymentDetailResponse;
 import com.myce.member.dto.expo.ExpoRefundReceiptResponse;
 
@@ -43,8 +44,9 @@ public interface PlatformExpoQueryService {
     
     /**
      * 박람회 취소/환불 내역 조회 (플랫폼 관리자용)
+     * 박람회 주최자 환불 정보 + 개별 예약자 환불 정보 포함
      */
-    ExpoRefundReceiptResponse getExpoCancelInfo(Long expoId);
+    ExpoCancelDetailResponse getExpoCancelInfo(Long expoId);
 
     /**
      * 현재 박람회 목록 조회 (게시중, 취소 대기)

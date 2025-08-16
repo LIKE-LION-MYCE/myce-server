@@ -138,6 +138,7 @@ public enum CustomErrorCode {
     // 환불 RF
     REFUND_NOT_FOUND(HttpStatus.NOT_FOUND, "RF001", "환불 정보가 존재하지 않습니다."),
     ALREADY_REFUND_REQUESTED(HttpStatus.CONFLICT, "RF002", "이미 환불 신청이 접수되었습니다."),
+    REFUND_SEVEN_DAY_RULE_VIOLATION(HttpStatus.BAD_REQUEST, "RF003", "개최 7일 전에는 환불이 불가능합니다."),
 
     // 시스템 설정 에러
     NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다."),

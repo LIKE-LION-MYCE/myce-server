@@ -100,8 +100,12 @@ public class MemberExpoController {
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long expoId) {
         
+        System.out.println("===== MemberExpoController.getExpoRefundReceipt 호출 - expoId: " + expoId + " =====");
+        
         Long memberId = customUserDetails.getMemberId();
         ExpoRefundReceiptResponse refundReceipt = memberExpoService.getExpoRefundReceipt(memberId, expoId);
+        
+        System.out.println("===== 응답 refundAmount: " + refundReceipt.getRefundAmount() + " =====");
         
         return ResponseEntity.ok(refundReceipt);
     }
