@@ -21,14 +21,6 @@ import java.util.Optional;
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
-    @Query("SELECT r FROM Reservation r " +
-            "JOIN FETCH r.expo e " +
-            "JOIN FETCH r.ticket t " +
-            "WHERE r.userType = :userType AND r.userId = :userId " +
-            "ORDER BY r.createdAt DESC")
-    List<Reservation> findReservationsByUserTypeAndUserIdWithExpoAndTicket(@Param("userType") UserType userType,
-                                                                           @Param("userId") Long userId);
-
     @Query(value = "SELECT r FROM Reservation r " +
             "WHERE r.userType = :userType AND r.userId = :userId",
             countQuery = "SELECT COUNT(r) FROM Reservation r " +

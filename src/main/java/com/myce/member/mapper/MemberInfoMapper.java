@@ -47,6 +47,9 @@ public class MemberInfoMapper {
             .email(member.getEmail())
             .gender(member.getGender())
             .mileageRate(mileageRate)
+            .gradeDescription(member.getMemberGrade().getDescription())
+            .gradeImageUrl(member.getMemberGrade().getGradeImageUrl())
+            .mileage(member.getMileage())
             .build();
     }
 }

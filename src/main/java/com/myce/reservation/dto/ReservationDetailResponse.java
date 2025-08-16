@@ -53,6 +53,8 @@ public class ReservationDetailResponse {
         private Integer ticketPrice;
         private String ticketName;
         private String ticketType;
+        private LocalDate ticketUseStartDate;
+        private LocalDate ticketUseEndDate;
     }
     
     @Getter
