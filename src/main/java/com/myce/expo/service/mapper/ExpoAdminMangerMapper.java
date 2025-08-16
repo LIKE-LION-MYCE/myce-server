@@ -17,7 +17,6 @@ public class ExpoAdminMangerMapper {
                 .isPaymentView(adminCode.getAdminPermission().getIsPaymentView())
                 .isEmailLogView(adminCode.getAdminPermission().getIsEmailLogView())
                 .isOperationsConfigUpdate(adminCode.getAdminPermission().getIsOperationsConfigUpdate())
-                .isSettlementView(adminCode.getAdminPermission().getIsSettlementView())
                 .isInquiryView(adminCode.getAdminPermission().getIsInquiryView())
                 .build();
     }

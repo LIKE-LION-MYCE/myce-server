@@ -3,6 +3,7 @@ package com.myce.schedule.jobs;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
+import com.myce.notification.service.SseService;
 import com.myce.qrcode.service.QrCodeService;
 import com.myce.reservation.entity.Reserver;
 import com.myce.reservation.repository.ReserverRepository;
@@ -14,9 +15,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.List;
 
 @Component
@@ -27,6 +28,7 @@ public class ExpoQrGenerateScheduler implements TaskScheduler {
     private final ExpoRepository expoRepository;
     private final ReserverRepository reserverRepository;
     private final QrCodeService qrCodeService;
+    private final SseService sseService;
 
     @Value("${scheduler.expo-qr-generate:0 0 0 * * *}")
     private String cronExpression;
@@ -82,6 +84,8 @@ public class ExpoQrGenerateScheduler implements TaskScheduler {
         for (Reserver reserver : reservers) {
             try {
                 qrCodeService.issueQr(reserver.getId());
+                log.debug("QR코드 발급 완료 및 SSE 알림 전송 - 예약자 ID: {}, 회원 ID: {}", 
+                        reserver.getId(), reserver.getReservation().getUserId());
                 successCount++;
             } catch (Exception e) {
                 log.error("QR코드 생성 실패 - 예약자 ID: {}, 오류: {}", 

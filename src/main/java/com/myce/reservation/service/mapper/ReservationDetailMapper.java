@@ -1,5 +1,8 @@
 package com.myce.reservation.service.mapper;
 
+import com.myce.member.entity.MemberGrade;
+import com.myce.payment.entity.Payment;
+import com.myce.payment.entity.ReservationPaymentInfo;
 import com.myce.qrcode.entity.QrCode;
 import com.myce.qrcode.repository.QrCodeRepository;
 import com.myce.reservation.dto.ReservationDetailResponse;
@@ -27,6 +30,16 @@ public class ReservationDetailMapper {
                 .build();
     }
     
+    public ReservationDetailResponse toResponseDto(Reservation reservation, List<Reserver> reservers, 
+                                                  ReservationPaymentInfo paymentInfo, Payment payment, MemberGrade memberGrade) {
+        return ReservationDetailResponse.builder()
+                .expoInfo(buildExpoInfo(reservation))
+                .reservationInfo(buildReservationInfo(reservation))
+                .reserverInfos(buildReserverInfos(reservers))
+                .paymentInfo(buildPaymentInfo(paymentInfo, payment, memberGrade))
+                .build();
+    }
+    
     private ReservationDetailResponse.ExpoInfo buildExpoInfo(Reservation reservation) {
         return ReservationDetailResponse.ExpoInfo.builder()
                 .expoId(reservation.getExpo().getId())
@@ -34,6 +47,8 @@ public class ReservationDetailMapper {
                 .title(reservation.getExpo().getTitle())
                 .location(reservation.getExpo().getLocation())
                 .locationDetail(reservation.getExpo().getLocationDetail())
+                .startDate(reservation.getExpo().getStartDate())
+                .endDate(reservation.getExpo().getEndDate())
                 .displayStartDate(reservation.getExpo().getDisplayStartDate())
                 .displayEndDate(reservation.getExpo().getDisplayEndDate())
                 .startTime(reservation.getExpo().getStartTime())
@@ -43,6 +58,7 @@ public class ReservationDetailMapper {
     
     private ReservationDetailResponse.ReservationInfo buildReservationInfo(Reservation reservation) {
         return ReservationDetailResponse.ReservationInfo.builder()
+                .reservationId(reservation.getId())
                 .reservationCode(reservation.getReservationCode())
                 .quantity(reservation.getQuantity())
                 .createdAt(reservation.getCreatedAt())
@@ -76,5 +92,53 @@ public class ReservationDetailMapper {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+    
+    private ReservationDetailResponse.PaymentInfo buildPaymentInfo(ReservationPaymentInfo paymentInfo, 
+                                                                   Payment payment, MemberGrade memberGrade) {
+        if (paymentInfo == null) {
+            return null;
+        }
+        
+        String paymentMethod = payment != null ? payment.getPaymentMethod().name() : null;
+        String paymentDetail = null;
+        
+        if (payment != null) {
+            // 카드 결제인 경우
+            if (payment.getCardCompany() != null && payment.getCardNumber() != null) {
+                paymentDetail = payment.getCardCompany() + " " + maskCardNumber(payment.getCardNumber());
+            }
+            // 계좌 이체인 경우
+            else if (payment.getAccountBank() != null && payment.getAccountNumber() != null) {
+                paymentDetail = payment.getAccountBank() + " " + maskAccountNumber(payment.getAccountNumber());
+            }
+        }
+        
+        return ReservationDetailResponse.PaymentInfo.builder()
+                .usedMileage(paymentInfo.getUsedMileage())
+                .savedMileage(paymentInfo.getSavedMileage())
+                .totalAmount(paymentInfo.getTotalAmount())
+                .paymentStatus(paymentInfo.getStatus().name())
+                .paymentMethod(paymentMethod)
+                .paymentDetail(paymentDetail)
+                .paidAt(payment != null ? payment.getPaidAt() : null)
+                .memberGrade(memberGrade != null ? memberGrade.getDescription() : null)
+                .mileageRate(memberGrade != null ? memberGrade.getMileageRate() : null)
+                .gradeDescription(memberGrade != null ? memberGrade.getDescription() : null)
+                .build();
+    }
+    
+    private String maskCardNumber(String cardNumber) {
+        if (cardNumber == null || cardNumber.length() < 4) {
+            return "****";
+        }
+        return "****-****-****-" + cardNumber.substring(cardNumber.length() - 4);
+    }
+    
+    private String maskAccountNumber(String accountNumber) {
+        if (accountNumber == null || accountNumber.length() < 4) {
+            return "****";
+        }
+        return "****" + accountNumber.substring(accountNumber.length() - 4);
     }
 }

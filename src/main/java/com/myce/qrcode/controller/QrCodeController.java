@@ -1,6 +1,7 @@
 package com.myce.qrcode.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.auth.dto.type.LoginType;
 import com.myce.qrcode.dto.QrTokenRequest;
 import com.myce.qrcode.dto.QrUseResponse;
 import com.myce.qrcode.dto.QrVerifyResponse;
@@ -31,8 +32,9 @@ public class QrCodeController {
 
     @PostMapping("/reissue/{reserverId}")
     public ResponseEntity<Void> reissue(@PathVariable Long reserverId,
-            @RequestParam Long adminId) {
-        qrCodeService.reissueQr(reserverId, adminId);
+                                        @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long adminId = customUserDetails.getMemberId();
+        qrCodeService.reissueQr(reserverId, adminId, customUserDetails.getLoginType());
         return ResponseEntity.ok().build();
     }
 
@@ -40,7 +42,7 @@ public class QrCodeController {
     public ResponseEntity<QrUseResponse> useQrCode(@RequestBody QrTokenRequest request,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         Long adminId = customUserDetails.getMemberId();
-        QrUseResponse response = qrCodeService.updateQrAsUsed(request.getToken(), adminId);
+        QrUseResponse response = qrCodeService.updateQrAsUsed(request.getToken(), adminId, customUserDetails.getLoginType());
         return ResponseEntity.ok(response);
     }
 
@@ -57,8 +59,10 @@ public class QrCodeController {
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<QrVerifyResponse> verifyQrCode(@RequestBody QrTokenRequest request) {
-        QrVerifyResponse result = qrCodeService.verifyQrCode(request.getToken());
+    public ResponseEntity<QrVerifyResponse> verifyQrCode(@RequestBody QrTokenRequest request,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long adminId = customUserDetails.getMemberId();
+        QrVerifyResponse result = qrCodeService.verifyQrCode(request.getToken(), adminId, customUserDetails.getLoginType());
         return ResponseEntity.ok(result);
     }
 

@@ -21,9 +21,12 @@ configurations {
 
 repositories {
 	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }  // Required for Spring AI milestone versions
 }
 
 dependencies {
+	// Spring AI BOM - use M6 (latest with Bedrock Converse support)
+	implementation platform('org.springframework.ai:spring-ai-bom:1.0.0-M6')
 
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -41,11 +44,17 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
 	implementation 'com.google.zxing:core:3.5.3' // QR코드 생성 라이브러리
 	implementation 'com.google.zxing:javase:3.5.3' // QR코드 생성
-	implementation platform("software.amazon.awssdk:bom:2.25.23")
+	implementation platform("software.amazon.awssdk:bom:2.29.29")  // Spring Boot 3.4.x 호환 버전
 	implementation "software.amazon.awssdk:s3"
+	implementation "software.amazon.awssdk:bedrockruntime"
+	
+	// Spring AI dependencies - Bedrock Converse API for Nova models  
+	implementation 'org.springframework.ai:spring-ai-bedrock-converse-spring-boot-starter'
+	implementation 'org.springframework.ai:spring-ai-core'  // Required for ChatClient
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0'
 	implementation 'org.apache.poi:poi:5.4.1' //엑셀 추출 라이브러리
 	implementation 'org.apache.poi:poi-ooxml:5.4.1' //.xlsx API 포함
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'

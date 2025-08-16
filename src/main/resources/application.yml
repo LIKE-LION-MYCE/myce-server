@@ -99,6 +99,18 @@ spring:
           auth: true
           starttls: # isActive
             enable: true
+  
+  # AI Configuration
+  ai:
+    bedrock:
+      aws:
+        region: ${AWS_REGION:ap-northeast-2}
+      converse:
+        chat:
+          options:
+            model: apac.amazon.nova-lite-v1:0  # Use APAC inference profile for ap-northeast-2
+            temperature: 0.7
+            max-tokens: 400
 jwt:
   secret: ${JWT_SECRET}
   access-token-validity: 18000000 # 5 hour in milliseconds
@@ -158,3 +170,4 @@ scheduler:
   qr-code-expire: 0 20 0 * * * # QR 코드 만료 처리 - 매일 00:20에 실행
   expo-qr-generate: 0 0 0 * * * # 박람회 QR코드 일괄 생성 - 매일 00:00에 실행
   admin-timeout: 0 */1 * * * * # 1분마다 (테스트용) -> 담당자 배졍
+  expo-publish: "0 */10 * * * *" # 10분마다 박람회 게시 상태 체크 및 종료 처리

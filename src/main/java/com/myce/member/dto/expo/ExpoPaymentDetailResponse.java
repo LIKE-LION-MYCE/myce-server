@@ -26,8 +26,7 @@ public class ExpoPaymentDetailResponse {
     private Integer totalDays;         // 총 일수
     private Integer dailyUsageFee;     // 일당 사용료
     private Integer usageFeeAmount;    // 사용료 총액 (일당 * 총일수)
-    private Integer depositAmount;     // 등록금 (프리미엄이면 premiumDeposit, 아니면 deposit)
-    private Integer totalAmount;       // 총 결제해야 할 금액
+    private Integer depositAmount;     // 기본 등록금
+    private Integer premiumDepositAmount; // 프리미엄 이용료 (프리미엄일 때만)
     private Boolean isPremium;         // 프리미엄 여부
-    private BigDecimal commissionRate; // 수수료율 (퍼센트)
 }

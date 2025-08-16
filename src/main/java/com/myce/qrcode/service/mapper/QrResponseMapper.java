@@ -22,8 +22,12 @@ public class QrResponseMapper {
         QrCodeStatus status = qrCode.getStatus();
 
         return switch (status) {
-            case ACTIVE -> new QrUseResponse(true, SUCCESS_MESSAGE);
-            case USED, EXPIRED, APPROVED -> new QrUseResponse(false, status.getMessage());
+            case ACTIVE -> {
+                Reserver reserver = qrCode.getReserver();
+                yield QrUseResponse.success(SUCCESS_MESSAGE, reserver.getReservation().getTicket().getName());
+
+            }
+            case USED, EXPIRED, APPROVED -> QrUseResponse.fail(status.getMessage());
         };
     }
 
@@ -36,11 +40,11 @@ public class QrResponseMapper {
         QrCodeStatus status = qrCode.getStatus();
 
         return switch (status) {
-            case APPROVED, USED, EXPIRED -> new QrVerifyResponse(status.getMessage(), status.name());
+            case APPROVED, USED, EXPIRED -> QrVerifyResponse.fail(status.getMessage(), status.name());
             case ACTIVE -> {
                 // 유효한 QR 코드 - 예약자 정보와 함께 반환
                 Reserver reserver = qrCode.getReserver();
-                yield   new QrVerifyResponse(status.getMessage(), reserver.getName(),
+                yield   QrVerifyResponse.success(status.getMessage(), reserver.getName(),
                         reserver.getReservation().getExpo().getTitle(),
                         reserver.getReservation().getTicket().getName(), status.name());
             }

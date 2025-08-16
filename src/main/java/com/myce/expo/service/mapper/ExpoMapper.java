@@ -1,10 +1,13 @@
 package com.myce.expo.service.mapper;
 
+import com.myce.expo.dto.ExpoCardResponse;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.member.entity.Member;
+import org.springframework.stereotype.Component;
 
+@Component
 public class ExpoMapper {
   public static Expo toEntity(ExpoRegistrationRequest request, Member member){
     return Expo.builder()
@@ -26,5 +29,19 @@ public class ExpoMapper {
           .isPremium(request.getIsPremium())
           .maxReserverCount(request.getMaxReserverCount())
           .build();
+  }
+
+  public static ExpoCardResponse toCards(Expo expo, Integer remainingQuantity, boolean isBookmark){
+    return ExpoCardResponse.builder()
+        .expoId(expo.getId())
+        .title(expo.getTitle())
+        .startDate(expo.getStartDate().toString())
+        .endDate(expo.getEndDate().toString())
+        .location(expo.getLocation())
+        .locationDetail(expo.getLocationDetail())
+        .thumbnailUrl(expo.getThumbnailUrl())
+        .remainingQuantity(remainingQuantity)
+        .isBookmark(isBookmark)
+        .build();
   }
 }

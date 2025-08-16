@@ -14,6 +14,7 @@ import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.member.entity.Member;
 import com.myce.member.repository.MemberRepository;
+import com.myce.ai.service.AIChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -49,6 +50,9 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     
     // WebSocket 메시징
     private final SimpMessagingTemplate messagingTemplate;
+    
+    // AI 채팅 서비스
+    private final AIChatService aiChatService;
 
     /**
      * 현재 로그인한 사용자의 채팅방 목록 조회
@@ -68,10 +72,19 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         List<ChatRoom> chatRooms;
         
         if (Role.EXPO_ADMIN.name().equals(memberRole)) {
-            // 관리자인 경우: 본인이 관리하는 박람회들의 모든 채팅방 조회
+            // 박람회 관리자인 경우: 본인이 관리하는 박람회들의 모든 채팅방 조회
             chatRooms = getChatRoomsForAdmin(memberId);
+        } else if (Role.PLATFORM_ADMIN.name().equals(memberRole)) {
+            // 플랫폼 관리자인 경우: 모든 플랫폼 채팅방 조회 (platform-* rooms)
+            chatRooms = chatRoomRepository.findByExpoIdIsNullAndIsActiveTrueOrderByLastMessageAtDesc();
         } else {
             // 일반 사용자인 경우: 본인이 참여한 채팅방만 조회
+            chatRooms = chatRoomRepository.findByMemberIdAndIsActiveTrueOrderByLastMessageAtDesc(memberId);
+            
+            // 플랫폼 상담방 자동 생성 (사용자용)
+            ensurePlatformRoomExists(memberId);
+            
+            // 플랫폼 방 포함하여 다시 조회
             chatRooms = chatRoomRepository.findByMemberIdAndIsActiveTrueOrderByLastMessageAtDesc(memberId);
         }
 
@@ -164,6 +177,43 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     private ChatRoomListResponse.ChatRoomInfo convertToChatRoomInfo(
             ChatRoom chatRoom, Long currentMemberId, String currentMemberRole) {
         
+        // 플랫폼 채팅방인지 확인 (expoId가 null인 경우)
+        if (chatRoom.getExpoId() == null) {
+            // 플랫폼 채팅방 처리 - 실제 사용자 정보 조회
+            String actualUserName = chatRoom.getMemberName();
+            Long actualUserId = chatRoom.getMemberId();
+            
+            // 캐시된 memberName이 올바르지 않으면 DB에서 조회
+            if (actualUserName == null || 
+                actualUserName.contains("AI") || 
+                actualUserName.contains("상담사") || 
+                actualUserName.equals("플랫폼 사용자")) {
+                
+                try {
+                    Optional<Member> memberOpt = memberRepository.findById(actualUserId);
+                    if (memberOpt.isPresent()) {
+                        actualUserName = memberOpt.get().getName();
+                        log.debug("Platform room user name corrected: {} -> {}", chatRoom.getMemberName(), actualUserName);
+                    } else {
+                        actualUserName = "사용자 " + actualUserId;
+                        log.warn("User not found for platform room: userId={}", actualUserId);
+                    }
+                } catch (Exception e) {
+                    actualUserName = "사용자 " + actualUserId;
+                    log.error("Failed to fetch user name for platform room: userId={}, error={}", actualUserId, e.getMessage());
+                }
+            }
+            
+            return ChatRoomMapper.toDto(
+                    chatRoom,
+                    actualUserId,  // Real user ID
+                    actualUserName,  // Real user name  
+                    "USER",  // User role
+                    chatRoom.getExpoTitle(),  // "플랫폼 상담"
+                    0  // 읽지 않은 메시지 수
+            );
+        }
+        
         // 1. 상대방 정보 조회 (역할에 따라 다름)
         Member otherMember;
         String otherMemberRole;
@@ -204,7 +254,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
      */
     @Override
     @Transactional
-    public void markAsRead(String roomCode, String lastReadMessageId, Long memberId) {
+    public void markAsRead(String roomCode, String lastReadMessageId, Long memberId, String memberRole) {
         
         // 1. 채팅방 조회 및 존재 여부 확인
         ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
@@ -213,8 +263,8 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     return new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
                 });
         
-        // 2. 사용자 권한 검증 (본인 채팅방인지 확인)
-        validateUserPermission(chatRoom, memberId);
+        // 2. 사용자 권한 검증 (본인 채팅방인지 확인, 플랫폼 관리자는 모든 플랫폼 방 접근 가능)
+        validateUserPermission(chatRoom, memberId, memberRole);
         
         // 3. 마지막 메시지 ID를 가져와서 읽음 처리 (가장 최근 메시지까지 읽음 처리)
         List<ChatMessage> recentMessages = chatMessageRepository.findTop50ByRoomCodeOrderBySentAtDesc(roomCode);
@@ -243,6 +293,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 "payload", readStatusPayload
             );
             
+            log.info("🔔 USER 읽음 상태 WebSocket 알림 전송 - roomCode: {}, topic: /topic/chat/{}", roomCode, roomCode);
             messagingTemplate.convertAndSend(
                 "/topic/chat/" + roomCode,
                 broadcastMessage
@@ -257,7 +308,15 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     /**
      * 사용자 권한 검증 (본인 채팅방인지 확인)
      */
-    private void validateUserPermission(ChatRoom chatRoom, Long memberId) {
+    private void validateUserPermission(ChatRoom chatRoom, Long memberId, String memberRole) {
+        // 플랫폼 관리자는 모든 플랫폼 채팅방에 접근 가능
+        if (Role.PLATFORM_ADMIN.name().equals(memberRole) && chatRoom.getExpoId() == null) {
+            log.info("플랫폼 관리자가 플랫폼 채팅방 접근 - roomCode: {}, adminId: {}", 
+                    chatRoom.getRoomCode(), memberId);
+            return; // 플랫폼 관리자는 권한 검증 통과
+        }
+        
+        // 일반 사용자는 본인 채팅방만 접근 가능
         if (!chatRoom.getMemberId().equals(memberId)) {
             log.error("권한 없는 사용자가 채팅방 읽음 처리 시도 - roomCode: {}, 사용자ID: {}, 채팅방 소유자ID: {}", 
                     chatRoom.getRoomCode(), memberId, chatRoom.getMemberId());
@@ -279,6 +338,161 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         } else {
             return currentReadStatus.substring(0, currentReadStatus.length() - 1) + 
                    ",\"USER\":\"" + lastReadMessageId + "\"}";
+        }
+    }
+    
+    /**
+     * 플랫폼 채팅방 자동 생성
+     */
+    private void ensurePlatformRoomExists(Long memberId) {
+        String platformRoomCode = "platform-" + memberId;
+        Optional<ChatRoom> existingRoom = chatRoomRepository.findByRoomCode(platformRoomCode);
+        
+        if (existingRoom.isEmpty()) {
+            // Fetch actual user name from database
+            String memberName = "플랫폼 사용자"; // Default fallback
+            try {
+                Optional<Member> memberOpt = memberRepository.findById(memberId);
+                if (memberOpt.isPresent()) {
+                    memberName = memberOpt.get().getName();
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch member name for platform room creation: {}", e.getMessage());
+            }
+            
+            ChatRoom platformRoom = ChatRoom.builder()
+                .roomCode(platformRoomCode)
+                .expoId(null)  // 플랫폼 방은 expoId 없음
+                .memberId(memberId)
+                .memberName(memberName)  // Use actual user name
+                .expoTitle("플랫폼 상담")    // Frontend에서 이 이름으로 표시됨
+                .build();
+                
+            chatRoomRepository.save(platformRoom);
+            log.info("플랫폼 채팅방 자동 생성 - memberId: {}, roomCode: {}, memberName: {}", memberId, platformRoomCode, memberName);
+        }
+    }
+    
+    /**
+     * AI 상담을 관리자에게 인계 (요약 포함)
+     */
+    @Override
+    @Transactional
+    public void handoffAIToAdmin(String roomCode, String adminCode) {
+        try {
+            // AI 서비스를 통한 인계 처리 (요약 자동 생성)
+            aiChatService.handoffToAdmin(roomCode, adminCode);
+            
+            log.info("AI 상담 관리자 인계 완료 - roomCode: {}, adminCode: {}", roomCode, adminCode);
+            
+        } catch (Exception e) {
+            log.error("AI 상담 관리자 인계 실패 - roomCode: {}, adminCode: {}", roomCode, adminCode, e);
+            throw new CustomException(CustomErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * 특정 채팅방의 읽지 않은 메시지 수 조회 (역할 기반 접근 제어)
+     */
+    @Override
+    public Long getUnreadCount(String roomCode, Long memberId, String memberRole) {
+        // 1. 채팅방 존재 확인
+        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> {
+                    log.error("존재하지 않는 채팅방 - roomCode: {}", roomCode);
+                    return new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
+                });
+        
+        // 2. 권한 검증
+        validateUserPermission(chatRoom, memberId, memberRole);
+        
+        try {
+            // 3. 역할에 따른 unread count 계산
+            if (Role.PLATFORM_ADMIN.name().equals(memberRole) || Role.EXPO_ADMIN.name().equals(memberRole)) {
+                // 관리자 입장: 사용자가 보낸 메시지 중 읽지 않은 것만 계산
+                return calculateUnreadCountForAdmin(chatRoom);
+            } else {
+                // 일반 사용자 입장: 관리자/AI가 보낸 메시지 중 읽지 않은 것만 계산  
+                return calculateUnreadCountForUser(chatRoom);
+            }
+            
+        } catch (Exception e) {
+            log.error("읽지 않은 메시지 수 조회 실패 - roomCode: {}, memberId: {}", roomCode, memberId, e);
+            return 0L; // 에러 시 0 반환
+        }
+    }
+    
+    /**
+     * 관리자 입장에서 읽지 않은 메시지 수 계산 (사용자 메시지만)
+     */
+    private Long calculateUnreadCountForAdmin(ChatRoom chatRoom) {
+        String roomCode = chatRoom.getRoomCode();
+        String readStatusJson = chatRoom.getReadStatusJson();
+        
+        // readStatusJson에서 ADMIN의 마지막 읽은 메시지 ID 추출
+        String lastReadMessageId = extractLastReadMessageId(readStatusJson, "ADMIN");
+        
+        if (lastReadMessageId == null || lastReadMessageId.isEmpty()) {
+            // 관리자가 아직 아무것도 읽지 않았다면 전체 USER 메시지 개수
+            return chatMessageRepository.countByRoomCodeAndSenderType(roomCode, "USER");
+        } else {
+            // 마지막 읽은 메시지 ID 이후의 USER 메시지 개수
+            return chatMessageRepository.countByRoomCodeAndSenderTypeAndIdGreaterThan(
+                roomCode, "USER", lastReadMessageId);
+        }
+    }
+    
+    /**
+     * 사용자 입장에서 읽지 않은 메시지 수 계산 (관리자/AI 메시지만)
+     */
+    private Long calculateUnreadCountForUser(ChatRoom chatRoom) {
+        String roomCode = chatRoom.getRoomCode();
+        String readStatusJson = chatRoom.getReadStatusJson();
+        
+        // readStatusJson에서 USER의 마지막 읽은 메시지 ID 추출
+        String lastReadMessageId = extractLastReadMessageId(readStatusJson, "USER");
+        
+        if (lastReadMessageId == null || lastReadMessageId.isEmpty()) {
+            // 사용자가 아직 아무것도 읽지 않았다면 전체 ADMIN/AI 메시지 개수
+            Long adminCount = chatMessageRepository.countByRoomCodeAndSenderType(roomCode, "ADMIN");
+            Long aiCount = chatMessageRepository.countByRoomCodeAndSenderType(roomCode, "AI");
+            return adminCount + aiCount;
+        } else {
+            // 마지막 읽은 메시지 ID 이후의 ADMIN/AI 메시지 개수
+            Long adminCount = chatMessageRepository.countByRoomCodeAndSenderTypeAndIdGreaterThan(
+                roomCode, "ADMIN", lastReadMessageId);
+            Long aiCount = chatMessageRepository.countByRoomCodeAndSenderTypeAndIdGreaterThan(
+                roomCode, "AI", lastReadMessageId);
+            return adminCount + aiCount;
+        }
+    }
+    
+    /**
+     * readStatusJson에서 특정 타입의 마지막 읽은 메시지 ID 추출
+     */
+    private String extractLastReadMessageId(String readStatusJson, String userType) {
+        try {
+            if (readStatusJson == null || readStatusJson.isEmpty() || readStatusJson.equals("{}")) {
+                return null;
+            }
+            
+            // 간단한 JSON 파싱 (Jackson 라이브러리 사용하지 않고)
+            String searchKey = "\"" + userType + "\":\"";
+            int startIndex = readStatusJson.indexOf(searchKey);
+            if (startIndex == -1) {
+                return null;
+            }
+            
+            startIndex += searchKey.length();
+            int endIndex = readStatusJson.indexOf("\"", startIndex);
+            if (endIndex == -1) {
+                return null;
+            }
+            
+            return readStatusJson.substring(startIndex, endIndex);
+        } catch (Exception e) {
+            log.warn("readStatusJson 파싱 실패: {}", readStatusJson, e);
+            return null;
         }
     }
 }

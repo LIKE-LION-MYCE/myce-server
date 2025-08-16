@@ -47,6 +47,12 @@ public interface ChatRoomRepository extends MongoRepository<ChatRoom, String> {
     Long countByIsActiveTrue();
 
     /**
+     * 담당자가 배정된 모든 채팅방 조회 (디버깅용)
+     */
+    @Query("{ 'currentAdminCode': { $ne: null } }")
+    List<ChatRoom> findByCurrentAdminCodeIsNotNull();
+    
+    /**
      * 비활성 담당자가 있는 채팅방 조회 (타임아웃 스케줄러용)
      */
     @Query("{ 'currentAdminCode': { $ne: null }, 'lastAdminActivity': { $lt: ?0 } }")
@@ -56,4 +62,11 @@ public interface ChatRoomRepository extends MongoRepository<ChatRoom, String> {
      * 특정 박람회의 모든 채팅방 조회 (active 여부 무관)
      */
     List<ChatRoom> findByExpoId(Long expoId);
+
+    /**
+     * 플랫폼 채팅방 조회 (플랫폼 관리자용)
+     * expoId가 null인 모든 활성 채팅방 (platform-* rooms)
+     */
+    @Query(value = "{ 'expoId': null, 'isActive': true }", sort = "{ 'lastMessageAt': -1 }")
+    List<ChatRoom> findByExpoIdIsNullAndIsActiveTrueOrderByLastMessageAtDesc();
 }

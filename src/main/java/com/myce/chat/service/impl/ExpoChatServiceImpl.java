@@ -42,6 +42,9 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ExpoChatServiceImpl implements ExpoChatService {
 
+    private static final String ADMIN_ROOM_PREFIX = "admin-";
+    private static final String ROOM_DELIMITER = "-";
+
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final AdminCodeRepository adminCodeRepository;
@@ -123,6 +126,10 @@ public class ExpoChatServiceImpl implements ExpoChatService {
             // readStatusJson 업데이트
             String currentReadStatus = chatRoom.getReadStatusJson();
             String updatedReadStatus = updateReadStatusForAdmin(currentReadStatus, latestMessageId);
+            
+            log.info("EXPO 관리자 읽음 처리 - roomCode: {}, latestMessageId: {}, 이전 readStatus: {}, 업데이트된 readStatus: {}", 
+                roomCode, latestMessageId, currentReadStatus, updatedReadStatus);
+            
             chatRoom.updateReadStatus(updatedReadStatus);
         }
         
@@ -252,10 +259,15 @@ public class ExpoChatServiceImpl implements ExpoChatService {
             // 채팅 권한 확인
             if (adminCode.getAdminPermission() != null && 
                 !adminCode.getAdminPermission().getIsInquiryView()) {
-                log.error("문의 보기 권한 없음 - isInquiryView: {}", 
-                        adminCode.getAdminPermission().getIsInquiryView());
+                log.error("🚫 문의 보기 권한 없음 - adminCode: {}, adminPermission exists: {}, isInquiryView: {}", 
+                        adminCode.getCode(), true, adminCode.getAdminPermission().getIsInquiryView());
                 throw new AccessDeniedException("문의 보기 권한이 없습니다");
             }
+            
+            log.info("✅ Expo 채팅 권한 검증 완료 - adminCode: {}, permission null: {}, isInquiryView: {}", 
+                    adminCode.getCode(), 
+                    adminCode.getAdminPermission() == null,
+                    adminCode.getAdminPermission() != null ? adminCode.getAdminPermission().getIsInquiryView() : "N/A");
             
             
         } else if ("MEMBER".equals(loginType)) {
@@ -328,20 +340,24 @@ public class ExpoChatServiceImpl implements ExpoChatService {
             if ("ADMIN".equals(message.getSenderType())) {
                 // 관리자가 보낸 메시지 -> 사용자가 읽었는지 확인
                 String userLastReadId = extractLastReadMessageId(readStatusJson, "USER");
-                if (userLastReadId == null || message.getId().compareTo(userLastReadId) > 0) {
-                    return 1; // 사용자가 안 읽음
-                }
+                boolean isRead = userLastReadId != null && message.getId().compareTo(userLastReadId) <= 0;
+                
+                log.debug("EXPO 관리자 메시지 읽음 상태 계산 - messageId: {}, userLastReadId: {}, isRead: {}", 
+                    message.getId(), userLastReadId, isRead);
+                
+                return isRead ? 0 : 1;
             } else {
                 // 사용자가 보낸 메시지 -> 관리자가 읽었는지 확인
                 String adminLastReadId = extractLastReadMessageId(readStatusJson, "ADMIN");
-                if (adminLastReadId == null || message.getId().compareTo(adminLastReadId) > 0) {
-                    return 1; // 관리자가 안 읽음
-                }
+                boolean isRead = adminLastReadId != null && message.getId().compareTo(adminLastReadId) <= 0;
+                
+                log.info("EXPO 사용자 메시지 읽음 상태 계산 - messageId: {}, adminLastReadId: {}, isRead: {}, readStatusJson: {}", 
+                    message.getId(), adminLastReadId, isRead, readStatusJson);
+                
+                return isRead ? 0 : 1;
             }
-            
-            return 0; // 읽음
         } catch (Exception e) {
-            log.warn("메시지 읽음 상태 계산 실패 - messageId: {}", message.getId());
+            log.warn("메시지 읽음 상태 계산 실패 - messageId: {}", message.getId(), e);
             return 1; // 에러시 안읽음으로 표시
         }
     }
@@ -487,8 +503,8 @@ public class ExpoChatServiceImpl implements ExpoChatService {
      */
     private Long extractExpoIdFromRoomCode(String roomCode) {
         try {
-            if (roomCode != null && roomCode.startsWith("admin-")) {
-                String[] parts = roomCode.split("-");
+            if (roomCode != null && roomCode.startsWith(ADMIN_ROOM_PREFIX)) {
+                String[] parts = roomCode.split(ROOM_DELIMITER);
                 if (parts.length >= 3) {
                     return Long.parseLong(parts[1]);
                 }

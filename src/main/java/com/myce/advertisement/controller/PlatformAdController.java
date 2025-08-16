@@ -7,6 +7,7 @@ import com.myce.advertisement.service.PlatformApplyAdService;
 import com.myce.advertisement.service.PlatformCurrentAdService;
 import com.myce.common.dto.PageResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/platform/ads")
 @RequiredArgsConstructor
+@Slf4j
 public class PlatformAdController {
     private final PlatformAdService service;
     private final PlatformAdDetailService adDetailService;
@@ -23,15 +25,15 @@ public class PlatformAdController {
     private final int PAGE_SIZE = 10;
 
     @GetMapping
-    public PageResponse<AdSimpleResponse> getAdList(
+    public PageResponse<AdResponse> getAdList(
             @RequestParam int page,
             @RequestParam(defaultValue = "true") boolean latestFirst,
             @RequestParam(defaultValue = "true") boolean isApply) {
-        return service.getAllAdList(page, PAGE_SIZE, latestFirst, isApply);
+        return service.getAdList(page, PAGE_SIZE, latestFirst, isApply);
     }
 
     @GetMapping("/filter")
-    public PageResponse<AdSimpleResponse> filterAdList(
+    public PageResponse<AdResponse> filterAdList(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
@@ -60,6 +62,12 @@ public class PlatformAdController {
     @PostMapping("/{adId}/cancel")
     public ResponseEntity<Void> cancelApply(@PathVariable Long adId) {
         currentAdService.cancelCurrent(adId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{adId}/cancel/deny")
+    public ResponseEntity<Void> denyCancel(@PathVariable Long adId) {
+        currentAdService.denyCancel(adId);
         return ResponseEntity.ok().build();
     }
 

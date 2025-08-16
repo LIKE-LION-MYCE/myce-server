@@ -10,24 +10,33 @@ import java.util.List;
 public enum ExpoStatus {
   
     PENDING_APPROVAL("승인 대기"),
-    PENDING_PAYMENT("결제 대기"),
+    PENDING_PAYMENT("승인 완료"),
     PENDING_PUBLISH("게시 대기"),
     PENDING_CANCEL("취소 대기"),
     PUBLISHED("게시 중"),
     PUBLISH_ENDED("게시 종료"),
     SETTLEMENT_REQUESTED("정산 요청"),
     COMPLETED("종료됨"),
-    REJECTED("거절됨"),
-    CANCELLED("취소됨");
+    REJECTED("승인 거절"),
+    CANCELLED("취소 완료");
 
     private final String label;
     
-    //운영중으로 간주하는 상태 묶음
+    // 신청 관리 페이지에서 표시되는 상태들
+    public static final List<ExpoStatus> APPLICATION_STATUSES = List.of(
+            PENDING_APPROVAL,
+            PENDING_PAYMENT,
+            REJECTED
+    );
+    
+    //운영중으로 간주하는 상태 묶음 (현재 관리 페이지에서 표시)
     public static final List<ExpoStatus> ACTIVE_STATUSES = List.of(
             PENDING_PUBLISH,
-            PENDING_CANCEL,
             PUBLISHED,
+            PENDING_CANCEL,
             PUBLISH_ENDED,
-            SETTLEMENT_REQUESTED
+            SETTLEMENT_REQUESTED,
+            COMPLETED,
+            CANCELLED
     );
 }

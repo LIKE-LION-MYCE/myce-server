@@ -64,8 +64,8 @@ public class Member {
     @Column(name = "mileage", nullable = false)
     private Integer mileage;
 
-    @Column(name = "is_deleted", nullable = false, columnDefinition = "TINYINT(1)")
-    private Boolean isDeleted;
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
+    private boolean isDeleted = false;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
@@ -76,7 +76,8 @@ public class Member {
     private LocalDateTime updatedAt;
 
     @Builder
-    public Member(MemberGrade memberGrade, String name, String loginId, String password, String email, LocalDate birth, String phone, Role role, Gender gender, ProviderType providerType, String providerId) {
+    public Member(MemberGrade memberGrade, String name, String loginId, String password, String email,
+        LocalDate birth, String phone, Role role, Gender gender, ProviderType providerType, String providerId) {
         this.memberGrade = memberGrade;
         this.name = name;
         this.loginId = loginId;
@@ -107,6 +108,18 @@ public class Member {
         if (email != null && !email.trim().isEmpty()) {
             this.email = email;
         }
+    }
+
+    public void updateMileage(Integer mileage) {
+        this.mileage = mileage;
+    }
+
+    public void updateRole(Role role) {
+        this.role = role;
+    }
+
+    public void updateMemberGrade(MemberGrade memberGrade) {
+        this.memberGrade = memberGrade;
     }
 }
 
