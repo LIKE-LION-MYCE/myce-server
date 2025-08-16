@@ -1,5 +1,6 @@
 package com.myce.payment.controller;
 
+import com.myce.payment.dto.AdPaymentInfoStatusUpdateRequest;
 import com.myce.payment.dto.PaymentImpUidForRefundRequest;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
@@ -61,5 +62,13 @@ public class PaymentController {
   ) {
     String impUid = paymentRefundService.getImpUidForRefund(request);
     return ResponseEntity.ok(impUid);
+  }
+
+  @PatchMapping("/{adId}/status")
+  public ResponseEntity<Void> updateAdPaymentInfoStatus(
+      @PathVariable Long adId, @RequestBody AdPaymentInfoStatusUpdateRequest request
+  ){
+    paymentService.updateAdPaymentInfo(adId, request.getPaymentStatus());
+    return ResponseEntity.ok().build();
   }
 }

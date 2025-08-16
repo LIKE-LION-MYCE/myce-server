@@ -89,7 +89,8 @@ public class SecurityConfig {
                             "/api/members/expos/*/payment", "/api/members/ads/*/payment")
                         .permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/tickets/quantity",
-                            "/api/reservations/**")
+                            "/api/reservations/**", "/api/platform/ads/*/status",
+                            "/api/payment/*/status")
                         .permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/**", "/api/reservations/**")
                         .permitAll()
