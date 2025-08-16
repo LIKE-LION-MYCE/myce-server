@@ -21,12 +21,29 @@ import java.util.Optional;
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
-    @Query("SELECT r FROM Reservation r " +
-            "JOIN FETCH r.expo e " +
-            "JOIN FETCH r.ticket t " +
-            "WHERE r.userType = :userType AND r.userId = :userId")
-    List<Reservation> findReservationsByUserTypeAndUserIdWithExpoAndTicket(@Param("userType") UserType userType,
-                                                                           @Param("userId") Long userId);
+    @Query(value = "SELECT r FROM Reservation r " +
+            "WHERE r.userType = :userType AND r.userId = :userId",
+            countQuery = "SELECT COUNT(r) FROM Reservation r " +
+                    "WHERE r.userType = :userType AND r.userId = :userId")
+    Page<Reservation> findReservationsByUserTypeAndUserIdWithExpoAndTicket(@Param("userType") UserType userType,
+                                                                           @Param("userId") Long userId,
+                                                                           Pageable pageable);
+
+    @Query("""
+            SELECT r, rpi, p, mg 
+            FROM Reservation r 
+            JOIN FETCH r.expo e 
+            JOIN FETCH r.ticket t 
+            LEFT JOIN ReservationPaymentInfo rpi ON rpi.reservation.id = r.id 
+            LEFT JOIN Payment p ON p.targetType = 'RESERVATION' AND p.targetId = r.id 
+            LEFT JOIN Member m ON r.userType = 'MEMBER' AND r.userId = m.id 
+            LEFT JOIN m.memberGrade mg 
+            WHERE r.userType = :userType AND r.userId = :userId 
+            ORDER BY r.createdAt DESC
+            """)
+    Page<Object[]> findReservationsWithPaymentInfoByUserTypeAndUserId(@Param("userType") UserType userType,
+                                                                      @Param("userId") Long userId,
+                                                                      Pageable pageable);
 
     @Query("SELECT r FROM Reservation r " +
             "JOIN FETCH r.expo e " +

@@ -20,5 +20,8 @@ public class MemberInfoWithMileageResponse {
   private String email;
   private Gender gender;
   private BigDecimal mileageRate;
+  private String gradeDescription;
+  private String gradeImageUrl;
+  private Integer mileage;
 }
 
