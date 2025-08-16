@@ -54,13 +54,6 @@ public interface QrCodeRepository extends JpaRepository<QrCode, Long> {
 
     // === 대시보드 통계용 쿼리 메서드들 ===
 
-    // 특정 박람회의 예약 티켓 수 (발급된 QR코드 수)
-    @Query("SELECT COUNT(qr) FROM QrCode qr " +
-            "JOIN qr.reserver rv " +
-            "JOIN rv.reservation r " +
-            "WHERE r.expo.id = :expoId")
-    Long countReservedTicketsByExpoId(@Param("expoId") Long expoId);
-
     // 특정 박람회의 QR 체크인 성공 건수
     @Query("SELECT COUNT(qr) FROM QrCode qr " +
             "JOIN qr.reserver rv " +
