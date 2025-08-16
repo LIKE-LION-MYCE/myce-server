@@ -16,6 +16,12 @@ public interface ExpoDashboardService {
     
     void refreshPaymentCache(Long expoId);
     
+    void clearReservationCache(Long expoId);
+    
+    void clearCheckinCache(Long expoId);
+    
+    void clearPaymentCache(Long expoId);
+    
     // 박람회 표시 기간 조회
     LocalDate[] getExpoDisplayDateRange(Long expoId);
     

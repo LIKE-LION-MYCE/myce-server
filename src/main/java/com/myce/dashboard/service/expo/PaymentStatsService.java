@@ -13,4 +13,9 @@ public interface PaymentStatsService {
      * 결제 통계 캐시를 갱신합니다.
      */
     void refreshPaymentCache(Long expoId);
+    
+    /**
+     * 결제 통계 캐시를 완전히 삭제합니다.
+     */
+    void clearPaymentCache(Long expoId);
 }

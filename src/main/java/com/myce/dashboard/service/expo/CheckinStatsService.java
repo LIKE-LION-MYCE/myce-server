@@ -22,4 +22,9 @@ public interface CheckinStatsService {
      * 체크인 통계 캐시를 갱신합니다.
      */
     void refreshCheckinCache(Long expoId);
+    
+    /**
+     * 체크인 통계 캐시를 완전히 삭제합니다.
+     */
+    void clearCheckinCache(Long expoId);
 }

@@ -55,4 +55,19 @@ public class ExpoDashboardServiceImpl implements ExpoDashboardService {
     public void refreshPaymentCache(Long expoId) {
         paymentStatsService.refreshPaymentCache(expoId);
     }
+    
+    @Override
+    public void clearReservationCache(Long expoId) {
+        reservationStatsService.clearReservationCache(expoId);
+    }
+
+    @Override
+    public void clearCheckinCache(Long expoId) {
+        checkinStatsService.clearCheckinCache(expoId);
+    }
+
+    @Override
+    public void clearPaymentCache(Long expoId) {
+        paymentStatsService.clearPaymentCache(expoId);
+    }
 }

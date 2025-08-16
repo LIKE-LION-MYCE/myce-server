@@ -35,6 +35,14 @@ public class DashboardController {
         expoDashboardService.refreshPaymentCache(expoId);
         return ResponseEntity.ok("대시보드 통계 캐시가 갱신되었습니다.");
     }
+    
+    @DeleteMapping("/cache/clear")
+    public ResponseEntity<String> clearAllCache(@PathVariable Long expoId) {
+        expoDashboardService.clearReservationCache(expoId);
+        expoDashboardService.clearCheckinCache(expoId);
+        expoDashboardService.clearPaymentCache(expoId);
+        return ResponseEntity.ok("대시보드 통계 캐시가 완전히 삭제되었습니다.");
+    }
 
     @GetMapping("/expo-date-range")
     public ResponseEntity<LocalDate[]> getExpoDisplayDateRange(@PathVariable Long expoId) {
