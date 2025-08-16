@@ -23,7 +23,7 @@ public interface ChatWebSocketService {
     /**
      * 메시지 전송 및 저장
      */
-    MessageResponse sendMessage(Long userId, String roomId, String content);
+    MessageResponse sendMessage(Long userId, String roomId, String content, String token);
 
     /**
      * JWT 기반 관리자 코드 결정

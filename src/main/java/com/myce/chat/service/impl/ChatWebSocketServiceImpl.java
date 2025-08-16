@@ -35,6 +35,7 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
 
     private static final String ADMIN_ROOM_PREFIX = "admin-";
     private static final String ROOM_DELIMITER = "-";
+    private static final String PLATFORM_ROOM_PREFIX = "platform-";
 
     private final JwtUtil jwtUtil;
     private final MemberRepository memberRepository;
@@ -77,6 +78,28 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
             throw new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
         }
         
+        // 플랫폼 방 처리
+        if (roomId.startsWith(PLATFORM_ROOM_PREFIX)) {
+            String[] parts = roomId.split(ROOM_DELIMITER);
+            Long roomMemberId = Long.parseLong(parts[1]);
+            
+            // 권한 확인: 본인의 플랫폼 방이거나 플랫폼 관리자
+            String loginType = jwtUtil.getLoginTypeFromToken(token);
+            Member user = memberRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+            
+            boolean isOwner = userId.equals(roomMemberId);
+            boolean isPlatformAdmin = Role.PLATFORM_ADMIN.name().equals(user.getRole().name());
+            
+            if (!isOwner && !isPlatformAdmin) {
+                throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+            }
+            
+            ensurePlatformChatRoomExists(roomId, roomMemberId);
+            return;
+        }
+        
+        // 기존 박람회 방 처리
         String[] parts = roomId.split(ROOM_DELIMITER);
         Long expoId = Long.parseLong(parts[1]);
         Long participantId = Long.parseLong(parts[2]);
@@ -114,35 +137,70 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
 
     @Override
     @Transactional
-    public MessageResponse sendMessage(Long userId, String roomId, String content) {
-        String[] parts = roomId.split(ROOM_DELIMITER);
-        Long expoId = Long.parseLong(parts[1]);
-        
+    public MessageResponse sendMessage(Long userId, String roomId, String content, String token) {
+        log.warn("🎭 SENDMESSAGE 시작 - userId: {}, roomId: {}, content: '{}'", userId, roomId, content);
         String senderRole;
         String senderName;
         
-        Optional<AdminCode> adminCodeOpt = adminCodeRepository.findById(userId);
-        
-        if (adminCodeOpt.isPresent()) {
-            senderRole = "ADMIN";
-            senderName = "박람회 관리자";
-        } else {
-            Optional<Member> memberOpt = memberRepository.findById(userId);
+        // Handle platform rooms (format: platform-{userId})
+        if (roomId.startsWith("platform-")) {
+            Member sender = memberRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
             
-            if (memberOpt.isPresent()) {
-                Member sender = memberOpt.get();
-                boolean isExpoOwner = expoRepository.existsByIdAndMemberId(expoId, userId);
+            if (Role.PLATFORM_ADMIN.name().equals(sender.getRole().name())) {
+                senderRole = "PLATFORM_ADMIN";
+                senderName = "플랫폼 관리자";
+            } else {
+                senderRole = "USER";
+                senderName = sender.getName();
+            }
+            
+            log.debug("🎭 Platform 메시지 발송자 정보: userId={}, senderRole={}, senderName={}, memberRole={}", 
+                userId, senderRole, senderName, sender.getRole().name());
+        } else {
+            // Handle expo rooms (format: admin-{expoId}-{userId})
+            String[] parts = roomId.split(ROOM_DELIMITER);
+            Long expoId = Long.parseLong(parts[1]);
+            
+            // Use token to determine login type - same as joinRoom logic
+            String loginType = jwtUtil.getLoginTypeFromToken(token);
+            
+            if ("ADMIN_CODE".equals(loginType)) {
+                // This is an AdminCode user
+                AdminCode adminCode = adminCodeRepository.findById(userId)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
                 
-                if (isExpoOwner) {
-                    senderRole = "ADMIN";
-                    senderName = "박람회 관리자";
-                } else {
+                if (!adminCode.getExpoId().equals(expoId)) {
+                    throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+                }
+                
+                senderRole = "ADMIN";
+                senderName = "박람회 관리자 (상담원)";
+            } else {
+                // This is a regular Member user - apply platform chat logic
+                Member sender = memberRepository.findById(userId)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+                
+                if (Role.EXPO_ADMIN.name().equals(sender.getRole().name())) {
+                    // Check if they're the expo owner
+                    boolean isExpoOwner = expoRepository.existsByIdAndMemberId(expoId, userId);
+                    if (isExpoOwner) {
+                        senderRole = "ADMIN";
+                        senderName = "박람회 관리자";
+                    } else {
+                        throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+                    }
+                } else if (Role.USER.name().equals(sender.getRole().name())) {
+                    // Regular user - correctly identify as USER
                     senderRole = "USER";
                     senderName = sender.getName();
+                } else {
+                    throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
                 }
-            } else {
-                throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
             }
+            
+            log.debug("🎭 Expo 메시지 발송자 정보: userId={}, senderRole={}, senderName={}, loginType={}, expoId={}", 
+                userId, senderRole, senderName, loginType, expoId);
         }
         
         ChatMessage chatMessage = chatMessageService.createMessage(
@@ -159,7 +217,24 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
      * roomId 형식 검증
      */
     private boolean isValidRoomIdFormat(String roomId) {
-        if (roomId == null || !roomId.startsWith(ADMIN_ROOM_PREFIX)) {
+        if (roomId == null) {
+            return false;
+        }
+        
+        // 플랫폼 방 형식: platform-{memberId}
+        if (roomId.startsWith(PLATFORM_ROOM_PREFIX)) {
+            String[] parts = roomId.split(ROOM_DELIMITER);
+            if (parts.length != 2) return false;
+            try {
+                Long.parseLong(parts[1]); // memberId
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        
+        // 기존 박람회 방 형식: admin-{expoId}-{memberId} (원래 로직 유지)
+        if (!roomId.startsWith(ADMIN_ROOM_PREFIX)) {
             return false;
         }
         
@@ -195,6 +270,37 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
     }
 
     /**
+     * 플랫폼 채팅방 존재 확인 및 생성
+     */
+    private void ensurePlatformChatRoomExists(String roomCode, Long memberId) {
+        Optional<ChatRoom> existingRoom = chatRoomRepository.findByRoomCode(roomCode);
+        
+        if (existingRoom.isEmpty()) {
+            // Fetch actual user name from database
+            String memberName = "플랫폼 사용자"; // Default fallback
+            try {
+                Optional<Member> memberOpt = memberRepository.findById(memberId);
+                if (memberOpt.isPresent()) {
+                    memberName = memberOpt.get().getName();
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch member name for platform room creation: {}", e.getMessage());
+            }
+            
+            ChatRoom newRoom = ChatRoom.builder()
+                .roomCode(roomCode)
+                .expoId(null)  // 플랫폼 방은 expoId 없음
+                .memberId(memberId)
+                .memberName(memberName)  // Use actual user name
+                .expoTitle("플랫폼 상담")    // 플랫폼 방 표시용
+                .build();
+                
+            chatRoomRepository.save(newRoom);
+            log.info("플랫폼 채팅방 생성 완료 - roomCode: {}, memberId: {}, memberName: {}", roomCode, memberId, memberName);
+        }
+    }
+
+    /**
      * 채팅방 마지막 메시지 업데이트
      */
     private void updateChatRoomLastMessage(String roomId, String messageId, String content) {
@@ -212,13 +318,30 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
      */
     @Override
     public void assignAdminIfNeeded(ChatRoom chatRoom, String adminCode) {
+        log.info("🔧 assignAdminIfNeeded called - room: {}, adminCode: {}, currentState: {}, hasAssignedAdmin: {}", 
+                chatRoom.getRoomCode(), adminCode, chatRoom.getCurrentState(), chatRoom.hasAssignedAdmin());
+        
         if (!chatRoom.hasAssignedAdmin()) {
-            chatRoom.assignAdmin(adminCode);
-            chatRoom.setAdminDisplayName(getAdminDisplayName(adminCode));
+            log.info("🔧 No admin assigned, attempting to assign: {}", adminCode);
+            // Atomic assignment with collision protection
+            boolean assigned = chatRoom.assignAdmin(adminCode);
+            if (assigned) {
+                chatRoom.setAdminDisplayName(getAdminDisplayName(adminCode));
+                log.info("✅ Admin assigned successfully: {} to room {} - NEW STATE: {}", 
+                        adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentState());
+            } else {
+                log.warn("❌ Admin assignment failed (collision): {} for room {}", adminCode, chatRoom.getRoomCode());
+                throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+            }
         } else if (!chatRoom.getCurrentAdminCode().equals(adminCode)) {
+            log.warn("❌ Admin permission denied: {} attempted access to room {} (owned by {})", 
+                     adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentAdminCode());
             throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
         } else {
+            // Same admin updating activity
             chatRoom.updateAdminActivity();
+            log.debug("🔧 Admin activity updated: {} for room {} - STATE: {}", 
+                     adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentState());
         }
     }
 

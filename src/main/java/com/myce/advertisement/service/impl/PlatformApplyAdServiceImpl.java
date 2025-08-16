@@ -47,14 +47,17 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
         HashMap<String, Integer> priceMap = new HashMap<>();
         int totalPayment = 0;
 
-        log.info("generatePaymentCheck - Advertisement : {}", ad);
+        int feePerDay = feeSetting.getFeePerDay();
+        int totalDayFee = feePerDay * ad.getTotalDays();
+        int totalDays = ad.getTotalDays();
+
+        log.info("generatePaymentCheck - Advertisement : {}, {}", feePerDay, ad.getTotalDays());
 
         // todo: PG 수수료 고려 X
-        int totalDayFee = feeSetting.getFeePerDay() * ad.getTotalDays();
-        priceMap.put("총 이용료", totalDayFee);
+        priceMap.put("일일 이용료", feePerDay);
         totalPayment += totalDayFee;
 
-        return AdInfoMapper.getAdPaymentForm(ad, priceMap, totalPayment);
+        return AdInfoMapper.getAdPaymentForm(ad, priceMap, totalDays, totalPayment);
     }
 
     @Transactional

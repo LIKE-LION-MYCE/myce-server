@@ -22,11 +22,12 @@ public class MemberMyPageController {
     private final MemberMyPageService memberMyPageService;
     
     @GetMapping("/reserved-expos")
-    public ResponseEntity<List<ReservedExpoResponse>> getReservedExpos(
-            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+    public ResponseEntity<Page<ReservedExpoResponse>> getReservedExpos(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            Pageable pageable) {
         
         Long memberId = customUserDetails.getMemberId();
-        List<ReservedExpoResponse> reservedExpos = memberMyPageService.getReservedExpos(memberId);
+        Page<ReservedExpoResponse> reservedExpos = memberMyPageService.getReservedExpos(memberId, pageable);
         
         return ResponseEntity.ok(reservedExpos);
     }

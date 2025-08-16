@@ -39,7 +39,6 @@ public class ExpoQrGenerateScheduler implements TaskScheduler {
     }
 
     @Override
-    @Transactional
     @Scheduled(cron = "${scheduler.expo-qr-generate:0 0 0 * * *}")
     public void run() {
         try {
@@ -49,7 +48,6 @@ public class ExpoQrGenerateScheduler implements TaskScheduler {
         }
     }
 
-    @Transactional
     public void process() {
         log.info("박람회 QR코드 일괄 생성 프로세스 시작");
         

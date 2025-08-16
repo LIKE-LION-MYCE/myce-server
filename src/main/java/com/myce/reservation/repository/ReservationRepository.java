@@ -24,9 +24,34 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("SELECT r FROM Reservation r " +
             "JOIN FETCH r.expo e " +
             "JOIN FETCH r.ticket t " +
-            "WHERE r.userType = :userType AND r.userId = :userId")
+            "WHERE r.userType = :userType AND r.userId = :userId " +
+            "ORDER BY r.createdAt DESC")
     List<Reservation> findReservationsByUserTypeAndUserIdWithExpoAndTicket(@Param("userType") UserType userType,
                                                                            @Param("userId") Long userId);
+
+    @Query(value = "SELECT r FROM Reservation r " +
+            "WHERE r.userType = :userType AND r.userId = :userId",
+            countQuery = "SELECT COUNT(r) FROM Reservation r " +
+            "WHERE r.userType = :userType AND r.userId = :userId")
+    Page<Reservation> findReservationsByUserTypeAndUserIdWithExpoAndTicket(@Param("userType") UserType userType,
+                                                                           @Param("userId") Long userId,
+                                                                           Pageable pageable);
+
+    @Query("""
+            SELECT r, rpi, p, mg 
+            FROM Reservation r 
+            JOIN FETCH r.expo e 
+            JOIN FETCH r.ticket t 
+            LEFT JOIN ReservationPaymentInfo rpi ON rpi.reservation.id = r.id 
+            LEFT JOIN Payment p ON p.targetType = 'RESERVATION' AND p.targetId = r.id 
+            LEFT JOIN Member m ON r.userType = 'MEMBER' AND r.userId = m.id 
+            LEFT JOIN m.memberGrade mg 
+            WHERE r.userType = :userType AND r.userId = :userId 
+            ORDER BY r.createdAt DESC
+            """)
+    Page<Object[]> findReservationsWithPaymentInfoByUserTypeAndUserId(@Param("userType") UserType userType,
+                                                                      @Param("userId") Long userId,
+                                                                      Pageable pageable);
 
     @Query("SELECT r FROM Reservation r " +
             "JOIN FETCH r.expo e " +
@@ -116,7 +141,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     long countAllByCreatedAtAfter(LocalDateTime createdAt);
            
     List<Reservation> findByExpoId(Long expoId);
-    
+
     // === 대시보드 통계용 쿼리 메서드들 ===
     
     // 특정 박람회의 누적 예약자 수 (확정된 예약만, 실제 인원수 기준)
@@ -129,9 +154,9 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
            "AND r.status = 'CONFIRMED' " +
            "AND DATE(r.createdAt) = :today")
     Long countTodayReservationsByExpoId(@Param("expoId") Long expoId, @Param("today") LocalDate today);
-    
-    // 특정 박람회의 날짜별 예약자 수 (확정된 예약만, 실제 인원수 기준)
-    @Query("SELECT DATE(r.createdAt) as date, COALESCE(SUM(r.quantity), 0) as count " +
+
+    // 특정 박람회의 날짜별 예약자 수 (일주일)
+    @Query("SELECT DATE(r.createdAt) as date, COUNT(r) as count " +
            "FROM Reservation r " +
            "WHERE r.expo.id = :expoId " +
            "AND r.status = 'CONFIRMED' " +
@@ -139,8 +164,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
            "AND r.createdAt <= :endDate " +
            "GROUP BY DATE(r.createdAt) " +
            "ORDER BY DATE(r.createdAt)")
-    List<Object[]> countReservationsByDateRange(@Param("expoId") Long expoId, 
-                                               @Param("startDate") LocalDateTime startDate, 
+    List<Object[]> countReservationsByDateRange(@Param("expoId") Long expoId,
+                                               @Param("startDate") LocalDateTime startDate,
                                                @Param("endDate") LocalDateTime endDate);
 
     // 특정 박람회의 결제 대기 중인 예약 건수
@@ -182,4 +207,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
            "WHERE r.expo.id = :expoId " +
            "AND r.status = 'CONFIRMED'")
     BigDecimal sumTotalRevenueByExpoId(@Param("expoId") Long expoId);
+    List<Reservation> findByUserIdAndUserTypeAndStatus(Long userId, UserType userType, ReservationStatus status);
+
 }

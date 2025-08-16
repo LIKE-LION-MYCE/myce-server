@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -48,6 +49,24 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
     }
 
     @Transactional
+    public void denyCancel(Long adId){
+        Advertisement ad = adRepository
+                .findById(adId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
+        Payment payment = paymentRepository
+                .findByTargetIdAndTargetType(ad.getId(), PaymentTargetType.AD)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        if(ad.getDisplayEndDate().isBefore(LocalDate.now())){
+            ad.complete();
+        }else{
+            ad.denyCancel();
+        }
+
+        refundRepository.deleteByPayment(payment);
+    }
+
+    @Transactional
     public void cancelCurrent(Long adId) {
         Advertisement ad = adRepository
                 .findById(adId)
@@ -62,7 +81,12 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.REFUND_NOT_FOUND));
 
         refund.updateToRefund();
-        adPayment.setStatus(PaymentStatus.PARTIAL_REFUNDED);
+
+        if(refund.getIsPartial()){
+            adPayment.setStatus(PaymentStatus.PARTIAL_REFUNDED);
+        }else{
+            adPayment.setStatus(PaymentStatus.REFUNDED);
+        }
         adPayment.setUpdatedAt(LocalDateTime.now());
 
         log.info("cancelCurrent - Advertisement : {}, Payment : {}", ad, payment);

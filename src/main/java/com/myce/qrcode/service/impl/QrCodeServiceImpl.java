@@ -253,10 +253,10 @@ public class QrCodeServiceImpl implements QrCodeService {
         
         QrCode qrCode = qrCodeRepository.findByQrToken(token)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.QR_NOT_FOUND));
-        
+
         // 관리자 권한 검증
         validateAdminPermission(adminMemberId, qrCode.getReserver(), loginType);
-        
+
         // 매퍼를 통해 응답 생성 (상태만 체크)
         QrVerifyResponse response = qrResponseMapper.toVerifyResponse(qrCode);
         
