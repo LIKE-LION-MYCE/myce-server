@@ -36,4 +36,13 @@ public interface ChatRoomService {
      * @return 읽지 않은 메시지 수
      */
     Long getUnreadCount(String roomCode, Long memberId, String memberRole);
+    
+    /**
+     * 채팅방 접근 권한 검증 (메시지 조회, 읽음 처리 등에 사용)
+     * @param roomCode 채팅방 코드
+     * @param memberId 조회 요청자 ID
+     * @param memberRole 조회 요청자 역할
+     * @throws CustomException 권한이 없을 경우
+     */
+    void validateChatRoomAccess(String roomCode, Long memberId, String memberRole);
 }

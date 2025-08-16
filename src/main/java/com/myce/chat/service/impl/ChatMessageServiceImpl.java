@@ -141,7 +141,10 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             if ("ADMIN".equals(message.getSenderType()) || "AI".equals(message.getSenderType())) {
                 // 관리자나 AI가 보낸 메시지 -> 사용자가 읽었는지 확인
                 String userLastReadId = extractLastReadMessageId(readStatusJson, "USER");
-                if (userLastReadId == null || message.getId().compareTo(userLastReadId) > 0) {
+                boolean isUnread = userLastReadId == null || message.getId().compareTo(userLastReadId) > 0;
+                
+                    
+                if (isUnread) {
                     return 1; // 사용자가 안 읽음
                 }
             } else {
@@ -160,7 +163,10 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 } else {
                     // 일반 채팅방 (expo 포함): 관리자 읽음 상태만 확인 (기존 로직 유지)
                     String adminLastReadId = extractLastReadMessageId(readStatusJson, "ADMIN");
-                    if (adminLastReadId == null || message.getId().compareTo(adminLastReadId) > 0) {
+                    boolean isUnread = adminLastReadId == null || message.getId().compareTo(adminLastReadId) > 0;
+                    
+                        
+                    if (isUnread) {
                         return 1; // 관리자가 안 읽음
                     }
                 }
