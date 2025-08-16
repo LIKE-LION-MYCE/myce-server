@@ -2,6 +2,7 @@ package com.myce.payment.service.refund.impl;
 
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.payment.dto.PaymentImpUidForRefundRequest;
 import com.myce.payment.dto.PaymentInfoForRefund;
 import com.myce.payment.dto.PaymentRefundRequest;
 import com.myce.payment.entity.AdPaymentInfo;
@@ -135,5 +136,12 @@ public class PaymentRefundServiceImpl implements PaymentRefundService {
                 throw new CustomException(CustomErrorCode.INVALID_PAYMENT_TARGET_TYPE);
         }
         return new PaymentInfoForRefund(paymentInfoEntity, originalPaidAmount);
+    }
+
+    @Override
+    public String getImpUidForRefund(PaymentImpUidForRefundRequest request) {
+        Payment payment = paymentRepository.findByTargetIdAndTargetType(request.getTargetId(), request.getTargetType())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_NOT_FOUND));
+        return payment.getImpUid();
     }
 }

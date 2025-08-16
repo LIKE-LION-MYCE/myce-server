@@ -80,7 +80,8 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth ->
                 auth.requestMatchers(HttpMethod.POST, "/api/auth/**", "/api/payment/**",
-                        "/api/payment/**", "/api/reservations/**", "/api/reservers")
+                        "/api/payment/**", "/api/reservations/**", "/api/reservers",
+                        "/api/payment/imp-uid")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/**",
                             "/api/categories", "/api/expos/**", "/api/reservations/**",
