@@ -1,14 +1,20 @@
 package com.myce.common.aop;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.myce.common.exception.CustomException;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Page;
@@ -18,19 +24,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Set;
-
 @Slf4j
 @Aspect
 @Component
 public class ControllerLoggingAspect {
-
-    private static final Set<String> SENSITIVE_FIELDS = Set.of(
-        "password", "token", "secret", "authorization", "cookie", "refreshToken", "accessToken"
-    );
     
     private static final Set<String> EXCLUDED_METHODS = Set.of(
         "health", "actuator", "metrics", "prometheus"
@@ -38,6 +35,12 @@ public class ControllerLoggingAspect {
     
     private static final int MAX_RESPONSE_LENGTH = 1000;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @PostConstruct
+    public void init() {
+        objectMapper.registerModule(new JavaTimeModule());//Java의 LocalDateTime 변환 설정
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
     
     @Autowired
     private Environment environment;
@@ -103,8 +106,7 @@ public class ControllerLoggingAspect {
                 }
             } else {
                 String sanitizedResult = sanitizeAndTruncateResponse(result);
-                log.info("[API-SUCCESS] {} - {}ms - Response: {}",
-                        apiInfo, executionTime, sanitizedResult);
+                log.info("[API-SUCCESS] {} - {}ms - Response: {}", apiInfo, executionTime, sanitizedResult);
             }
         } catch (Exception e) {
             log.warn("[LOG-ERROR] Failed to log success response for {}: {}", apiInfo, e.getMessage());
@@ -112,8 +114,7 @@ public class ControllerLoggingAspect {
     }
     
     private void logErrorResponse(String apiInfo, Exception e, long executionTime) {
-        if (e instanceof CustomException) {
-            CustomException customException = (CustomException) e;
+        if (e instanceof CustomException customException) {
             log.warn("[API-CUSTOM-ERROR] {} - {}ms - Code: {} - Message: {}",
                     apiInfo, executionTime, customException.getErrorCode(), customException.getMessage());
         } else {
@@ -130,42 +131,25 @@ public class ControllerLoggingAspect {
         try {
             String jsonString;
             
-            if (response instanceof Collection) {
-                Collection<?> collection = (Collection<?>) response;
+            if (response instanceof Collection<?> collection) {
                 jsonString = String.format("[Collection size: %d]", collection.size());
-            } else if (response instanceof Page) {
-                Page<?> page = (Page<?>) response;
-                jsonString = String.format("[Page: %d/%d, size: %d]", 
+            } else if (response instanceof Page<?> page) {
+                jsonString = String.format("[Page: %d/%d, size: %d]",
                     page.getNumber() + 1, page.getTotalPages(), page.getSize());
             } else {
                 jsonString = objectMapper.writeValueAsString(response);
             }
-            
-            String sanitized = maskSensitiveData(jsonString);
-            
-            if (sanitized.length() > MAX_RESPONSE_LENGTH) {
-                return sanitized.substring(0, MAX_RESPONSE_LENGTH) + "... (truncated)";
+
+            if (jsonString.length() > MAX_RESPONSE_LENGTH) {
+                return jsonString.substring(0, MAX_RESPONSE_LENGTH) + "... (truncated)";
             }
             
-            return sanitized;
+            return jsonString;
             
         } catch (Exception e) {
+//            log.error("Serialization failed: {}", e.getMessage(), e);
             return response.getClass().getSimpleName() + " (serialization failed)";
         }
-    }
-    
-    private String maskSensitiveData(String json) {
-        for (String field : SENSITIVE_FIELDS) {
-            json = json.replaceAll(
-                "(?i)(\"" + field + "\"\\s*:\\s*\")([^\"]*)(\")", 
-                "$1***MASKED***$3"
-            );
-            json = json.replaceAll(
-                "(?i)(" + field + "=)([^&\\s]*)", 
-                "$1***MASKED***"
-            );
-        }
-        return json;
     }
     
     private String getApiInfo() {
