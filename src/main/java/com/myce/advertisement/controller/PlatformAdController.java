@@ -65,6 +65,12 @@ public class PlatformAdController {
         return ResponseEntity.ok().build();
     }
 
+    @PatchMapping("/{adId}/cancel/deny")
+    public ResponseEntity<Void> denyCancel(@PathVariable Long adId) {
+        currentAdService.denyCancel(adId);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/{adId}/cancel-check")
     public AdCancelInfoCheck getCancelForm(@PathVariable Long adId) {
         return currentAdService.generateCancelCheck(adId);

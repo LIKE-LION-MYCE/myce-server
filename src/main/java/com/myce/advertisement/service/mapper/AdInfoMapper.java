@@ -69,12 +69,13 @@ public class AdInfoMapper {
     }
 
     public static AdPaymentInfoCheck getAdPaymentForm(
-            Advertisement ad, HashMap<String, Integer> priceMap, int totalPayment) {
+            Advertisement ad, HashMap<String, Integer> priceMap, int totalDays, int totalPayment) {
         return AdPaymentInfoCheck.builder()
                 .title(ad.getTitle())
                 .requesterName(ad.getMember().getName())
                 .startAt(ad.getDisplayStartDate())
                 .endAt(ad.getDisplayEndDate())
+                .totalDays(totalDays)
                 .priceMap(priceMap)
                 .totalPayment(totalPayment)
                 .build();

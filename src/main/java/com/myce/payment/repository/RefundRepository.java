@@ -6,6 +6,7 @@ import com.myce.payment.entity.type.RefundStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+
 import java.util.Optional;
 
 public interface RefundRepository extends JpaRepository<Refund, Long> {
@@ -19,4 +20,7 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
     
     // 플랫폼 관리자용: 상태별 환불 신청 목록 조회
     Page<Refund> findByStatusOrderByCreatedAtDesc(RefundStatus status, Pageable pageable);
+
+    void deleteByPayment(Payment payment);
+
 }

@@ -48,6 +48,19 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
     }
 
     @Transactional
+    public void denyCancel(Long adId){
+        Advertisement ad = adRepository
+                .findById(adId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
+        Payment payment = paymentRepository
+                .findByTargetIdAndTargetType(ad.getId(), PaymentTargetType.AD)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        ad.denyCancel();
+        refundRepository.deleteByPayment(payment);
+    }
+
+    @Transactional
     public void cancelCurrent(Long adId) {
         Advertisement ad = adRepository
                 .findById(adId)
@@ -62,7 +75,12 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.REFUND_NOT_FOUND));
 
         refund.updateToRefund();
-        adPayment.setStatus(PaymentStatus.PARTIAL_REFUNDED);
+
+        if(refund.getIsPartial()){
+            adPayment.setStatus(PaymentStatus.PARTIAL_REFUNDED);
+        }else{
+            adPayment.setStatus(PaymentStatus.REFUNDED);
+        }
         adPayment.setUpdatedAt(LocalDateTime.now());
 
         log.info("cancelCurrent - Advertisement : {}, Payment : {}", ad, payment);

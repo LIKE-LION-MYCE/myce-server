@@ -78,8 +78,8 @@ public class ChatRoomController {
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         
 
-        // 페이징 설정 (최대 100개로 제한)
-        int pageSize = Math.min(size, 100);
+        // 페이징 설정 (최대 1000개로 제한)
+        int pageSize = Math.min(size, 1000);
         Pageable pageable = PageRequest.of(page, pageSize);
 
         // TODO: 채팅방 접근 권한 검증 로직 추가 필요
@@ -99,11 +99,30 @@ public class ChatRoomController {
             @PathVariable("roomCode") String roomCode,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         
+        log.info("🔴 ChatRoomController.markAsRead called - roomCode: {}", roomCode);
         
         // ChatRoomService의 markAsRead 메서드 호출 (예외는 GlobalExceptionHandler에서 처리)
-        chatRoomService.markAsRead(roomCode, null, customUserDetails.getMemberId());
+        chatRoomService.markAsRead(roomCode, null, customUserDetails.getMemberId(), customUserDetails.getRole());
         
         
         return ResponseEntity.ok().build();
+    }
+    
+    /**
+     * 특정 채팅방의 읽지 않은 메시지 수 조회 API
+     * 역할 기반 접근 제어: USER는 본인 방만, ADMIN은 관리 권한 있는 방만
+     */
+    @GetMapping("/{roomCode}/unread-count")
+    public ResponseEntity<Long> getUnreadCount(
+            @PathVariable("roomCode") String roomCode,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        
+        log.info("🔵 ChatRoomController.getUnreadCount called - roomCode: {}, role: {}", 
+                roomCode, customUserDetails.getRole());
+        
+        // ChatRoomService를 통한 역할 기반 unread count 조회
+        Long unreadCount = chatRoomService.getUnreadCount(roomCode, customUserDetails.getMemberId(), customUserDetails.getRole());
+        
+        return ResponseEntity.ok(unreadCount);
     }
 }

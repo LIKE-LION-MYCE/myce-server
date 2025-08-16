@@ -92,6 +92,7 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
             "WHERE e.displayEndDate <= CURRENT_DATE " +
             "and e.displayEndDate >= :date ")
     long countAllAfterDate(LocalDate date);
+    
     // 카테고리 필터링
     @Query("SELECT e FROM Expo e JOIN e.expoCategories ec WHERE ec.category.id = :categoryId")
     Page<Expo> findByCategoryId(@Param("categoryId") Long categoryId, Pageable pageable);
@@ -115,5 +116,7 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
         @Param("endDate") LocalDate endDate,
         Pageable pageable
     );
+    
+    // AI 상담용 - 최신 박람회 5개 조회
+    List<Expo> findTop5ByOrderByCreatedAtDesc();
 }
-

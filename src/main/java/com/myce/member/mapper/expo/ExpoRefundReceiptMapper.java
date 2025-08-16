@@ -26,9 +26,19 @@ public class ExpoRefundReceiptMapper {
         int usedDays = (int) ChronoUnit.DAYS.between(displayStartDate, today) + 1; // +1은 시작일 포함
         if (usedDays < 0) usedDays = 0;
         
+        // 디버깅 로그 추가
+        System.out.println("=== 환불 계산 디버깅 ===");
+        System.out.println("게시 시작일: " + displayStartDate);
+        System.out.println("오늘: " + today);
+        System.out.println("총 게시 일수: " + expoPaymentInfo.getTotalDay());
+        System.out.println("계산된 사용 일수: " + usedDays);
+        
         // 남은 일수 계산
         int remainingDays = expoPaymentInfo.getTotalDay() - usedDays;
         if (remainingDays < 0) remainingDays = 0;
+        
+        System.out.println("계산된 남은 일수: " + remainingDays);
+        System.out.println("=====================");
         
         // 등록금 계산 (프리미엄 여부에 따라)
         int depositAmount = expo.getIsPremium() ? 
@@ -94,11 +104,21 @@ public class ExpoRefundReceiptMapper {
         int remainingDays = expoPaymentInfo.getTotalDay();
         
         if (refund.getIsPartial()) {
-            // 부분 환불인 경우: 전체 금액에서 환불 금액을 뺀서 사용된 금액 계산
-            usedAmount = expoPaymentInfo.getTotalAmount() - refund.getAmount();
+            // 부분 환불인 경우: 환불 금액으로 남은 일수 계산 후 사용 일수 도출
             if (expoPaymentInfo.getDailyUsageFee() > 0) {
-                usedDays = Math.max(0, usedAmount - depositAmount) / expoPaymentInfo.getDailyUsageFee();
-                remainingDays = expoPaymentInfo.getTotalDay() - usedDays;
+                remainingDays = refund.getAmount() / expoPaymentInfo.getDailyUsageFee();
+                usedDays = expoPaymentInfo.getTotalDay() - remainingDays;
+                usedAmount = usedDays * expoPaymentInfo.getDailyUsageFee();
+                
+                // 디버깅 로그 추가 (환불 완료 내역)
+                System.out.println("=== 환불 완료 내역 디버깅 (수정된 로직) ===");
+                System.out.println("총 게시 일수: " + expoPaymentInfo.getTotalDay());
+                System.out.println("환불 금액: " + refund.getAmount());
+                System.out.println("일일 이용료: " + expoPaymentInfo.getDailyUsageFee());
+                System.out.println("계산된 남은 일수: " + remainingDays);
+                System.out.println("계산된 사용 일수: " + usedDays);
+                System.out.println("계산된 사용 금액: " + usedAmount);
+                System.out.println("=====================");
             }
         }
         // 전액 환불인 경우는 기본값(0) 유지
