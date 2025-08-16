@@ -14,6 +14,9 @@ import com.myce.payment.repository.PaymentRepository;
 import com.myce.payment.repository.ReservationPaymentInfoRepository;
 import com.myce.payment.service.portone.PortOneApiService;
 import com.myce.payment.service.webhook.PaymentWebhookService;
+import com.myce.reservation.entity.Reservation;
+import com.myce.reservation.entity.code.ReservationStatus;
+import com.myce.reservation.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,6 +36,7 @@ public class PaymentWebhookServiceImpl implements PaymentWebhookService {
     private final AdPaymentInfoRepository adPaymentInfoRepository;
     private final ExpoPaymentInfoRepository expoPaymentInfoRepository;
     private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
+    private final ReservationRepository reservationRepository;
 
     // 가상계좌 입금 처리 웹훅
     @Override
@@ -75,6 +79,13 @@ public class PaymentWebhookServiceImpl implements PaymentWebhookService {
                 }
 
                 rpi.setStatus(PaymentStatus.SUCCESS);
+                
+                // 가상계좌 입금 확인 시 reservation CONFIRMED로
+                Reservation reservation = reservationRepository.findById(payment.getTargetId())
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+
+                reservation.updateStatus(ReservationStatus.CONFIRMED);
+                
                 reservationPaymentInfoRepository.save(rpi);
                 break;
 

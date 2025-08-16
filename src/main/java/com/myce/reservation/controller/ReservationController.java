@@ -1,14 +1,16 @@
 package com.myce.reservation.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.reservation.dto.PreReservationRequest;
+import com.myce.reservation.dto.PreReservationResponse;
 import com.myce.reservation.dto.ReservationDetailResponse;
-import com.myce.reservation.dto.ReservationPendingRequest;
+import com.myce.reservation.dto.ReservationPaymentSummaryResponse;
+import com.myce.reservation.dto.ReservationPendingResponse;
 import com.myce.reservation.dto.ReservationSuccessResponse;
 import com.myce.reservation.dto.ReserverBulkUpdateRequest;
-import com.myce.reservation.dto.ResolveReserversRequest;
-import com.myce.reservation.dto.ResolveReserversResponse;
+import com.myce.reservation.dto.GuestReservationRequest;
 import com.myce.reservation.service.ReservationService;
-import com.myce.reservation.service.ReserverResolveService;
+import com.myce.reservation.service.GuestReservationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class ReservationController {
     
     private final ReservationService reservationService;
-    private final ReserverResolveService reserverResolveService;
+    private final GuestReservationService guestReservationService;
 
     @GetMapping("/{reservationId}")
     public ResponseEntity<ReservationDetailResponse> getReservationDetail(
@@ -45,23 +47,12 @@ public class ReservationController {
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * 입력받은 reserverInfos를 회원/게스트 식별 + Guest upsert까지 수행해
-     * 결제 검증 단계에서 사용할 식별자(memberId/guestId)를 채워 반환
-     */
-    @PostMapping("/resolvers")
-    public ResponseEntity<ResolveReserversResponse> resolveReservers(
-        @Valid @RequestBody ResolveReserversRequest request
+    @PatchMapping("/guestId")
+    public ResponseEntity<Void> updateGuestId(
+        @Valid @RequestBody GuestReservationRequest request
     ) {
-        ResolveReserversResponse response = reserverResolveService.resolve(request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/pending")
-    public ResponseEntity<Long> saveReservationPending(
-        @Valid @RequestBody ReservationPendingRequest request
-    ){
-        return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.saveReservationPending(request));
+        guestReservationService.updateGuestId(request);
+        return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/{reservationId}/confirm")
@@ -75,5 +66,32 @@ public class ReservationController {
         @PathVariable Long reservationId){
         ReservationSuccessResponse response = reservationService.getReservationCodeAndEmail(reservationId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{reservationId}/pending")
+    public ResponseEntity<ReservationPendingResponse> getReservationPending(
+        @PathVariable Long reservationId){
+        ReservationPendingResponse response = reservationService.getVirtualAccountInfo(reservationId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/pre-reservation")
+    public ResponseEntity<PreReservationResponse> savePreReservation(
+        @Valid @RequestBody PreReservationRequest request
+    ){
+        return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.savePreReservation(request));
+    }
+
+    @GetMapping("/{reservationId}/payment-summary")
+    public ResponseEntity<ReservationPaymentSummaryResponse> getPaymentSummary(@PathVariable Long reservationId){
+        ReservationPaymentSummaryResponse response = reservationService.getPaymentSummary(reservationId);
+        return ResponseEntity.ok(response);
+    }
+
+    // 결제 실패 또는 취소 시, 삭제
+    @DeleteMapping("/{reservationId}")
+    public ResponseEntity<Void> deleteReservation(@PathVariable Long reservationId){
+        reservationService.deletePendingReservation(reservationId);
+        return ResponseEntity.noContent().build();
     }
 }

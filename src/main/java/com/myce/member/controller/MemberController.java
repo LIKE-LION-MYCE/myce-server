@@ -3,8 +3,10 @@ package com.myce.member.controller;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.member.dto.MemberInfoListResponse;
 import com.myce.member.dto.MemberInfoResponse;
+import com.myce.member.dto.MemberInfoWithMileageResponse;
 import com.myce.member.dto.MileageUpdateRequest;
 import com.myce.member.dto.PasswordChangeRequest;
+import com.myce.member.service.MemberGradeService;
 import com.myce.member.service.MemberMileageService;
 import com.myce.member.service.MemberService;
 import jakarta.validation.Valid;
@@ -22,6 +24,7 @@ public class MemberController {
     
     private final MemberService memberService;
     private final MemberMileageService memberMileageService;
+    private final MemberGradeService memberGradeService;
 
     @DeleteMapping("/withdraw")
     public ResponseEntity<Void> withdrawMember(
@@ -52,7 +55,7 @@ public class MemberController {
     }
 
     @GetMapping("/my-info")
-    public ResponseEntity<MemberInfoResponse> getMyInfo(
+    public ResponseEntity<MemberInfoWithMileageResponse> getMyInfo(
         @AuthenticationPrincipal CustomUserDetails customUserDetails){
         Long memberId = customUserDetails.getMemberId();
 
@@ -74,6 +77,15 @@ public class MemberController {
         ){
         Long memberId = customUserDetails.getMemberId();
         memberMileageService.updateMileageForReservation(memberId, request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/grade")
+    public ResponseEntity<Void> updateGrade(
+        @AuthenticationPrincipal CustomUserDetails customUserDetails
+    ){
+        Long memberId = customUserDetails.getMemberId();
+        memberGradeService.udpateGrade(memberId);
         return ResponseEntity.noContent().build();
     }
 }
