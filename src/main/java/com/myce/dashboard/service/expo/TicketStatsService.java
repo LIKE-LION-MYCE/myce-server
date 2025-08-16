@@ -14,4 +14,9 @@ public interface TicketStatsService {
      * 티켓 통계 캐시를 갱신합니다.
      */
     void refreshTicketCache(Long expoId);
+    
+    /**
+     * 티켓 통계 캐시를 완전히 삭제합니다.
+     */
+    void clearTicketCache(Long expoId);
 }

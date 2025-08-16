@@ -18,6 +18,7 @@ import com.myce.system.repository.MessageTemplateSettingRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,13 +40,16 @@ public class ExpoNotificationScheduler implements TaskScheduler {
     private final MessageTemplateSettingRepository messageTemplateSettingRepository;
     private final SseService sseService;
 
+    @Value("${scheduler.expo-notification}")
+    private String cronExpression;
+
     @PostConstruct
     public void init() {
-        log.info("[Scheduler] 박람회 디데이 알림 스케쥴러 초기화");
+        log.info("[Scheduler] 박람회 디데이 알림 스케쥴러 초기화, cron: {}", cronExpression);
     }
 
     @Override
-    @Scheduled(cron = "0 0 9 * * *") // 매일 오전 9시에 실행
+    @Scheduled(cron = "${scheduler.expo-notification}")
     @Transactional
     public void run() {
         log.info("[Scheduler] 박람회 시작 하루 전 알림 스케줄러 실행");

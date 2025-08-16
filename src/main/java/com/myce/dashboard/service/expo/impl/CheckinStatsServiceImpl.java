@@ -77,6 +77,20 @@ public class CheckinStatsServiceImpl implements CheckinStatsService {
         log.info("체크인 통계 캐시 갱신 완료 - ExpoId: {}", expoId);
     }
     
+    @Override
+    public void clearCheckinCache(Long expoId) {
+        log.info("체크인 통계 캐시 완전 삭제 시작 - ExpoId: {}", expoId);
+
+        // 모든 체크인 관련 캐시 키 삭제
+        String reservedKey = REDIS_KEY_PREFIX + expoId + ":checkin:reserved:v4";
+        String successKey = REDIS_KEY_PREFIX + expoId + ":checkin:success:v4";
+        
+        redisTemplate.delete(reservedKey);
+        redisTemplate.delete(successKey);
+        
+        log.info("체크인 통계 캐시 완전 삭제 완료 - ExpoId: {}", expoId);
+    }
+    
     // === 헬퍼 메서드들 ===
     
     @Override
