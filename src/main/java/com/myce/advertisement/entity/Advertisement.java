@@ -116,6 +116,13 @@ public class Advertisement {
         this.status = AdvertisementStatus.PUBLISHED;
     }
 
+    public void denyCancel() {
+        if (this.status != AdvertisementStatus.PENDING_CANCEL) {
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
+        }
+        this.status = AdvertisementStatus.PUBLISHED;
+    }
+
     public void complete() {
         if (this.status != AdvertisementStatus.PUBLISHED) {
             throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);

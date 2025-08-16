@@ -6,14 +6,24 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
+import com.myce.expo.entity.type.TicketType;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
 import com.myce.member.entity.Guest;
 import com.myce.member.entity.Member;
 import com.myce.member.repository.GuestRepository;
 import com.myce.member.repository.MemberRepository;
+import com.myce.payment.entity.Payment;
+import com.myce.payment.entity.ReservationPaymentInfo;
+import com.myce.payment.entity.type.PaymentTargetType;
+import com.myce.payment.repository.PaymentRepository;
+import com.myce.payment.repository.ReservationPaymentInfoRepository;
+import com.myce.reservation.dto.PreReservationRequest;
+import com.myce.reservation.dto.PreReservationResponse;
 import com.myce.reservation.dto.ReservationDetailResponse;
+import com.myce.reservation.dto.ReservationPaymentSummaryResponse;
 import com.myce.reservation.dto.ReservationPendingRequest;
+import com.myce.reservation.dto.ReservationPendingResponse;
 import com.myce.reservation.dto.ReservationSuccessResponse;
 import com.myce.reservation.dto.ReserverBulkUpdateRequest;
 import com.myce.reservation.entity.Reservation;
@@ -26,6 +36,9 @@ import com.myce.reservation.repository.ReservationRepository;
 import com.myce.reservation.repository.ReserverRepository;
 import com.myce.reservation.service.ReservationService;
 import com.myce.reservation.service.mapper.ReservationMapper;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +61,8 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationCodeService reservationCodeService;
     private final MemberRepository memberRepository;
     private final GuestRepository guestRepository;
+    private final PaymentRepository paymentRepository;
+    private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
 
     @Override
     public ReservationDetailResponse getReservationDetail(Long reservationId, CustomUserDetails currentUser) {
@@ -109,29 +124,6 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Transactional
     @Override
-    public Long saveReservationPending(ReservationPendingRequest request) {
-        // 티켓 가져오기
-        Ticket ticket = ticketRepository.findById(request.getTicketId())
-            .orElseThrow(() -> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
-
-        // 티켓 재고 검증
-        if(ticket.getRemainingQuantity() < request.getQuantity()){
-            throw new CustomException(CustomErrorCode.TICKET_SOLD_OUT);
-        }
-
-        // 예약 엔티티 생성
-        String reservationCode = reservationCodeService.generate(request.getExpoId());
-        Expo expo = expoRepository.findById(request.getExpoId())
-            .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
-
-        Reservation reservation = reservationMapper.toEntity(expo, ticket, request,
-            reservationCode, ReservationStatus.CONFIRMED_PENDING);
-
-        return reservationRepository.save(reservation).getId();
-    }
-
-    @Transactional
-    @Override
     public void updateStatusToConfirm(Long reservationId) {
         Reservation reservation = reservationRepository.findById(reservationId)
             .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
@@ -156,5 +148,66 @@ public class ReservationServiceImpl implements ReservationService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.GUEST_NOT_EXIST));
             return reservationMapper.toSuccessResponse(reservation, guest.getEmail());
         }
+    }
+
+    @Transactional
+    @Override
+    public PreReservationResponse savePreReservation(PreReservationRequest request) {
+        // 예약 번호 생성
+        String reservationCode = reservationCodeService.generate(request.getExpoId());
+        Expo expo = expoRepository.findById(request.getExpoId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
+        Ticket ticket = ticketRepository.findById(request.getTicketId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
+
+        // 엔티티 생성
+        Reservation preReservation = reservationMapper.toPreEntity(expo, ticket, request, reservationCode, ReservationStatus.CONFIRMED_PENDING);
+
+        // 저장
+        Reservation saved = reservationRepository.save(preReservation);
+
+        // 예약 번호 반환
+        return new PreReservationResponse(saved.getId());
+    }
+
+    @Override
+    public ReservationPaymentSummaryResponse getPaymentSummary(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+            .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+        Ticket ticket = ticketRepository.findById(reservation.getTicket().getId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
+        // 티켓 타입
+        String ticketType = ticket.getType().toString();
+
+        // 티켓 이름
+        String ticketName = "[" + ticketType + "] " + ticket.getName();
+
+        return reservationMapper.toPaymentSummary(ticket, ticketName, reservation.getQuantity());
+    }
+
+    @Transactional
+    @Override
+    public void deletePendingReservation(Long reservationId) {
+        reservationRepository.deleteById(reservationId);
+    }
+
+    @Override
+    public ReservationPendingResponse getVirtualAccountInfo(Long reservationId) {
+        Payment payment = paymentRepository.findByTargetIdAndTargetType(reservationId, PaymentTargetType.RESERVATION)
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_NOT_FOUND));
+        ReservationPaymentInfo reservationPaymentInfo = reservationPaymentInfoRepository.findByReservationId(reservationId)
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        // 오늘의 자정 직전 시간을 계산
+        LocalDateTime dueDate = LocalDate.now().atTime(23, 59, 59);
+
+        // 원하는 날짜/시간 포맷을 정의
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일 HH시 mm분 ss초");
+
+        // LocalDateTime 객체를 정의된 포맷의 String으로 변환합니다.
+        String formattedDueDate = dueDate.format(formatter);
+
+        return reservationMapper.toPendingResponse(payment, reservationPaymentInfo.getTotalAmount(),
+            formattedDueDate);
     }
 }

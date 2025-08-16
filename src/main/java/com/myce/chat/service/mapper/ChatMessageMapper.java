@@ -11,6 +11,7 @@ public class ChatMessageMapper {
                 .messageId(chatMessage.getId())
                 .senderId(chatMessage.getSenderId())
                 .senderType(chatMessage.getSenderType())
+                .senderName(chatMessage.getSenderName())
                 .content(chatMessage.getContent())
                 .sentAt(chatMessage.getSentAt())
                 .unreadCount(null) // unreadCount 없이 호출된 경우 null
@@ -26,6 +27,7 @@ public class ChatMessageMapper {
                 .messageId(chatMessage.getId())
                 .senderId(chatMessage.getSenderId())
                 .senderType(chatMessage.getSenderType())
+                .senderName(chatMessage.getSenderName())
                 .content(chatMessage.getContent())
                 .sentAt(chatMessage.getSentAt())
                 .unreadCount(unreadCount)
@@ -41,6 +43,7 @@ public class ChatMessageMapper {
                 .messageId(chatMessage.getId())
                 .senderId(chatMessage.getSenderId())
                 .senderType(chatMessage.getSenderType())
+                .senderName(chatMessage.getSenderName())
                 .adminCode(adminCode)
                 .adminDisplayName(adminDisplayName)
                 .content(chatMessage.getContent())
@@ -55,6 +58,7 @@ public class ChatMessageMapper {
                 .messageId(savedMessage.getId())
                 .senderId(savedMessage.getSenderId())
                 .senderType(savedMessage.getSenderType())
+                .senderName(savedMessage.getSenderName())
                 .content(savedMessage.getContent())
                 .sentAt(savedMessage.getSentAt())
                 .build();
