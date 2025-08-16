@@ -3,12 +3,13 @@ package com.myce.expo.service.impl;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.common.permission.ExpoAdminAccessValidate;
+import com.myce.common.permission.ExpoAdminPermission;
 import com.myce.expo.dto.ExpoAdminTicketRequestDto;
 import com.myce.expo.dto.ExpoAdminTicketResponseDto;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
 import com.myce.expo.entity.type.TicketType;
-import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
 import com.myce.expo.service.ExpoAdminTicketService;
@@ -23,14 +24,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
 
+    private final ExpoAdminAccessValidate expoAdminAccessValidate;
     private final TicketRepository ticketRepository;
     private final ExpoRepository expoRepository;
     private final ExpoAdminTicketMapper mapper;
-    private final AdminPermissionRepository adminPermissionRepository;
 
     @Override
     public List<ExpoAdminTicketResponseDto> getMyExpoTickets(Long expoId, Long memberId, LoginType loginType) {
-        validateMyAccess(expoId, memberId, loginType);
+        expoAdminAccessValidate.ensureViewable(expoId, memberId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
         List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
         return tickets.stream()
                 .map(mapper::toDto)
@@ -40,7 +41,7 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
     @Override
     @Transactional
     public void deleteMyExpoTicket(Long expoId, Long memberId, LoginType loginType, Long ticketId) {
-        validateMyAccess(expoId, memberId, loginType);
+        expoAdminAccessValidate.ensureEditable(expoId, memberId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
 
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(()-> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
@@ -58,7 +59,7 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
                                                        Long memberId,
                                                        LoginType loginType,
                                                        ExpoAdminTicketRequestDto dto) {
-        validateMyAccess(expoId, memberId, loginType);
+        expoAdminAccessValidate.ensureEditable(expoId, memberId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
 
         Expo expo =  getMyExpo(expoId);
         Ticket ticket = mapper.toEntity(dto,expo);
@@ -74,7 +75,7 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
                                                          LoginType loginType,
                                                          Long ticketId,
                                                          ExpoAdminTicketRequestDto dto) {
-        validateMyAccess(expoId, memberId, loginType);
+        expoAdminAccessValidate.ensureEditable(expoId, memberId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
 
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(()-> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
@@ -102,25 +103,5 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
     private Expo getMyExpo(Long expoId) {
         return expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
-    }
-
-    private void validateMyAccess(Long expoId, Long memberId, LoginType loginType) {
-        if(memberId == null || loginType == null){
-            throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
-        }
-
-        switch(loginType){
-            case MEMBER -> {
-                if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            case ADMIN_CODE -> {
-                if(!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoIdAndIsExpoDetailUpdateTrue(memberId, expoId)){
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
-        }
     }
 }
