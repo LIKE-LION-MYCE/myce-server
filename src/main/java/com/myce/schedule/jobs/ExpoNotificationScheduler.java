@@ -40,7 +40,7 @@ public class ExpoNotificationScheduler implements TaskScheduler {
     private final MessageTemplateSettingRepository messageTemplateSettingRepository;
     private final SseService sseService;
 
-    @Value("${scheduler.expo-notification}")
+    @Value("${scheduler.expo-notification:0 0 9 * * *}")
     private String cronExpression;
 
     @PostConstruct
