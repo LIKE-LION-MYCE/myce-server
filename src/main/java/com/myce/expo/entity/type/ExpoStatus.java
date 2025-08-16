@@ -54,6 +54,7 @@ public enum ExpoStatus {
     public static final List<ExpoStatus> ADMIN_EDITABLE_STATUSES = List.of(
             PENDING_PUBLISH,
             PUBLISHED,
+            PUBLISH_ENDED,
             SETTLEMENT_REQUESTED
     );
 }
