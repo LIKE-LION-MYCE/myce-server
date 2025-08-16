@@ -85,6 +85,8 @@ public class SecurityConfig {
                             "/api/categories", "/api/expos/**", "/api/tickest/quantity",
                             "/api/expo/fees/active", "/api/ad/fees/active")
                         .permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/api/auth/**")
+                        .permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
