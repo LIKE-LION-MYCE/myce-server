@@ -59,6 +59,8 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
 
         if(ad.getDisplayEndDate().isBefore(LocalDate.now())){
             ad.complete();
+        }else if(ad.getDisplayStartDate().isBefore(LocalDate.now())){
+            ad.approve();
         }else{
             ad.denyCancel();
         }
