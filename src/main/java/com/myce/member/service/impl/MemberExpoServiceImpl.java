@@ -223,9 +223,6 @@ public class MemberExpoServiceImpl implements MemberExpoService {
             throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
         }
 
-        // 상태와 관계없이 환불 영수증 조회 가능 (UI에서 모든 영수증을 항상 표시하기 위해)
-        // 실제 환불 신청은 별도 API에서 상태 검증
-
         // 사업자 정보 조회
         BusinessProfile businessProfile = businessProfileRepository.findByTargetIdAndTargetType(expoId,
                         TargetType.EXPO)
@@ -234,6 +231,25 @@ public class MemberExpoServiceImpl implements MemberExpoService {
         // 박람회 결제 정보 조회
         ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
+        // PENDING_CANCEL 상태인 경우 Refund 테이블 데이터 사용
+        if (expo.getStatus() == ExpoStatus.PENDING_CANCEL) {
+            log.info("PENDING_CANCEL 상태 감지 - expoId: {}, 새로운 Refund 로직 사용", expoId);
+            
+            // Payment 조회
+            Payment payment = paymentRepository.findByTargetIdAndTargetType(expoId, PaymentTargetType.EXPO)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+            
+            // Refund 조회
+            Refund refund = refundRepository.findByPayment(payment)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.REFUND_NOT_FOUND));
+            
+            log.info("Refund 데이터 - amount: {}, isPartial: {}", refund.getAmount(), refund.getIsPartial());
+            
+            return expoRefundReceiptMapper.toRefundReceiptWithRefundData(expo, businessProfile, expoPaymentInfo, refund);
+        }
+        
+        log.info("기존 로직 사용 - expoId: {}, status: {}", expoId, expo.getStatus());
 
         return expoRefundReceiptMapper.toRefundReceiptDto(expo, businessProfile, expoPaymentInfo);
     }
