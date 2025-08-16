@@ -10,8 +10,10 @@ import com.myce.chat.service.ChatRoomService;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.expo.entity.Expo;
+import com.myce.expo.entity.AdminCode;
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
+import com.myce.expo.repository.AdminCodeRepository;
 import com.myce.member.entity.Member;
 import com.myce.member.repository.MemberRepository;
 import com.myce.ai.service.AIChatService;
@@ -47,6 +49,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     // MySQL Repositories (상대방 정보 조회용)
     private final MemberRepository memberRepository;
     private final ExpoRepository expoRepository;
+    private final AdminCodeRepository adminCodeRepository;
     
     // WebSocket 메시징
     private final SimpMessagingTemplate messagingTemplate;
@@ -129,9 +132,34 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 return new CustomException(CustomErrorCode.EXPO_NOT_EXIST);
             });
 
-        // 2. 권한 검증: 해당 관리자가 이 박람회의 소유자인지 확인
-        if (!expo.getMember().getId().equals(adminId)) {
-            log.error("권한 없는 관리자가 박람회 채팅방 접근 시도 - 박람회ID: {}, 관리자ID: {}", expoId, adminId);
+        // 2. 권한 검증: AdminCode 권한과 Member 권한을 모두 지원
+        boolean hasPermission = false;
+        
+        // 2-1. AdminCode 권한 확인 시도
+        try {
+            Optional<AdminCode> adminCodeOpt = adminCodeRepository.findById(adminId);
+            if (adminCodeOpt.isPresent()) {
+                AdminCode adminCode = adminCodeOpt.get();
+                if (adminCode.getExpoId().equals(expoId)) {
+                    hasPermission = true;
+                    log.info("✅ AdminCode 권한으로 박람회 채팅방 접근 허용 - adminCodeId: {}, expoId: {}", adminId, expoId);
+                }
+            }
+        } catch (Exception e) {
+            log.debug("AdminCode 권한 확인 실패, Member 권한으로 시도 - adminId: {}", adminId);
+        }
+        
+        // 2-2. AdminCode 권한이 없으면 Member 권한(expo owner) 확인
+        if (!hasPermission) {
+            if (expo.getMember().getId().equals(adminId)) {
+                hasPermission = true;
+                log.info("✅ Member 권한으로 박람회 채팅방 접근 허용 - memberId: {}, expoId: {}", adminId, expoId);
+            }
+        }
+        
+        // 2-3. 권한 없으면 예외 발생
+        if (!hasPermission) {
+            log.error("⚠️ 권한 없는 관리자가 박람회 채팅방 접근 시도 - 박람회ID: {}, 관리자ID: {}", expoId, adminId);
             throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
         }
 
@@ -263,8 +291,8 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     return new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
                 });
         
-        // 2. 사용자 권한 검증 (본인 채팅방인지 확인, 플랫폼 관리자는 모든 플랫폼 방 접근 가능)
-        validateUserPermission(chatRoom, memberId, memberRole);
+        // 2. 사용자 권한 검증 (새로운 통합 권한 검증 로직 사용)
+        validateChatRoomAccess(roomCode, memberId, memberRole);
         
         // 3. 마지막 메시지 ID를 가져와서 읽음 처리 (가장 최근 메시지까지 읽음 처리)
         List<ChatMessage> recentMessages = chatMessageRepository.findTop50ByRoomCodeOrderBySentAtDesc(roomCode);
@@ -322,6 +350,78 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     chatRoom.getRoomCode(), memberId, chatRoom.getMemberId());
             throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
         }
+    }
+    
+    /**
+     * 채팅방 접근 권한 검증 (메시지 조회, 읽음 처리 등에 사용)
+     */
+    @Override
+    public void validateChatRoomAccess(String roomCode, Long memberId, String memberRole) {
+        // 1. 채팅방 조회
+        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> {
+                    log.error("존재하지 않는 채팅방 코드로 접근 시도 - roomCode: {}", roomCode);
+                    return new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
+                });
+        
+        // 2. 플랫폼 채팅방인 경우
+        if (chatRoom.getExpoId() == null) {
+            // 플랫폼 관리자는 모든 플랫폼 채팅방 접근 가능
+            if (Role.PLATFORM_ADMIN.name().equals(memberRole)) {
+                log.info("✅ 플랫폼 관리자가 플랫폼 채팅방 접근 - roomCode: {}, adminId: {}", roomCode, memberId);
+                return;
+            }
+            // 일반 사용자는 본인 채팅방만 접근 가능
+            if (chatRoom.getMemberId().equals(memberId)) {
+                log.info("✅ 사용자가 본인 플랫폼 채팅방 접근 - roomCode: {}, userId: {}", roomCode, memberId);
+                return;
+            }
+        }
+        
+        // 3. 박람회 채팅방인 경우
+        if (chatRoom.getExpoId() != null) {
+            // 3-1. 박람회 관리자 권한 확인 (AdminCode 또는 Owner)
+            if (Role.EXPO_ADMIN.name().equals(memberRole)) {
+                // AdminCode 권한 확인
+                try {
+                    Optional<AdminCode> adminCodeOpt = adminCodeRepository.findById(memberId);
+                    if (adminCodeOpt.isPresent()) {
+                        AdminCode adminCode = adminCodeOpt.get();
+                        if (adminCode.getExpoId().equals(chatRoom.getExpoId())) {
+                            log.info("✅ AdminCode 권한으로 박람회 채팅방 접근 - roomCode: {}, adminCodeId: {}, expoId: {}", 
+                                    roomCode, memberId, chatRoom.getExpoId());
+                            return;
+                        }
+                    }
+                } catch (Exception e) {
+                    log.debug("AdminCode 권한 확인 실패, Member 권한으로 시도 - adminId: {}", memberId);
+                }
+                
+                // Owner 권한 확인
+                try {
+                    Expo expo = expoRepository.findById(chatRoom.getExpoId())
+                            .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
+                    if (expo.getMember().getId().equals(memberId)) {
+                        log.info("✅ Member 권한으로 박람회 채팅방 접근 - roomCode: {}, memberId: {}, expoId: {}", 
+                                roomCode, memberId, chatRoom.getExpoId());
+                        return;
+                    }
+                } catch (Exception e) {
+                    log.error("박람회 정보 조회 실패 - expoId: {}", chatRoom.getExpoId(), e);
+                }
+            }
+            
+            // 3-2. 일반 사용자는 본인이 참여한 채팅방만 접근 가능
+            if (Role.USER.name().equals(memberRole) && chatRoom.getMemberId().equals(memberId)) {
+                log.info("✅ 사용자가 본인 박람회 채팅방 접근 - roomCode: {}, userId: {}", roomCode, memberId);
+                return;
+            }
+        }
+        
+        // 4. 모든 권한 검증 실패
+        log.error("⚠️ 권한 없는 사용자가 채팅방 접근 시도 - roomCode: {}, userId: {}, role: {}, expoId: {}", 
+                roomCode, memberId, memberRole, chatRoom.getExpoId());
+        throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
     }
     
     /**
@@ -403,8 +503,8 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     return new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
                 });
         
-        // 2. 권한 검증
-        validateUserPermission(chatRoom, memberId, memberRole);
+        // 2. 권한 검증 (새로운 통합 권한 검증 로직 사용)
+        validateChatRoomAccess(roomCode, memberId, memberRole);
         
         try {
             // 3. 역할에 따른 unread count 계산

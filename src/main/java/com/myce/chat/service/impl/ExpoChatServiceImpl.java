@@ -351,8 +351,8 @@ public class ExpoChatServiceImpl implements ExpoChatService {
                 String adminLastReadId = extractLastReadMessageId(readStatusJson, "ADMIN");
                 boolean isRead = adminLastReadId != null && message.getId().compareTo(adminLastReadId) <= 0;
                 
-                log.info("EXPO 사용자 메시지 읽음 상태 계산 - messageId: {}, adminLastReadId: {}, isRead: {}, readStatusJson: {}", 
-                    message.getId(), adminLastReadId, isRead, readStatusJson);
+                log.warn("🔍 EXPO 사용자 메시지 읽음 상태 계산 - messageId: {}, adminLastReadId: {}, isRead: {}, readStatusJson: '{}', roomCode: {}", 
+                    message.getId(), adminLastReadId, isRead, readStatusJson, message.getRoomCode());
                 
                 return isRead ? 0 : 1;
             }
