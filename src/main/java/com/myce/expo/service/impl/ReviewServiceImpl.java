@@ -73,7 +73,34 @@ public class ReviewServiceImpl implements ReviewService {
         }
         
         Page<ReviewResponse> reviewResponses = reviews.map(ReviewResponse::new);
-        return new ReviewListResponse(reviewResponses);
+        ReviewListResponse response = new ReviewListResponse(reviewResponses);
+        
+        // 전체 리뷰 통계 추가
+        Double averageRating = reviewRepository.findAverageRatingByExpoId(expoId);
+        response.setAverageRating(averageRating != null ? averageRating : 0.0);
+        
+        // 별점별 분포 계산
+        Object[][] ratingCounts = reviewRepository.findRatingCountByExpoId(expoId);
+        Long fiveStars = 0L, fourStars = 0L, threeStars = 0L, twoStars = 0L, oneStars = 0L;
+        
+        for (Object[] row : ratingCounts) {
+            Integer rating = (Integer) row[0];
+            Long count = ((Number) row[1]).longValue();
+            
+            switch (rating) {
+                case 5: fiveStars = count; break;
+                case 4: fourStars = count; break;
+                case 3: threeStars = count; break;
+                case 2: twoStars = count; break;
+                case 1: oneStars = count; break;
+            }
+        }
+        
+        response.setRatingSummary(new ReviewListResponse.RatingSummary(
+            fiveStars, fourStars, threeStars, twoStars, oneStars
+        ));
+        
+        return response;
     }
     
     @Override
