@@ -115,4 +115,5 @@ public class Ticket {
     public void updateRemainingQuantity(Integer quantity){
         this.remainingQuantity = quantity;
     }
+
 }

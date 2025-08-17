@@ -23,10 +23,11 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
 
     List<Reserver> findByReservation(Reservation reservation);
 
-    // QR코드 일괄 생성용 - 특정 박람회의 모든 예약자 조회
+    // QR코드 일괄 생성용 - 특정 박람회의 CONFIRMED 예약자만 조회
     @Query("SELECT r FROM Reserver r " +
             "JOIN r.reservation res " +
-            "WHERE res.expo.id = :expoId ")
+            "WHERE res.expo.id = :expoId " +
+            "AND res.status = 'CONFIRMED'")
     List<Reserver> findReserversByExpo(@Param("expoId") Long expoId);
 
     @Query("""

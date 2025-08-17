@@ -5,14 +5,29 @@ import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.common.exception.CustomException;
 import com.myce.common.exception.CustomErrorCode;
+import com.myce.member.dto.MileageUpdateRequest;
 import com.myce.payment.entity.Payment;
 import com.myce.payment.entity.Refund;
+import com.myce.payment.entity.ReservationPaymentInfo;
+import com.myce.payment.entity.type.PaymentStatus;
 import com.myce.payment.entity.type.PaymentTargetType;
 import com.myce.payment.entity.type.RefundStatus;
 import com.myce.payment.repository.PaymentRepository;
 import com.myce.payment.repository.RefundRepository;
+import com.myce.payment.repository.ReservationPaymentInfoRepository;
+import com.myce.payment.service.refund.PaymentRefundService;
+import com.myce.payment.dto.PaymentRefundRequest;
+import com.myce.reservation.dto.ReservationDetailResponse;
+import com.myce.reservation.entity.Reservation;
+import com.myce.reservation.entity.code.ReservationStatus;
+import com.myce.reservation.repository.ReservationRepository;
 import com.myce.refund.dto.RefundRequestDto;
+import com.myce.refund.dto.ReservationRefundCalculation;
 import com.myce.refund.service.RefundRequestService;
+import com.myce.refund.service.ReservationRefundCalculationService;
+import com.myce.member.service.MemberMileageService;
+import com.myce.expo.entity.Ticket;
+import com.myce.expo.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +43,12 @@ public class RefundRequestServiceImpl implements RefundRequestService {
     private final RefundRepository refundRepository;
     private final PaymentRepository paymentRepository;
     private final ExpoRepository expoRepository;
+    private final ReservationRepository reservationRepository;
+    private final PaymentRefundService paymentRefundService;
+    private final ReservationRefundCalculationService refundCalculationService;
+    private final MemberMileageService memberMileageService;
+    private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
+    private final TicketRepository ticketRepository;
 
     @Override
     public void createRefundRequest(Long memberId, Long expoId, RefundRequestDto requestDto) {
@@ -64,6 +85,72 @@ public class RefundRequestServiceImpl implements RefundRequestService {
                 .build();
 
         refundRepository.save(refund);
+    }
+    
+    @Override
+    public void createReservationRefund(Long memberId, Long reservationId, String reason) {
+
+        // 1. 예매 정보 조회 및 검증
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+
+        ReservationPaymentInfo reservationInfo = reservationPaymentInfoRepository.findByReservationId(reservationId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+        
+        // 2. 예매 소유자 확인
+        if (!reservation.getUserId().equals(memberId)) {
+            throw new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND);
+        }
+        
+        // 3. 예매 상태 확인
+        if (reservation.getStatus() != ReservationStatus.CONFIRMED) {
+            throw new CustomException(CustomErrorCode.RESERVATION_STATUS_INVALID);
+        }
+        
+        // 4. 결제 정보 조회
+        Payment payment = paymentRepository.findByTargetIdAndTargetType(
+                reservationId, PaymentTargetType.RESERVATION)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        
+        // 5. 이미 환불된 결제인지 확인
+        if (refundRepository.existsByPaymentAndStatus(payment, RefundStatus.REFUNDED)) {
+            throw new CustomException(CustomErrorCode.ALREADY_REFUNDED);
+        }
+        
+        // 6. 환불 금액 계산 (수수료, 마일리지 등)
+        ReservationRefundCalculation calculation = refundCalculationService.calculateRefundAmount(reservationId);
+        
+        // 7. 환불 불가 조건 확인 (실제 환불 금액이 0원 이하)
+        if (calculation.getActualRefundAmount() <= 0) {
+            throw new CustomException(CustomErrorCode.REFUND_NOT_ALLOWED);
+        }
+        
+        // 8. 환불 처리 (즉시 실행)
+        PaymentRefundRequest refundRequest = PaymentRefundRequest.builder()
+                .impUid(payment.getImpUid())
+                .cancelAmount(calculation.getActualRefundAmount())
+                .reason(reason)
+                .build();
+                
+        paymentRefundService.refundPayment(refundRequest);
+        
+        // 9. 마일리지 처리 (복원/차감)
+        MileageUpdateRequest mileageRequest = new MileageUpdateRequest(
+            reservationInfo.getUsedMileage(),   // usedMileage (복원할 마일리지)
+            reservationInfo.getSavedMileage()     // savedMileage (차감할 마일리지)
+        );
+
+        memberMileageService.revertMileageForReservationRefund(memberId, mileageRequest);
+        
+        // 10. 티켓 수량 복원
+        Ticket ticket = reservation.getTicket();
+        ticket.restoreQuantity(reservation.getQuantity());
+        ticketRepository.save(ticket);
+        
+        // 11. 예매 상태 변경
+        reservation.updateStatus(ReservationStatus.CANCELLED);
+        reservationRepository.save(reservation);
+
     }
     
     /**

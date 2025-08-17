@@ -146,6 +146,7 @@ public class ExpoServiceImpl implements ExpoService {
     @Override
     public List<ExpoCardResponse> getExpoCardsFiltered(Long memberId,
         String categoryName,
+        String status,
         LocalDate from,
         LocalDate to,
         String keyword,
@@ -161,9 +162,20 @@ public class ExpoServiceImpl implements ExpoService {
         }
 
         String keyWord = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        
+        // status 파라미터 처리 - 기본값은 PUBLISHED
+        ExpoStatus expoStatus = ExpoStatus.PUBLISHED;
+        if (status != null && !status.isBlank()) {
+            try {
+                expoStatus = ExpoStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid status parameter: {}, using default PUBLISHED", status);
+                expoStatus = ExpoStatus.PUBLISHED;
+            }
+        }
 
         Page<Expo> exposPage = expoRepository.findPublishedExposFiltered(
-            ExpoStatus.PUBLISHED,
+            expoStatus,
             categoryId,
             keyWord,
             from,
@@ -200,7 +212,7 @@ public class ExpoServiceImpl implements ExpoService {
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
 
-        if (expo.getStatus() != ExpoStatus.PUBLISHED) {
+        if (expo.getStatus() == ExpoStatus.PENDING_APPROVAL || expo.getStatus() == ExpoStatus.PENDING_PAYMENT) {
             throw new CustomException(CustomErrorCode.EXPO_NOT_PUBLISHED);
         }
 
