@@ -23,10 +23,11 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
 
     List<Reserver> findByReservation(Reservation reservation);
 
-    // QR코드 일괄 생성용 - 특정 박람회의 모든 예약자 조회
+    // QR코드 일괄 생성용 - 특정 박람회의 CONFIRMED 예약자만 조회
     @Query("SELECT r FROM Reserver r " +
             "JOIN r.reservation res " +
-            "WHERE res.expo.id = :expoId ")
+            "WHERE res.expo.id = :expoId " +
+            "AND res.status = 'CONFIRMED'")
     List<Reserver> findReserversByExpo(@Param("expoId") Long expoId);
 
     @Query("""
@@ -169,11 +170,21 @@ public interface ReserverRepository extends JpaRepository<Reserver, Long> {
                     rv.birth,
                     rv.phone,
                     rv.email,
-                    t.name
+                    t.name,
+                    qc.usedAt,
+                    CASE
+                      WHEN qc.status = com.myce.qrcode.entity.code.QrCodeStatus.USED    THEN '입장 완료'
+                      WHEN qc.status = com.myce.qrcode.entity.code.QrCodeStatus.EXPIRED THEN '티켓 만료'
+                      WHEN qc.id IS NULL                                                  THEN '발급 대기'
+                      WHEN qc.status IN (com.myce.qrcode.entity.code.QrCodeStatus.APPROVED,
+                                         com.myce.qrcode.entity.code.QrCodeStatus.ACTIVE) THEN '입장 전'
+                      ELSE '발급 실패'
+                    END
                   )
                   FROM Reserver rv
                   JOIN rv.reservation r
                   JOIN r.ticket t
+                  LEFT JOIN com.myce.qrcode.entity.QrCode qc ON qc.reserver = rv
                   WHERE r.expo.id = :expoId
                     AND r.status = com.myce.reservation.entity.code.ReservationStatus.CONFIRMED
                   ORDER BY

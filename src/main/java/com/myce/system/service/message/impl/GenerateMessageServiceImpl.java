@@ -11,12 +11,8 @@ import com.myce.system.entity.type.MessageTemplateCode;
 import com.myce.system.repository.MessageTemplateSettingRepository;
 import com.myce.system.service.message.GenerateMessageService;
 import jakarta.annotation.PostConstruct;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -43,6 +39,7 @@ public class GenerateMessageServiceImpl implements GenerateMessageService {
 
         Context context = new Context();
         context.setVariable("code", code);
+        context.setVariable("verificationName", verificationName);
         context.setVariable("limitTime", limitTime);
 
         String message = getFullMessage(messageTemplate, context);
@@ -56,21 +53,21 @@ public class GenerateMessageServiceImpl implements GenerateMessageService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_MESSAGE_TEMPLATE));
 
         String content = messageTemplate.getContent();
-        content = content.replace("{{TEMP_PASSWORD}}", password);
+        content = content.replace("TEMP_PASSWORD", password);
 
         return new MessageTemplate(messageTemplate.getSubject(), content);
     }
 
-    private String getFullMessage(MessageTemplateSetting messageTemplate, Context context) {
+    public String getFullMessage(MessageTemplateSetting messageTemplate, Context context) {
         Map<String, String> templateData = parseJsonContent(messageTemplate.getContent());
 
         for (Map.Entry<String, String> entry : templateData.entrySet()) {
             context.setVariable(entry.getKey(), entry.getValue());
         }
 
-        return templateEngine.process("mail/mail-code",context);
+        String target = messageTemplate.isUseImage() ? "mail/mail-image" : "mail/mail-code";
+        return templateEngine.process(target,context);
     }
-
 
     private Map<String, String> parseJsonContent(String jsonContent) {
         try {

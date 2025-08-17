@@ -71,6 +71,7 @@ public enum CustomErrorCode {
     TICKET_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "T002", "해당 티켓은 현재 박람회에 속하지 않습니다."),
     TICKET_TYPE_INVALID(HttpStatus.BAD_REQUEST, "T003", "유효하지 않은 티켓 타입입니다."),
     TICKET_SOLD_OUT(HttpStatus.CONFLICT, "T004", "티켓이 매진되었습니다."),
+    TICKET_EDIT_DENIED(HttpStatus.FORBIDDEN, "T005", "판매 시작일 이후에는 티켓을 수정할 수 없습니다."),
 
     // 채팅 C
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "채팅방을 찾을 수 없습니다."),
@@ -141,6 +142,8 @@ public enum CustomErrorCode {
     REFUND_NOT_FOUND(HttpStatus.NOT_FOUND, "RF001", "환불 정보가 존재하지 않습니다."),
     ALREADY_REFUND_REQUESTED(HttpStatus.CONFLICT, "RF002", "이미 환불 신청이 접수되었습니다."),
     REFUND_SEVEN_DAY_RULE_VIOLATION(HttpStatus.BAD_REQUEST, "RF003", "개최 7일 전에는 환불이 불가능합니다."),
+    ALREADY_REFUNDED(HttpStatus.NOT_FOUND, "RF001", "이미 환불이 완료된 결제 입니다."),
+    REFUND_NOT_ALLOWED( HttpStatus.NOT_ACCEPTABLE, "RF004", "환불이 불가능한 날짜입니다"),
 
     // 시스템 설정 에러
     NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다."),

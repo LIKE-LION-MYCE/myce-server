@@ -15,4 +15,7 @@ public class MileageUpdateRequest {
   @NotNull
   @Min(0)
   private Integer savedMileage;
+
+  public MileageUpdateRequest(Integer usedMileage, Integer savedMileage) {
+  }
 }

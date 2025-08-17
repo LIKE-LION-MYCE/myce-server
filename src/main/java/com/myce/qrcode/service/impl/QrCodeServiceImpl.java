@@ -119,14 +119,15 @@ public class QrCodeServiceImpl implements QrCodeService {
         validateAdminPermission(adminMemberId, qr.getReserver(), loginType);
 
         // ACTIVE인 경우만 상태 변경
-        if (qr.getStatus() == QrCodeStatus.ACTIVE) {
+        boolean wasActive = qr.getStatus() == QrCodeStatus.ACTIVE;
+        if (wasActive) {
             qr.markAsUsed();
         }
-        log.info("QR 코드 사용 처리 완료 - QR ID: {}, 예약자 ID: {}", 
-                qr.getId(), qr.getReserver().getId());
+        log.info("QR 코드 사용 처리 완료 - QR ID: {}, 예약자 ID: {}, 사용처리됨: {}", 
+                qr.getId(), qr.getReserver().getId(), wasActive);
 
-        // 매퍼를 통해 성공 응답 생성
-        return qrResponseMapper.toUseResponse(qr);
+        // 매퍼를 통해 응답 생성 (사용 처리 성공/실패 구분)
+        return qrResponseMapper.toUseResponse(qr, wasActive);
     }
 
     @Override
@@ -213,12 +214,18 @@ public class QrCodeServiceImpl implements QrCodeService {
             // 티켓 정보를 통해 QR 코드 활성화/만료 시간 계산
             LocalDateTime activatedAt = calculateActivatedAt(reserver);
             LocalDateTime expiredAt = calculateExpiredAt(reserver);
+            
+            // 현재 시간이 티켓 사용 기간 내인지 확인하여 상태 결정
+            LocalDateTime now = LocalDateTime.now();
+            QrCodeStatus initialStatus = (now.isAfter(activatedAt) || now.isEqual(activatedAt)) && now.isBefore(expiredAt) 
+                    ? QrCodeStatus.ACTIVE 
+                    : QrCodeStatus.APPROVED;
 
             QrCode qr = QrCode.builder()
                     .reserver(reserver)
                     .qrToken(token)
                     .qrImageUrl(imageUrl)
-                    .status(QrCodeStatus.APPROVED)
+                    .status(initialStatus)
                     .activatedAt(activatedAt)
                     .expiredAt(expiredAt)
                     .build();
@@ -267,7 +274,7 @@ public class QrCodeServiceImpl implements QrCodeService {
     }
 
     /**
-     * QR 발급/재발급 시 SSE 알림 전송
+     * QR 발급/재발급 시 알림 전송 (NotificationService에 위임)
      */
     private void sendQrIssuedNotification(Reserver reserver, boolean isReissue) {
         try {
@@ -275,41 +282,23 @@ public class QrCodeServiceImpl implements QrCodeService {
             
             // MEMBER 타입인 경우에만 알림 전송
             if (reservation.getUserType() != UserType.MEMBER) {
-                log.debug("SSE 알림 건너뜀 - 회원이 아닌 예약자 (UserType: {}, 예약자 ID: {})", 
+                log.debug("알림 건너뜀 - 회원이 아닌 예약자 (UserType: {}, 예약자 ID: {})", 
                         reservation.getUserType(), reserver.getId());
                 return;
             }
             
             Long memberId = reservation.getUserId();
-            Long expoId = reservation.getExpo().getId();
             String expoTitle = reservation.getExpo().getTitle();
             
-            String message = String.format(
-                "{\"type\":\"%s\",\"expoTitle\":\"%s\",\"message\":\"%s\"}",
-                isReissue ? "QR_REISSUED" : "QR_ISSUED",
-                expoTitle,
-                isReissue ? "QR코드가 재발급되었습니다." : "QR코드가 발급되었습니다. 박람회 입장 시 사용하세요!"
-            );
+            // NotificationService에서 MongoDB 저장 + SSE 전송 통합 처리
+            notificationService.sendQrIssuedNotification(memberId, reservation.getId(), expoTitle, isReissue);
             
-            // 1. SSE 실시간 알림 전송
-            notifyMemberViaSseEmitters(memberId, message);
-            
-            // 2. MongoDB에 알림 저장
-            notificationService.saveQrIssuedNotification(memberId, expoId, expoTitle, isReissue);
-            
-            log.info("QR {} 알림 전송 및 저장 완료 - 예약자 ID: {}, 회원 ID: {}", 
+            log.info("QR {} 알림 처리 완료 - 예약자 ID: {}, 회원 ID: {}", 
                     isReissue ? "재발급" : "발급", reserver.getId(), memberId);
         } catch (Exception e) {
-            log.error("QR 발급 알림 전송 실패 - 예약자 ID: {}, 오류: {}", 
+            log.error("QR 발급 알림 처리 실패 - 예약자 ID: {}, 오류: {}", 
                     reserver.getId(), e.getMessage(), e);
-            // 알림 실패가 주 기능에 영향을 주지 않도록 예외를 던지지 않음
         }
-    }
-    /**
-     * 특정 회원에게 SSE 알림 전송
-     */
-    private void notifyMemberViaSseEmitters(Long memberId, String content) {
-        sseService.notifyMemberViaSseEmitters(memberId, content);
     }
 
     @Override
@@ -385,15 +374,15 @@ public class QrCodeServiceImpl implements QrCodeService {
             
             String imageUrl = uploadToStorage(image, token);
             
-            // 티켓 use_start_date와 현재 날짜 비교하여 상태 결정
-            LocalDate today = LocalDate.now();
-            LocalDate ticketUseStartDate = reserver.getReservation().getTicket().getUseStartDate();
-            
-            QrCodeStatus status = today.isBefore(ticketUseStartDate) ? QrCodeStatus.APPROVED : QrCodeStatus.ACTIVE;
-            
             // 티켓 정보를 통해 QR 코드 활성화/만료 시간 계산
             LocalDateTime activatedAt = calculateActivatedAt(reserver);
             LocalDateTime expiredAt = calculateExpiredAt(reserver);
+            
+            // 현재 시간이 티켓 사용 기간 내인지 확인하여 상태 결정
+            LocalDateTime now = LocalDateTime.now();
+            QrCodeStatus status = (now.isAfter(activatedAt) || now.isEqual(activatedAt)) && now.isBefore(expiredAt) 
+                    ? QrCodeStatus.ACTIVE 
+                    : QrCodeStatus.APPROVED;
             
             QrCode qr = QrCode.builder()
                     .reserver(reserver)

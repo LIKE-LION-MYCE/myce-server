@@ -70,4 +70,6 @@ public class ReservationPaymentInfo {
         this.totalAmount = totalAmount;
         this.status = status;
     }
+
+
 }

@@ -6,6 +6,7 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.member.service.MemberAdService;
 import com.myce.member.service.MemberExpoService;
+import com.myce.notification.service.NotificationService;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.UserIdentifier;
@@ -51,6 +52,7 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
     private final AdFeeSettingRepository adFeeSettingRepository;
     private final MemberExpoService memberExpoService;
     private final MemberAdService memberAdService;
+    private final NotificationService notificationService;
 
     // 카드 결제 검증 및 저장
     @Override
@@ -177,6 +179,25 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
                 ReservationPaymentInfo reservationPaymentInfo = paymentMapper.toReservationPaymentInfo(request,
                         reservation, paidAmount, paymentStatus);
                 savedPaymentInfo = reservationPaymentInfoRepository.save(reservationPaymentInfo);
+                
+                // 결제 완료 시 알림 발송 (회원만)
+                if (paymentStatus == PaymentStatus.SUCCESS && reservation.getUserType() == UserType.MEMBER) {
+                    try {
+                        String expoTitle = reservation.getExpo().getTitle();
+                        String paymentAmount = String.format("%,d원", paidAmount);
+                        notificationService.sendPaymentCompleteNotification(
+                            reservation.getUserId(),
+                            reservation.getId(),
+                            expoTitle,
+                            paymentAmount
+                        );
+                        log.info("결제 완료 알림 발송 - 예약 ID: {}, 회원 ID: {}, 금액: {}", 
+                                reservation.getId(), reservation.getUserId(), paymentAmount);
+                    } catch (Exception e) {
+                        log.error("결제 완료 알림 발송 실패 - 예약 ID: {}, 오류: {}", 
+                                reservation.getId(), e.getMessage(), e);
+                    }
+                }
                 break;
             case AD:
                 // 이미 PaymentInfo 있으므로 SUCCESS로만
