@@ -120,7 +120,8 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
             
             if (Role.EXPO_ADMIN.name().equals(user.getRole().name())) {
                 boolean isExpoOwner = expoRepository.existsByIdAndMemberId(expoId, userId);
-                if (!isExpoOwner) {
+                boolean isParticipant = userId.equals(participantId);
+                if (!isExpoOwner && !isParticipant) {
                     throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
                 }
             } else if (Role.USER.name().equals(user.getRole().name())) {
@@ -188,7 +189,9 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
                         senderRole = "ADMIN";
                         senderName = "박람회 관리자";
                     } else {
-                        throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+                        // EXPO_ADMIN이지만 박람회 소유자가 아닌 경우 일반 USER로 취급
+                        senderRole = "USER";
+                        senderName = sender.getName();
                     }
                 } else if (Role.USER.name().equals(sender.getRole().name())) {
                     // Regular user - correctly identify as USER

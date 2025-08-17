@@ -23,6 +23,11 @@ public interface ReservationStatsService {
     void refreshReservationCache(Long expoId);
     
     /**
+     * 예약 통계 캐시를 완전히 삭제합니다.
+     */
+    void clearReservationCache(Long expoId);
+    
+    /**
      * 박람회 전시 기간 범위를 조회합니다.
      */
     LocalDate[] getExpoDisplayDateRange(Long expoId);

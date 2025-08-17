@@ -42,8 +42,13 @@ public class ReservationStatsServiceImpl implements ReservationStatsService {
     public ReservationStats getReservationStats(Long expoId) {
         // Redis 우선 조회 후 없으면 DB 조회 + 캐시 저장 (실시간성 중요)
         Long todayReservations = getCachedValueOrCompute(
-                expoId + ":reservations:today",
-                () -> reservationRepository.countTodayReservationsByExpoId(expoId, LocalDate.now()),
+                expoId + ":reservations:today:v3",
+                () -> {
+                    LocalDate today = LocalDate.now();
+                    LocalDateTime startOfDay = today.atStartOfDay();
+                    LocalDateTime startOfNextDay = today.plusDays(1).atStartOfDay();
+                    return reservationRepository.countTodayReservationsByExpoId(expoId, startOfDay, startOfNextDay);
+                },
                 Long.class,
                 CACHE_TTL_MINUTES
         );
@@ -96,7 +101,7 @@ public class ReservationStatsServiceImpl implements ReservationStatsService {
         log.info("예약 통계 캐시 갱신 시작 - ExpoId: {}", expoId);
 
         // 캐시 키 삭제 후 다음 조회 시 자동으로 갱신되도록 함
-        String todayKey = REDIS_KEY_PREFIX + expoId + ":reservations:today";
+        String todayKey = REDIS_KEY_PREFIX + expoId + ":reservations:today:v3";
         String totalKey = REDIS_KEY_PREFIX + expoId + ":total_reservations:v2";
         String genderKey = REDIS_KEY_PREFIX + expoId + ":gender_stats";
         String ageKey = REDIS_KEY_PREFIX + expoId + ":age_stats";
@@ -107,6 +112,24 @@ public class ReservationStatsServiceImpl implements ReservationStatsService {
         redisTemplate.delete(ageKey);
 
         log.info("예약 통계 캐시 갱신 완료 - ExpoId: {}", expoId);
+    }
+    
+    @Override
+    public void clearReservationCache(Long expoId) {
+        log.info("예약 통계 캐시 완전 삭제 시작 - ExpoId: {}", expoId);
+
+        // 모든 예약 관련 캐시 키 삭제
+        String todayKey = REDIS_KEY_PREFIX + expoId + ":reservations:today:v3";
+        String totalKey = REDIS_KEY_PREFIX + expoId + ":total_reservations:v2";
+        String genderKey = REDIS_KEY_PREFIX + expoId + ":gender_stats:v2";
+        String ageKey = REDIS_KEY_PREFIX + expoId + ":age_stats:v2";
+
+        redisTemplate.delete(todayKey);
+        redisTemplate.delete(totalKey);
+        redisTemplate.delete(genderKey);
+        redisTemplate.delete(ageKey);
+
+        log.info("예약 통계 캐시 완전 삭제 완료 - ExpoId: {}", expoId);
     }
 
     @Override
@@ -123,15 +146,15 @@ public class ReservationStatsServiceImpl implements ReservationStatsService {
         // 박람회 게시 기간 조회
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new RuntimeException("박람회를 찾을 수 없습니다."));
-        
+
         LocalDate displayStart = expo.getDisplayStartDate();
         LocalDate displayEnd = expo.getDisplayEndDate();
         LocalDate today = LocalDate.now();
-        
+
         // 기본 7일 범위 계산 (오늘부터 역산)
         LocalDate endDate = today.isAfter(displayEnd) ? displayEnd : today;
         LocalDate startDate = endDate.minusDays(6);
-        
+
         // 게시 기간을 벗어나는 경우 조정
         if (startDate.isBefore(displayStart)) {
             startDate = displayStart;
@@ -140,7 +163,7 @@ public class ReservationStatsServiceImpl implements ReservationStatsService {
                 endDate = displayEnd;
             }
         }
-        
+
         // 실제 데이터 조회
         return getWeeklyReservationsByDateRange(expoId, startDate, endDate);
     }

@@ -3,12 +3,13 @@ package com.myce.expo.service.impl;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.common.permission.ExpoAdminAccessValidate;
+import com.myce.common.permission.ExpoAdminPermission;
 import com.myce.expo.dto.ExpoAdminTicketRequestDto;
 import com.myce.expo.dto.ExpoAdminTicketResponseDto;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.Ticket;
 import com.myce.expo.entity.type.TicketType;
-import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
 import com.myce.expo.service.ExpoAdminTicketService;
@@ -17,20 +18,23 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
 
+    private final ExpoAdminAccessValidate expoAdminAccessValidate;
     private final TicketRepository ticketRepository;
     private final ExpoRepository expoRepository;
     private final ExpoAdminTicketMapper mapper;
-    private final AdminPermissionRepository adminPermissionRepository;
+    private static final ZoneId APP_ZONE = ZoneId.of("Asia/Seoul");
 
     @Override
     public List<ExpoAdminTicketResponseDto> getMyExpoTickets(Long expoId, Long memberId, LoginType loginType) {
-        validateMyAccess(expoId, memberId, loginType);
+        expoAdminAccessValidate.ensureViewable(expoId, memberId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
         List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
         return tickets.stream()
                 .map(mapper::toDto)
@@ -40,7 +44,7 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
     @Override
     @Transactional
     public void deleteMyExpoTicket(Long expoId, Long memberId, LoginType loginType, Long ticketId) {
-        validateMyAccess(expoId, memberId, loginType);
+        expoAdminAccessValidate.ensureEditable(expoId, memberId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
 
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(()-> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
@@ -48,6 +52,8 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
         if(!ticket.getExpo().getId().equals(expoId)){
             throw new CustomException(CustomErrorCode.TICKET_NOT_BELONG_TO_EXPO);
         }
+
+        ensureTicketEditable(ticket);
 
         ticketRepository.delete(ticket);
     }
@@ -58,7 +64,7 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
                                                        Long memberId,
                                                        LoginType loginType,
                                                        ExpoAdminTicketRequestDto dto) {
-        validateMyAccess(expoId, memberId, loginType);
+        expoAdminAccessValidate.ensureEditable(expoId, memberId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
 
         Expo expo =  getMyExpo(expoId);
         Ticket ticket = mapper.toEntity(dto,expo);
@@ -74,14 +80,17 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
                                                          LoginType loginType,
                                                          Long ticketId,
                                                          ExpoAdminTicketRequestDto dto) {
-        validateMyAccess(expoId, memberId, loginType);
-
+        expoAdminAccessValidate.ensureEditable(expoId, memberId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
+        
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(()-> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
 
         if(!ticket.getExpo().getId().equals(expoId)){
             throw new CustomException(CustomErrorCode.TICKET_NOT_BELONG_TO_EXPO);
+
         }
+
+        ensureTicketEditable(ticket);
 
         ticket.updateTicketInfo(
                 dto.getName(),
@@ -104,23 +113,12 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
     }
 
-    private void validateMyAccess(Long expoId, Long memberId, LoginType loginType) {
-        if(memberId == null || loginType == null){
-            throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
-        }
+    private void ensureTicketEditable(Ticket ticket) {
+        LocalDate saleStart = ticket.getSaleStartDate();
 
-        switch(loginType){
-            case MEMBER -> {
-                if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            case ADMIN_CODE -> {
-                if(!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoIdAndIsExpoDetailUpdateTrue(memberId, expoId)){
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
+        LocalDate today = LocalDate.now(APP_ZONE);
+        if (!today.isBefore(saleStart)) {
+            throw new CustomException(CustomErrorCode.TICKET_EDIT_DENIED);
         }
     }
 }

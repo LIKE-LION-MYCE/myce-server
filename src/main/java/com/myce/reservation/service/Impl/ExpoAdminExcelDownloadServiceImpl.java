@@ -3,8 +3,8 @@ package com.myce.reservation.service.Impl;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
-import com.myce.expo.repository.AdminPermissionRepository;
-import com.myce.expo.repository.ExpoRepository;
+import com.myce.common.permission.ExpoAdminAccessValidate;
+import com.myce.common.permission.ExpoAdminPermission;
 import com.myce.member.entity.type.Gender;
 import com.myce.reservation.dto.ExcelReservationInfoData;
 import com.myce.reservation.repository.ReserverRepository;
@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -28,18 +29,17 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownloadService {
 
-    private final ExpoRepository expoRepository;
-    private final AdminPermissionRepository adminPermissionRepository;
+    private final ExpoAdminAccessValidate expoAdminAccessValidate;
     private final ReserverRepository reserverRepository;
 
-    private final String[] HEADERS = {"번호", "예약 코드", "이름", "성별", "생년월일", "전화번호", "이메일", "티켓 이름"};
+    private final String[] HEADERS = {"번호", "예약 코드", "이름", "성별", "생년월일", "전화번호", "이메일", "티켓 이름", "입장 일시", "입장 상태"};
     private final String SHEET_NAME = "예약자_명단";
 
     @Override
     @Transactional(readOnly = true)
     public void downloadMyReservationExcelFile(Long expoId, Long memberId, LoginType loginType, OutputStream outputStream) {
 
-        validateMyAccess(expoId, memberId, loginType);
+        expoAdminAccessValidate.ensureEditable(expoId, memberId, loginType, ExpoAdminPermission.RESERVER_LIST_VIEW);
 
         SXSSFWorkbook workbook = new SXSSFWorkbook(100);
 
@@ -52,6 +52,7 @@ public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownload
             CellStyle headerStyle = createHeaderStyle(workbook);
             CellStyle bodyStyle = createBodyCellStyle(workbook);
             CellStyle dateCellStyle = createDateCellStyle(workbook);
+            CellStyle dateTimeCellStyle = createDateTimeCellStyle(workbook);
 
             // 3) 헤더 생성
             createHeaderRow(sheet, HEADERS, headerStyle);
@@ -65,7 +66,7 @@ public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownload
                 AtomicInteger rowNum = new AtomicInteger(1);
                 data.forEach(dto -> {
                     Row row = sheet.createRow(rowNum.get());
-                    fillDataRow(dto, row, rowNum.getAndIncrement(), bodyStyle, dateCellStyle);
+                    fillDataRow(dto, row, rowNum.getAndIncrement(), bodyStyle, dateCellStyle, dateTimeCellStyle);
                 });
             }
 
@@ -116,6 +117,14 @@ public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownload
         return style;
     }
 
+    private CellStyle createDateTimeCellStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        CreationHelper helper = workbook.getCreationHelper();
+        style.setDataFormat(helper.createDataFormat().getFormat("yyyy-mm-dd hh:mm:ss"));
+        style.setAlignment(HorizontalAlignment.CENTER);
+        return style;
+    }
+
     // 헤더 생성
     private void createHeaderRow(Sheet sheet, String[] headers, CellStyle headerStyle) {
         Row headerRow = sheet.createRow(0);
@@ -131,7 +140,8 @@ public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownload
                              Row row,
                              int rowNum,
                              CellStyle bodyStyle,
-                             CellStyle dateCellStyle) {
+                             CellStyle dateCellStyle,
+                             CellStyle dateTimeCellStyle) {
         int index = 0;
         setCell(row, index++, rowNum, bodyStyle);
         setCell(row, index++, dto.getReservationCode(), bodyStyle);
@@ -140,7 +150,9 @@ public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownload
         setCell(row, index++, dto.getBirthday(), bodyStyle, dateCellStyle);
         setCell(row, index++, dto.getPhone(), bodyStyle);
         setCell(row, index++, dto.getEmail(), bodyStyle);
-        setCell(row, index, dto.getTicketName(), bodyStyle);
+        setCell(row, index++, dto.getTicketName(), bodyStyle);
+        setCell(row, index++, dto.getEntranceAt(), bodyStyle, dateTimeCellStyle);
+        setCell(row, index, dto.getEntranceStatus(), bodyStyle);
     }
 
     private void setCell(Row row, int index, String value, CellStyle bodyStyle) {
@@ -162,32 +174,19 @@ public class ExpoAdminExcelDownloadServiceImpl implements ExpoAdminExcelDownload
         cell.setCellStyle(dateCellStyle);
     }
 
+    private void setCell(Row row, int index, LocalDateTime value, CellStyle bodyStyle, CellStyle dateTimeCellStyle) {
+        Cell cell = row.createCell(index);
+        cell.setCellValue(value);
+        cell.setCellStyle(bodyStyle);
+        cell.setCellStyle(dateTimeCellStyle);
+    }
+
     // 고정 컬럼 폭 적용
     private void applyFixedWidths(Sheet sheet) {
-        int[] widths = {5, 20, 12, 6, 12, 16, 28, 50};
+        int[] widths = {6, 25, 12, 6, 12, 16, 28, 50, 20, 12};
         for (int i = 0; i < widths.length; i++) {
             int width = Math.min((widths[i] + 2) * 256, 255 * 256);
             sheet.setColumnWidth(i, width);
-        }
-    }
-    
-    //권한 설정
-    private void validateMyAccess(Long expoId, Long memberId, LoginType loginType) {
-        if (memberId == null || loginType == null) {
-            throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
-        }
-        switch (loginType) {
-            case MEMBER -> {
-                if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            case ADMIN_CODE -> {
-                if (!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoIdAndIsReserverListViewTrue(memberId, expoId)) {
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
         }
     }
 }

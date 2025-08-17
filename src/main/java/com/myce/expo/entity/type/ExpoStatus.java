@@ -39,4 +39,21 @@ public enum ExpoStatus {
             COMPLETED,
             CANCELLED
     );
+
+    //박람회 관리자가 조회 가능한 상태
+    public static final List<ExpoStatus> ADMIN_VIEWABLE_STATUSES = List.of(
+            PENDING_PUBLISH,
+            PUBLISHED,
+            PUBLISH_ENDED,
+            SETTLEMENT_REQUESTED,
+            COMPLETED
+    );
+
+    //박람회 관리자가 편집 가능한 상태(편집 가능 상태 ⊂ 조회 가능 상태)
+    public static final List<ExpoStatus> ADMIN_EDITABLE_STATUSES = List.of(
+            PENDING_PUBLISH,
+            PUBLISHED,
+            PUBLISH_ENDED,
+            SETTLEMENT_REQUESTED
+    );
 }

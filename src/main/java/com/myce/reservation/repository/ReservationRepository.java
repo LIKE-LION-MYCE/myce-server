@@ -24,7 +24,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query(value = "SELECT r FROM Reservation r " +
             "WHERE r.userType = :userType AND r.userId = :userId",
             countQuery = "SELECT COUNT(r) FROM Reservation r " +
-            "WHERE r.userType = :userType AND r.userId = :userId")
+                    "WHERE r.userType = :userType AND r.userId = :userId")
     Page<Reservation> findReservationsByUserTypeAndUserIdWithExpoAndTicket(@Param("userType") UserType userType,
                                                                            @Param("userId") Long userId,
                                                                            Pageable pageable);
@@ -79,7 +79,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                     ELSE g.email
                 END,
                 r.quantity,
-                (p.totalAmount + p.usedMileage),
+                (p.totalAmount + p.usedMileage - r.quantity * 1000),
                 r.status,
                 r.createdAt
             )
@@ -131,74 +131,79 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     boolean existsByReservationCode(String reservationCode);
 
     long countAllByCreatedAtAfter(LocalDateTime createdAt);
-           
+
     List<Reservation> findByExpoId(Long expoId);
 
     // === 대시보드 통계용 쿼리 메서드들 ===
-    
-    // 특정 박람회의 누적 예약자 수 (확정된 예약만, 실제 인원수 기준)
-    @Query("SELECT COALESCE(SUM(r.quantity), 0) FROM Reservation r WHERE r.expo.id = :expoId AND r.status = 'CONFIRMED'")
-    Long countTotalReservationsByExpoId(@Param("expoId") Long expoId);
-    
-    // 특정 박람회의 오늘 예약자 수 (확정된 예약만, 실제 인원수 기준)
-    @Query("SELECT COALESCE(SUM(r.quantity), 0) FROM Reservation r " +
-           "WHERE r.expo.id = :expoId " +
-           "AND r.status = 'CONFIRMED' " +
-           "AND DATE(r.createdAt) = :today")
-    Long countTodayReservationsByExpoId(@Param("expoId") Long expoId, @Param("today") LocalDate today);
 
-    // 특정 박람회의 날짜별 예약자 수 (일주일)
-    @Query("SELECT DATE(r.createdAt) as date, COUNT(r) as count " +
-           "FROM Reservation r " +
-           "WHERE r.expo.id = :expoId " +
-           "AND r.status = 'CONFIRMED' " +
-           "AND r.createdAt >= :startDate " +
-           "AND r.createdAt <= :endDate " +
-           "GROUP BY DATE(r.createdAt) " +
-           "ORDER BY DATE(r.createdAt)")
+    // 특정 박람회의 누적 예약 건수 (확정된 예약만)
+    @Query("SELECT COALESCE(COUNT(r), 0) FROM Reservation r WHERE r.expo.id = :expoId AND r.status = 'CONFIRMED'")
+    Long countTotalReservationsByExpoId(@Param("expoId") Long expoId);
+
+    // 특정 박람회의 오늘 예약 건수 (확정된 예약만, 00:00~23:59)
+    @Query("SELECT COALESCE(COUNT(r), 0) FROM Reservation r " +
+            "WHERE r.expo.id = :expoId " +
+            "AND r.status = 'CONFIRMED' " +
+            "AND r.createdAt >= :startOfDay " +
+            "AND r.createdAt < :startOfNextDay")
+    Long countTodayReservationsByExpoId(@Param("expoId") Long expoId,
+                                        @Param("startOfDay") LocalDateTime startOfDay,
+                                        @Param("startOfNextDay") LocalDateTime startOfNextDay);
+
+    // 특정 박람회의 날짜별 예약자 수 (확정된 예약만, 실제 인원수 기준)
+    @Query("SELECT DATE(r.createdAt) as date, COALESCE(SUM(r.quantity), 0) as count " +
+            "FROM Reservation r " +
+            "WHERE r.expo.id = :expoId " +
+            "AND r.status = 'CONFIRMED' " +
+            "AND r.createdAt >= :startDate " +
+            "AND r.createdAt <= :endDate " +
+            "GROUP BY DATE(r.createdAt) " +
+            "ORDER BY DATE(r.createdAt)")
     List<Object[]> countReservationsByDateRange(@Param("expoId") Long expoId,
-                                               @Param("startDate") LocalDateTime startDate,
-                                               @Param("endDate") LocalDateTime endDate);
+                                                @Param("startDate") LocalDateTime startDate,
+                                                @Param("endDate") LocalDateTime endDate);
 
     // 특정 박람회의 결제 대기 중인 예약 건수
     @Query("SELECT COUNT(r) FROM Reservation r WHERE r.expo.id = :expoId AND r.status = 'CONFIRMED_PENDING'")
     Long countPendingReservationsByExpoId(@Param("expoId") Long expoId);
-    
+
     // 특정 박람회의 확정된 예약 건수 (결제 완료)
     @Query("SELECT COUNT(r) FROM Reservation r WHERE r.expo.id = :expoId AND r.status = 'CONFIRMED'")
     Long countConfirmedReservationsByExpoId(@Param("expoId") Long expoId);
-    
+
     // 특정 박람회의 취소된 예약 건수 (환불)
     @Query("SELECT COUNT(r) FROM Reservation r WHERE r.expo.id = :expoId AND r.status = 'CANCELLED'")
     Long countCancelledReservationsByExpoId(@Param("expoId") Long expoId);
-    
+
     // 특정 박람회의 티켓 종류별 판매 현황 (reservation 테이블 기준)
     @Query("SELECT t.name as ticketType, " +
-           "SUM(r.quantity) as soldCount, " +
-           "t.price as unitPrice, " +
-           "SUM(r.quantity * t.price) as totalRevenue " +
-           "FROM Reservation r " +
-           "JOIN r.ticket t " +
-           "WHERE r.expo.id = :expoId " +
-           "AND r.status = 'CONFIRMED' " +
-           "GROUP BY t.id, t.name, t.price " +
-           "ORDER BY totalRevenue DESC")
+            "SUM(r.quantity) as soldCount, " +
+            "t.price as unitPrice, " +
+            "SUM(r.quantity * t.price) as totalRevenue " +
+            "FROM Reservation r " +
+            "JOIN r.ticket t " +
+            "WHERE r.expo.id = :expoId " +
+            "AND r.status = 'CONFIRMED' " +
+            "GROUP BY t.id, t.name, t.price " +
+            "ORDER BY totalRevenue DESC")
     List<Object[]> getTicketSalesDetailByExpoId(@Param("expoId") Long expoId);
-    
+
     // 특정 박람회의 오늘 총 수익 (reservation 기준)
     @Query("SELECT COALESCE(SUM(r.quantity * t.price), 0) FROM Reservation r " +
-           "JOIN r.ticket t " +
-           "WHERE r.expo.id = :expoId " +
-           "AND r.status = 'CONFIRMED' " +
-           "AND DATE(r.createdAt) = :today")
+            "JOIN r.ticket t " +
+            "WHERE r.expo.id = :expoId " +
+            "AND r.status = 'CONFIRMED' " +
+            "AND DATE(r.createdAt) = :today")
     BigDecimal sumTodayRevenueByExpoId(@Param("expoId") Long expoId, @Param("today") LocalDate today);
-    
+
     // 특정 박람회의 총 수익 (reservation 기준)
     @Query("SELECT COALESCE(SUM(r.quantity * t.price), 0) FROM Reservation r " +
-           "JOIN r.ticket t " +
-           "WHERE r.expo.id = :expoId " +
-           "AND r.status = 'CONFIRMED'")
+            "JOIN r.ticket t " +
+            "WHERE r.expo.id = :expoId " +
+            "AND r.status = 'CONFIRMED'")
     BigDecimal sumTotalRevenueByExpoId(@Param("expoId") Long expoId);
+
     List<Reservation> findByUserIdAndUserTypeAndStatus(Long userId, UserType userType, ReservationStatus status);
 
+    Long countAllByCreatedAtBetween(LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
 }

@@ -37,4 +37,5 @@ public class ExpoRefundReceiptResponse {
     // 환불 정보
     private Integer remainingDays;        // 남은 게시 일수
     private Integer refundAmount;         // 환불 금액 (남은일수 * 일일이용료)
+    private String refundReason;          // 환불 사유
 }

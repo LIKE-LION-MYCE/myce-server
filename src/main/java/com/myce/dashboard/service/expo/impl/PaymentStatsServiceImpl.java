@@ -102,6 +102,29 @@ public class PaymentStatsServiceImpl implements PaymentStatsService {
 
         log.info("결제 통계 캐시 갱신 완료 - ExpoId: {}", expoId);
     }
+    
+    @Override
+    public void clearPaymentCache(Long expoId) {
+        log.info("결제 통계 캐시 완전 삭제 시작 - ExpoId: {}", expoId);
+
+        // 모든 결제 관련 캐시 키 삭제
+        String pendingKey = REDIS_KEY_PREFIX + expoId + ":pending_payments:v3";
+        String revenueKey = REDIS_KEY_PREFIX + expoId + ":today_revenue:v3";
+        String completedKey = REDIS_KEY_PREFIX + expoId + ":completed_payments:v2";
+        String refundedKey = REDIS_KEY_PREFIX + expoId + ":refunded_payments:v2";
+        String totalRevenueKey = REDIS_KEY_PREFIX + expoId + ":total_revenue:v2";
+
+        redisTemplate.delete(pendingKey);
+        redisTemplate.delete(revenueKey);
+        redisTemplate.delete(completedKey);
+        redisTemplate.delete(refundedKey);
+        redisTemplate.delete(totalRevenueKey);
+
+        // 티켓 통계 캐시도 삭제
+        ticketStatsService.clearTicketCache(expoId);
+
+        log.info("결제 통계 캐시 완전 삭제 완료 - ExpoId: {}", expoId);
+    }
 
     // === 헬퍼 메서드들 ===
 

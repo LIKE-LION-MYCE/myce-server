@@ -48,6 +48,18 @@ public class TicketStatsServiceImpl implements TicketStatsService {
         log.info("티켓 통계 캐시 갱신 완료 - ExpoId: {}", expoId);
     }
     
+    @Override
+    public void clearTicketCache(Long expoId) {
+        log.info("티켓 통계 캐시 완전 삭제 시작 - ExpoId: {}", expoId);
+        
+        // 모든 티켓 관련 캐시 키 삭제
+        String ticketSalesKey = REDIS_KEY_PREFIX + expoId + ":ticket_sales:v3";
+        
+        redisTemplate.delete(ticketSalesKey);
+        
+        log.info("티켓 통계 캐시 완전 삭제 완료 - ExpoId: {}", expoId);
+    }
+    
     // === 헬퍼 메서드들 ===
     
     private List<TicketSales> getTicketSalesDetailFromDB(Long expoId) {

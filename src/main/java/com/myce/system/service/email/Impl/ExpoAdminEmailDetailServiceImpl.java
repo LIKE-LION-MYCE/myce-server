@@ -3,8 +3,8 @@ package com.myce.system.service.email.Impl;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
-import com.myce.expo.repository.AdminPermissionRepository;
-import com.myce.expo.repository.ExpoRepository;
+import com.myce.common.permission.ExpoAdminAccessValidate;
+import com.myce.common.permission.ExpoAdminPermission;
 import com.myce.system.dto.email.ExpoAdminEmailDetailResponse;
 import com.myce.system.dto.email.ExpoAdminEmailResponse;
 import com.myce.system.repository.EmailLogRepository;
@@ -19,8 +19,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ExpoAdminEmailDetailServiceImpl implements ExpoAdminEmailDetailService {
 
-    private final ExpoRepository expoRepository;
-    private final AdminPermissionRepository adminPermissionRepository;
+    private final ExpoAdminAccessValidate expoAdminAccessValidate;
     private final EmailLogRepository emailLogRepository;
     private final ExpoAdminEmailMapper mapper;
 
@@ -31,7 +30,7 @@ public class ExpoAdminEmailDetailServiceImpl implements ExpoAdminEmailDetailServ
                                                    String keyword,
                                                    Pageable pageable) {
 
-        validateMyAccess(expoId,memberId,loginType);
+        expoAdminAccessValidate.ensureViewable(expoId,memberId,loginType, ExpoAdminPermission.EMAIL_LOG_VIEW);
 
         boolean hasKeyword = keyword != null && !keyword.isBlank();
 
@@ -49,30 +48,10 @@ public class ExpoAdminEmailDetailServiceImpl implements ExpoAdminEmailDetailServ
 
     @Override
     public ExpoAdminEmailDetailResponse getMyMailDetail(Long expoId, Long memberId, LoginType loginType, String emailId) {
-        validateMyAccess(expoId, memberId, loginType);
+        expoAdminAccessValidate.ensureViewable(expoId,memberId,loginType, ExpoAdminPermission.EMAIL_LOG_VIEW);
 
         return emailLogRepository.findById(emailId)
                 .map(mapper::toDetailDto)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.INVALID_EMAIL_LOG));
-    }
-
-    private void validateMyAccess(Long expoId, Long memberId, LoginType loginType) {
-        if(memberId == null || loginType == null){
-            throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
-        }
-
-        switch(loginType){
-            case MEMBER -> {
-                if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            case ADMIN_CODE -> {
-                if(!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoIdAndIsEmailLogViewTrue(memberId, expoId)){
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
-        }
     }
 }
