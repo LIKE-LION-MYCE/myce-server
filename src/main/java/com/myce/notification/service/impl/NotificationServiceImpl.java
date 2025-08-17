@@ -221,25 +221,15 @@ public class NotificationServiceImpl implements NotificationService {
             Long memberId = expo.getMember().getId();
 
 
-            if (template == null) {
-                log.warn("메시지 템플릿을 찾을 수 없음: {}", template);
-                // 기본 메시지로 대체
-                String title = "박람회 상태 변경 알림";
-                String content = String.format("'%s' 박람회의 상태가 %s에서 %s로 변경되었습니다.",
-                    expoTitle, getStatusDisplayName(oldStatus), getStatusDisplayName(newStatus));
+            String title = template.getSubject();
+            String content = template.getContent()
+                    .replace("{expoTitle}", expoTitle)
+                    .replace("{oldStatus}", getStatusDisplayName(oldStatus))
+                    .replace("{newStatus}", getStatusDisplayName(newStatus));
 
-                saveNotification(memberId, expoId, title, content,
-                               NotificationType.EXPO_STATUS_CHANGE, NotificationTargetType.EXPO_STATUS);
-            } else {
-                String title = template.getSubject();
-                String content = template.getContent()
-                        .replace("{expoTitle}", expoTitle)
-                        .replace("{oldStatus}", getStatusDisplayName(oldStatus))
-                        .replace("{newStatus}", getStatusDisplayName(newStatus));
+            saveNotification(memberId, expoId, title, content,
+                    NotificationType.EXPO_STATUS_CHANGE, NotificationTargetType.EXPO_STATUS);
 
-                saveNotification(memberId, expoId, title, content,
-                               NotificationType.EXPO_STATUS_CHANGE, NotificationTargetType.EXPO_STATUS);
-            }
 
             log.info("박람회 상태 변경 알림 처리 완료 - 박람회 ID: {}, 회원 ID: {}, {} -> {}",
                     expoId, memberId, oldStatus, newStatus);
@@ -262,27 +252,15 @@ public class NotificationServiceImpl implements NotificationService {
 
             Long memberId = advertisement.getMember().getId();
 
+            String title = template.getSubject();
+            String content = template.getContent()
+                    .replace("{adTitle}", adTitle)
+                    .replace("{oldStatus}", getStatusDisplayName(oldStatus))
+                    .replace("{newStatus}", getStatusDisplayName(newStatus));
 
+            saveNotification(memberId, advertisementId, title, content,
+                    NotificationType.AD_STATUS_CHANGE, NotificationTargetType.AD_STATUS);
 
-            if (template == null) {
-                log.warn("메시지 템플릿을 찾을 수 없음: {}", template);
-                // 기본 메시지로 대체
-                String title = "광고 상태 변경 알림";
-                String content = String.format("'%s' 광고의 상태가 %s에서 %s로 변경되었습니다.",
-                    adTitle, getStatusDisplayName(oldStatus), getStatusDisplayName(newStatus));
-
-                saveNotification(memberId, advertisementId, title, content,
-                               NotificationType.AD_STATUS_CHANGE, NotificationTargetType.AD_STATUS);
-            } else {
-                String title = template.getSubject();
-                String content = template.getContent()
-                        .replace("{adTitle}", adTitle)
-                        .replace("{oldStatus}", getStatusDisplayName(oldStatus))
-                        .replace("{newStatus}", getStatusDisplayName(newStatus));
-
-                saveNotification(memberId, advertisementId, title, content,
-                               NotificationType.AD_STATUS_CHANGE, NotificationTargetType.AD_STATUS);
-            }
 
             log.info("광고 상태 변경 알림 처리 완료 - 광고 ID: {}, 회원 ID: {}, {} -> {}",
                     advertisementId, memberId, oldStatus, newStatus);
@@ -297,7 +275,7 @@ public class NotificationServiceImpl implements NotificationService {
             case "PENDING_APPROVAL":
                 return "승인 대기";
             case "PENDING_PAYMENT":
-                return "승인 완료 (결제 대기)";
+                return "결제 대기";
             case "PENDING_PUBLISH":
                 return "게시 대기";
             case "PENDING_CANCEL":
