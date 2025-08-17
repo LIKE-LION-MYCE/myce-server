@@ -20,7 +20,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
-        String errorMessage = ex.getBindingResult().getFieldError().getDefaultMessage();
+        String errorMessage;
+        
+        // FieldError 먼저 확인 (필드별 검증 오류)
+        if (ex.getBindingResult().getFieldError() != null) {
+            errorMessage = ex.getBindingResult().getFieldError().getDefaultMessage();
+        }
+        // ObjectError 확인 (클래스 레벨 검증 오류)
+        else if (ex.getBindingResult().getGlobalError() != null) {
+            errorMessage = ex.getBindingResult().getGlobalError().getDefaultMessage();
+        }
+        // 기본 메시지
+        else {
+            errorMessage = "입력값이 올바르지 않습니다.";
+        }
+        
         ErrorResponse errorResponse = new ErrorResponse("VALID_ERROR", errorMessage);
         return ResponseEntity.badRequest().body(errorResponse);
     }
