@@ -6,6 +6,7 @@ import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.PaymentRefundRequest;
 import com.myce.payment.dto.PortOneWebhookRequest;
+import com.myce.payment.dto.AdRefundRequest;
 import com.myce.payment.service.PaymentService;
 import com.myce.payment.service.refund.PaymentRefundService;
 import lombok.RequiredArgsConstructor;
@@ -70,5 +71,13 @@ public class PaymentController {
   ){
     paymentService.updateAdPaymentInfo(adId, request.getPaymentStatus());
     return ResponseEntity.ok().build();
+  }
+
+  // 광고 통합 환불 API - 포트원 환불 + 광고 상태 변경 + 결제 상태 변경을 한번에 처리
+  @PostMapping("/ad-refund")
+  public ResponseEntity<Map<String, Object>> processAdRefund(
+      @RequestBody AdRefundRequest request) {
+    Map<String, Object> response = paymentRefundService.processAdRefund(request);
+    return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 }
