@@ -47,7 +47,7 @@ public class MyExpoServiceImpl implements MyExpoService {
 
         switch (loginType) {
             case MEMBER -> {
-                List<Long> expoIds = expoRepository.findIdsByMemberIdAndStatusIn(memberId, ExpoStatus.ACTIVE_STATUSES);
+                List<Long> expoIds = expoRepository.findIdsByMemberIdAndStatusIn(memberId, ExpoStatus.ADMIN_VIEWABLE_STATUSES);
                 return expoAdminPermissionMapper.toDto(expoIds, null);
             }
             case ADMIN_CODE -> {

@@ -22,4 +22,11 @@ public interface ExpoPaymentInfoRepository extends JpaRepository<ExpoPaymentInfo
             @Param("statuses") List<PaymentStatus> statuses,
             @Param("timestamp") LocalDateTime timestamp
     );
+    @Query("SELECT SUM(a.totalAmount) FROM AdPaymentInfo a " +
+            "WHERE a.status IN :statuses AND a.updatedAt BETWEEN :updatedAtAfter AND :updatedAtBefore")
+    Long sumTotalAmountByStatusesAndUpdatedAtBetween(
+            @Param("statuses") List<PaymentStatus> statuses,
+            @Param("updatedAtAfter") LocalDateTime updatedAtAfter,
+            @Param("updatedAtBefore") LocalDateTime updatedAtBefore
+    );
 }

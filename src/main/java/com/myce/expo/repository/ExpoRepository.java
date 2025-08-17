@@ -10,7 +10,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -46,7 +45,11 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
 
     List<Expo> findByMemberIdOrderByCreatedAtDesc(Long memberId);
     Page<Expo> findByMemberIdOrderByCreatedAtDesc(Long memberId, Pageable pageable);
-    Boolean existsByIdAndMemberId(Long id, Long memberId);
+
+    @Query("select e.status from Expo e where e.id = :expoId")
+    Optional<ExpoStatus> findStatusById(@Param("expoId") Long expoId);
+
+    Boolean existsByIdAndMemberId(Long expoId, Long memberId);
     
     // QR코드 일괄 생성용 - 시작일이 특정 날짜이고 게시된 박람회 조회
     List<Expo> findByStartDateAndStatus(LocalDate startDate, ExpoStatus status);
@@ -119,4 +122,6 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
     
     // AI 상담용 - 최신 박람회 5개 조회
     List<Expo> findTop5ByOrderByCreatedAtDesc();
+
+    Long countAllByCreatedAtBetween(LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
 }

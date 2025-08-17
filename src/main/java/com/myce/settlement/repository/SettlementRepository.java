@@ -2,26 +2,29 @@ package com.myce.settlement.repository;
 
 import com.myce.settlement.entity.Settlement;
 import com.myce.settlement.entity.code.SettlementStatus;
-import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-
-import java.time.LocalDateTime;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
 public interface SettlementRepository extends JpaRepository<Settlement, Long> {
 
-    Long countSettlementBySettlementAtAfterAndSettlementStatus(LocalDateTime settlementAtAfter, SettlementStatus settlementStatus);
+    // Refactored to use 'Between' query
+    Long countSettlementBySettlementAtBetweenAndSettlementStatus(LocalDateTime settlementAtAfter,
+             LocalDateTime settlementAtBefore, SettlementStatus settlementStatus);
 
+    // Refactored to use 'Between' query with a custom JPQL
     @Query("SELECT SUM(s.totalAmount - s.supplyAmount) " +
             "FROM Settlement s " +
-            "WHERE s.settlementStatus = :status AND s.updatedAt >= :timestamp")
-    Long sumRevenueByStatusAndUpdatedAtAfter(
+            "WHERE s.settlementStatus = :status AND s.updatedAt BETWEEN :updatedAtAfter AND :updatedAtBefore")
+    Long sumRevenueByStatusAndUpdatedAtBetween(
             @Param("status") SettlementStatus status,
-            @Param("timestamp") LocalDateTime timestamp
+            @Param("updatedAtAfter") LocalDateTime updatedAtAfter,
+            @Param("updatedAtBefore") LocalDateTime updatedAtBefore
     );
 
     Optional<Settlement> findByExpoId(Long expoId);

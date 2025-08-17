@@ -3,6 +3,8 @@ package com.myce.refund.service.impl;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
+import com.myce.common.exception.CustomException;
+import com.myce.common.exception.CustomErrorCode;
 import com.myce.payment.entity.Payment;
 import com.myce.payment.entity.Refund;
 import com.myce.payment.entity.type.PaymentTargetType;
@@ -14,6 +16,9 @@ import com.myce.refund.service.RefundRequestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -39,8 +44,8 @@ public class RefundRequestServiceImpl implements RefundRequestService {
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 엑스포입니다."));
         
-        // 4. 환불 가능 상태 확인
-        validateRefundEligibility(expo.getStatus());
+        // 4. 환불 가능 상태 확인 (PUBLISHED 상태는 7일 규칙 포함)
+        validateRefundEligibility(expo.getStatus(), expo);
         
         // 5. 현재 엑스포 상태에 따른 환불 타입 결정
         boolean isPartialRefund = determineRefundType(expo.getStatus());
@@ -63,11 +68,21 @@ public class RefundRequestServiceImpl implements RefundRequestService {
     
     /**
      * 환불 가능 상태인지 확인
+     * PUBLISHED 상태의 경우 7일 규칙도 함께 검증
+     * 
      * @param expoStatus 현재 엑스포 상태
+     * @param expo 엑스포 엔티티 (7일 규칙 확인용)
      * @throws IllegalStateException 환불 불가능한 상태인 경우
      */
-    private void validateRefundEligibility(ExpoStatus expoStatus) {
+    private void validateRefundEligibility(ExpoStatus expoStatus, Expo expo) {
         switch (expoStatus) {
+            case PUBLISHED:
+                // 게시중일 때만 7일 규칙 적용
+                validateSevenDayRule(expo);
+                break;
+            case PENDING_PUBLISH:
+                // 게시 대기는 7일 규칙 적용 안함 (언제든 취소 가능)
+                break;
             case PUBLISH_ENDED:
             case COMPLETED:
             case CANCELLED:
@@ -76,8 +91,24 @@ public class RefundRequestServiceImpl implements RefundRequestService {
             case PENDING_CANCEL:
                 throw new IllegalStateException("이미 환불 신청이 진행 중입니다.");
             default:
-                // 환불 가능한 상태
+                // 기타 환불 가능한 상태
                 break;
+        }
+    }
+    
+    /**
+     * 7일 규칙 검증 (게시중 박람회만 적용)
+     * 개최일 7일 전부터는 환불 불가
+     * 
+     * @param expo 엑스포 엔티티
+     * @throws CustomException 7일 이내인 경우
+     */
+    private void validateSevenDayRule(Expo expo) {
+        LocalDate today = LocalDate.now();
+        long daysUntilStart = ChronoUnit.DAYS.between(today, expo.getStartDate());
+        
+        if (daysUntilStart < 7) {
+            throw new CustomException(CustomErrorCode.REFUND_SEVEN_DAY_RULE_VIOLATION);
         }
     }
     

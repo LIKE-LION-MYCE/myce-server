@@ -41,7 +41,7 @@ public class EventNotificationScheduler implements TaskScheduler {
     private final MessageTemplateSettingRepository messageTemplateSettingRepository;
     private final SseService sseService;
 
-    @Value("${scheduler.event-notification}")
+    @Value("${scheduler.event-notification:0 0 * * * *}")
     private String cronExpression;
 
     @PostConstruct
