@@ -26,12 +26,16 @@ public enum CustomErrorCode {
     GENDER_TYPE_INVALID(HttpStatus.BAD_REQUEST, "M006", "유효하지 않은 성별 값입니다."),
     ALREADY_EXIST_LOGIN_ID(HttpStatus.BAD_REQUEST, "M007", "이미 존재하는 아이디입니다."),
     ALREADY_EXIST_EMAIL(HttpStatus.BAD_REQUEST, "M008", "이미 존재하는 이메일입니다."),
+    MEMBER_ROLE_NOT_EXIST(HttpStatus.NOT_FOUND, "M009", "존재하지 않는 권한입니다."),
+    MEMBER_GRADE_NOT_EXIST(HttpStatus.NOT_FOUND, "M010", "회원 등급이 존재하지 않습니다."),
 
     // 비회원 G
     GUEST_NOT_EXIST(HttpStatus.NOT_FOUND, "G001", "비회원 정보가 존재하지 않습니다."),
 
     // 박람회 관리자 EAD
     ADMIN_CODE_NOT_FOUND(HttpStatus.NOT_FOUND, "EAD001", "존재하지 않는 박람회 관리자 코드입니다."),
+    INVALID_EXPO_ADMIN_PERMISSION_TYPE(HttpStatus.NOT_FOUND, "EAD002", "유효하지 않은 권한 타입입니다."),
+    EXPO_ADMIN_PERMISSION_DENIED(HttpStatus.FORBIDDEN, "EAD003", "해당 기능에 대한 접근 권한이 없습니다."),
 
     // 관계자 정보 I
     BUSINESS_NOT_EXIST(HttpStatus.NOT_FOUND, "I001", "관계자 정보를 찾지 못했습니다"),
@@ -42,13 +46,13 @@ public enum CustomErrorCode {
     QR_ALREADY_EXISTS(HttpStatus.CONFLICT, "Q002", "이미 QR 코드가 발급된 예약자입니다."),
     QR_ALREADY_USED(HttpStatus.BAD_REQUEST, "Q003", "이미 사용된 QR 코드입니다."),
     QR_EXPIRED(HttpStatus.BAD_REQUEST, "Q004", "만료된 QR 코드입니다."),
-    QR_INVALID_STATUS(HttpStatus.BAD_REQUEST, "Q005", "ACTIVE 상태의 QR만 재발급 가능합니다."),
+    QR_INVALID_STATUS(HttpStatus.BAD_REQUEST, "Q005", "입장 전(APPROVE, ACTIVE) 상태의 QR만 재발급 가능합니다."),
     QR_UNAUTHORIZED(HttpStatus.FORBIDDEN, "Q006", "해당 박람회의 관리자만 처리할 수 있습니다."),
     RESERVER_NOT_FOUND(HttpStatus.NOT_FOUND, "Q007", "예약자를 찾을 수 없습니다."),
     QR_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q008", "QR 코드 생성 중 오류가 발생했습니다."),
     QR_REISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Q009", "QR 코드 재발급 중 오류가 발생했습니다."),
     QR_APPROVED(HttpStatus.BAD_REQUEST, "Q010", "QR 코드 발급 기간이 아닙니다."),
-    QR_NOT_MANUAL_CHECK_IN(HttpStatus.BAD_REQUEST, "Q011", "ACTIVE 상태의 QR만 수기입장 처리가 가능합니다."),
+    QR_NOT_MANUAL_CHECK_IN(HttpStatus.BAD_REQUEST, "Q011", "입장 전(APPROVE, ACTIVE) 상태의 QR만 수기입장 처리가 가능합니다."),
 
     // S3 S
     S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S001", "S3 파일 업로드에 실패했습니다."),
@@ -60,13 +64,14 @@ public enum CustomErrorCode {
     CATEGORY_NOT_EXIST(HttpStatus.NOT_FOUND, "E004", "카테고리가 존재하지 않습니다."),
     INVALID_EXPO_STATUS(HttpStatus.NOT_FOUND, "E005", "영수증을 조회 할 수 없습니다."),
     EXPO_NOT_PUBLISHED(HttpStatus.FORBIDDEN, "E006", "공개되지 않은 박람회입니다."),
-
+    EXPO_EDIT_DENIED(HttpStatus.FORBIDDEN, "E007","해당 박람회에 대한 수정 권한이 없습니다."),
 
     // 티켓 T
     TICKET_NOT_EXIST(HttpStatus.NOT_FOUND, "T001", "티켓이 존재하지 않습니다."),
     TICKET_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "T002", "해당 티켓은 현재 박람회에 속하지 않습니다."),
     TICKET_TYPE_INVALID(HttpStatus.BAD_REQUEST, "T003", "유효하지 않은 티켓 타입입니다."),
     TICKET_SOLD_OUT(HttpStatus.CONFLICT, "T004", "티켓이 매진되었습니다."),
+    TICKET_EDIT_DENIED(HttpStatus.FORBIDDEN, "T005", "판매 시작일 이후에는 티켓을 수정할 수 없습니다."),
 
     // 채팅 C
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "채팅방을 찾을 수 없습니다."),
@@ -136,6 +141,9 @@ public enum CustomErrorCode {
     // 환불 RF
     REFUND_NOT_FOUND(HttpStatus.NOT_FOUND, "RF001", "환불 정보가 존재하지 않습니다."),
     ALREADY_REFUND_REQUESTED(HttpStatus.CONFLICT, "RF002", "이미 환불 신청이 접수되었습니다."),
+    REFUND_SEVEN_DAY_RULE_VIOLATION(HttpStatus.BAD_REQUEST, "RF003", "개최 7일 전에는 환불이 불가능합니다."),
+    ALREADY_REFUNDED(HttpStatus.NOT_FOUND, "RF001", "이미 환불이 완료된 결제 입니다."),
+    REFUND_NOT_ALLOWED( HttpStatus.NOT_ACCEPTABLE, "RF004", "환불이 불가능한 날짜입니다"),
 
     // 시스템 설정 에러
     NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다."),
@@ -150,7 +158,10 @@ public enum CustomErrorCode {
     INVALID_EMAIL_LOG(HttpStatus.NOT_FOUND, "EM001", "유효하지 않은 이메일 로그 입니다."),
   
     // 기간 PE
-    PERIOD_TYPE_NOT_EXIST(HttpStatus.NOT_FOUND, "PE001", "기간 타입이 존재하지 않습니다.");
+    PERIOD_TYPE_NOT_EXIST(HttpStatus.NOT_FOUND, "PE001", "기간 타입이 존재하지 않습니다."),
+    
+    // 일반 시스템 오류
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "S999", "내부 서버 오류가 발생했습니다.");
 
     private final HttpStatus status;
     private final String errorCode;

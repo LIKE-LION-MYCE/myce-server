@@ -42,19 +42,22 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
         Advertisement ad = adRepository.findById(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
         AdFeeSetting feeSetting = adFeeSettingRepository
-                .findByAdPositionId(ad.getAdPosition().getId())
+                .findByAdPositionIdAndIsActiveTrue(ad.getAdPosition().getId())
                 .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
         HashMap<String, Integer> priceMap = new HashMap<>();
         int totalPayment = 0;
 
-        log.info("generatePaymentCheck - Advertisement : {}", ad);
+        int feePerDay = feeSetting.getFeePerDay();
+        int totalDayFee = feePerDay * ad.getTotalDays();
+        int totalDays = ad.getTotalDays();
+
+        log.info("generatePaymentCheck - Advertisement : {}, {}", feePerDay, ad.getTotalDays());
 
         // todo: PG 수수료 고려 X
-        int totalDayFee = feeSetting.getFeePerDay() * ad.getTotalDays();
-        priceMap.put("총 이용료", totalDayFee);
+        priceMap.put("일일 이용료", feePerDay);
         totalPayment += totalDayFee;
 
-        return AdInfoMapper.getAdPaymentForm(ad, priceMap, totalPayment);
+        return AdInfoMapper.getAdPaymentForm(ad, priceMap, totalDays, totalPayment);
     }
 
     @Transactional
@@ -62,7 +65,7 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
         Advertisement ad = adRepository.findById(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
         AdFeeSetting feeSetting = adFeeSettingRepository
-                .findByAdPositionId(ad.getAdPosition().getId())
+                .findByAdPositionIdAndIsActiveTrue(ad.getAdPosition().getId())
                 .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
 
         AdPaymentInfo paymentInfo = AdPaymentInfo.builder()
@@ -107,8 +110,12 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
         AdPaymentInfo paymentInfo = adPaymentInfoRepository
                 .findByAdvertisementId(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        Payment payment = paymentRepository
+                .findByTargetIdAndTargetType(adId, PaymentTargetType.AD)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+
         log.info("getPaymentHistory - AdPaymentInfo : {}", paymentInfo);
-        return AdInfoMapper.getPaymentInfoRequest(paymentInfo);
+        return AdInfoMapper.getPaymentInfoResponse(paymentInfo, payment);
     }
 
     public AdCancelHistoryResponse getCancelHistory(Long adId) {

@@ -33,6 +33,10 @@ public class MemberExpoDetailResponse {
     private String description;
     private ExpoStatus status;
     private Boolean isPremium;           // 프리미엄 여부
+    private String category;             // 카테고리명
+    
+    // 회원 정보
+    private String memberLoginId;        // 회원 로그인 ID
     
     // 결제 정보
     private PaymentInfo paymentInfo;

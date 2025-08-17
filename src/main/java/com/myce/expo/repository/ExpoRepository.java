@@ -28,9 +28,29 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
     List<Long> findIdsByMemberIdAndStatusIn(@Param("memberId") Long memberId,
                                             @Param("statuses") Collection<ExpoStatus> statuses);
 
+    // 스케줄러용 - 활성 상태인 모든 박람회 ID 조회
+    @Query("""
+        select e.id
+        from Expo e
+        where e.status in :statuses
+    """)
+    List<Long> findIdsByStatusIn(@Param("statuses") Collection<ExpoStatus> statuses);
+    
+    // 스케줄러용 - 특정 상태의 박람회 ID 조회
+    @Query("""
+        select e.id
+        from Expo e
+        where e.status = :status
+    """)
+    List<Long> findIdsByStatus(@Param("status") ExpoStatus status);
+
     List<Expo> findByMemberIdOrderByCreatedAtDesc(Long memberId);
     Page<Expo> findByMemberIdOrderByCreatedAtDesc(Long memberId, Pageable pageable);
-    Boolean existsByIdAndMemberId(Long id, Long memberId);
+
+    @Query("select e.status from Expo e where e.id = :expoId")
+    Optional<ExpoStatus> findStatusById(@Param("expoId") Long expoId);
+
+    Boolean existsByIdAndMemberId(Long expoId, Long memberId);
     
     // QR코드 일괄 생성용 - 시작일이 특정 날짜이고 게시된 박람회 조회
     List<Expo> findByStartDateAndStatus(LocalDate startDate, ExpoStatus status);
@@ -76,6 +96,7 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
             "WHERE e.displayEndDate <= CURRENT_DATE " +
             "and e.displayEndDate >= :date ")
     long countAllAfterDate(LocalDate date);
+    
     // 카테고리 필터링
     @Query("SELECT e FROM Expo e JOIN e.expoCategories ec WHERE ec.category.id = :categoryId")
     Page<Expo> findByCategoryId(@Param("categoryId") Long categoryId, Pageable pageable);
@@ -99,5 +120,9 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
         @Param("endDate") LocalDate endDate,
         Pageable pageable
     );
-}
+    
+    // AI 상담용 - 최신 박람회 5개 조회
+    List<Expo> findTop5ByOrderByCreatedAtDesc();
 
+    Long countAllByCreatedAtBetween(LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
+}

@@ -31,7 +31,7 @@ public class AdFeeMapper {
         return adFeeListResponse;
     }
 
-    private AdFeeResponse toAdFeeResponse(AdFeeSetting adFeeSetting) {
+    public AdFeeResponse toAdFeeResponse(AdFeeSetting adFeeSetting) {
         return AdFeeResponse.builder()
                 .id(adFeeSetting.getId())
                 .position(adFeeSetting.getAdPosition().getName())

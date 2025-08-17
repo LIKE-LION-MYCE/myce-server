@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -79,16 +80,19 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth ->
                 auth.requestMatchers(HttpMethod.POST, "/api/auth/**", "/api/payment/**",
-                        "/api/reservations/resolvers", "/api/reservations/pending",
-                        "/api/reservers")
+                        "/api/payment/**", "/api/reservations/**", "/api/reservers",
+                        "/api/payment/imp-uid")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/**",
-                            "/api/categories", "/api/expos", "/api/expos/*/basic",
-                            "/api/expos/*/reviews", "/api/expos/*/location",
-                            "/api/expos/*/booths/public")
+                            "/api/categories", "/api/expos/**", "/api/reservations/**",
+                            "/api/expo/fees/active", "/api/ad/fees/active",
+                            "/api/members/expos/*/payment", "/api/members/ads/*/payment")
                         .permitAll()
-                        .requestMatchers(HttpMethod.PATCH,"/api/tickets/quantity",
-                            "/api/reservations/*/confirm", "/api/reservations/success")
+                        .requestMatchers(HttpMethod.PATCH, "/api/tickets/quantity",
+                            "/api/reservations/**", "/api/platform/ads/*/status",
+                            "/api/payment/*/status")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/**", "/api/reservations/**")
                         .permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
@@ -100,7 +104,8 @@ public class SecurityConfig {
                                 "/actuator/health/liveness",  // ALB health checks
                                 "/actuator/health/readiness", // Optional readiness checks
                                 "/actuator/info",
-                                "/ws/**" // WebSocket 엔드포인트 허용
+                                "/ws/**", // WebSocket 엔드포인트 허용
+                                "/images/**" // Static 이미지 리소스 허용
                         ).permitAll()
                         .anyRequest()
                         .authenticated());

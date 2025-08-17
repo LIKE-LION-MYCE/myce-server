@@ -23,11 +23,11 @@ public class EmailLog {
     private LocalDateTime createdAt;
 
     @Builder
-    public EmailLog(Long expoId, String subject, List<RecipientInfo> recipientInfos, String content) {
+    public EmailLog(Long expoId, String subject, List<RecipientInfo> recipientInfos, Integer recipientCount, String content) {
         this.expoId = expoId;
         this.subject = subject;
         this.recipientInfos = recipientInfos;
-        this.recipientCount = recipientInfos.size();
+        this.recipientCount = recipientCount;
         this.content = content;
         this.createdAt = LocalDateTime.now();
     }

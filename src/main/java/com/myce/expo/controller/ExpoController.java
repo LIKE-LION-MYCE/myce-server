@@ -58,6 +58,7 @@ public class ExpoController {
     public ResponseEntity<List<ExpoCardResponse>> getExpoCards(
         @RequestParam(required=false) String keyword,   // 검색
         @RequestParam(required=false) String category,  // 카테고리
+        @RequestParam(required=false) String status,    // 박람회 상태 (PUBLISHED, PENDING_PUBLISH 등)
         @RequestParam(required=false) Integer period,   // 기간(1,3,6,12개월)
         @RequestParam(required = false)
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,  // 사용자 지정 시작일
@@ -76,7 +77,7 @@ public class ExpoController {
             to   = end;
         }
 
-        List<ExpoCardResponse> expoCards = expoService.getExpoCardsFiltered(memberId, category, from, to, keyword, pageable);
+        List<ExpoCardResponse> expoCards = expoService.getExpoCardsFiltered(memberId, category, status, from, to, keyword, pageable);
         return ResponseEntity.ok(expoCards);
     }
 
@@ -89,23 +90,19 @@ public class ExpoController {
 
     // 박람회 찜하기 상태 조회
     @GetMapping("/{expoId}/bookmark")
-    public ResponseEntity<ExpoBookmarkResponse> getExpoBookmarkStatus(
-            @PathVariable Long expoId,
-            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
-        Long memberId = customUserDetails != null ? customUserDetails.getMemberId() : null;
+    public ResponseEntity<ExpoBookmarkResponse> getExpoBookmarkStatus(@PathVariable Long expoId) {
+        Long memberId = getCurrentMemberIdOrNull();
         ExpoBookmarkResponse bookmarkStatus = expoService.getExpoBookmarkStatus(expoId, memberId);
         return ResponseEntity.ok(bookmarkStatus);
     }
 
-    // 박람회 리뷰 정보 조회
+    // 박람회 리뷰 정보 조회 (비회원 접근 가능)
     @GetMapping("/{expoId}/reviews")
     public ResponseEntity<ExpoReviewsResponse> getExpoReviews(
             @PathVariable Long expoId,
-            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Long memberId = customUserDetails != null ? customUserDetails.getMemberId() : null;
-        ExpoReviewsResponse reviewsInfo = expoService.getExpoReviews(expoId, memberId, page, size);
+        ExpoReviewsResponse reviewsInfo = expoService.getExpoReviews(expoId, page, size);
         return ResponseEntity.ok(reviewsInfo);
     }
 
@@ -124,14 +121,19 @@ public class ExpoController {
     }
 
     private Long getCurrentMemberIdOrNull(){
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+        try {
+            var auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+                return null;
+            }
+            Object principal = auth.getPrincipal();
+            if(principal instanceof CustomUserDetails user) {
+                return user.getMemberId();
+            }
+            return null;
+        } catch (Exception e) {
+            // 비회원이거나 인증 관련 예외 발생시 null 반환
             return null;
         }
-        Object principal = auth.getPrincipal();
-        if(principal instanceof CustomUserDetails user) {
-            return user.getMemberId();
-        }
-        return null;
     }
 }

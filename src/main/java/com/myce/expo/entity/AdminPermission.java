@@ -44,9 +44,6 @@ public class AdminPermission {
     @Column(name = "is_operations_config_update", nullable = false, columnDefinition = "TINYINT(1)")
     private Boolean isOperationsConfigUpdate;
 
-    @Column(name = "is_settlement_view", nullable = false, columnDefinition = "TINYINT(1)")
-    private Boolean isSettlementView;
-
     @Column(name = "is_inquiry_view", nullable = false, columnDefinition = "TINYINT(1)")
     private Boolean isInquiryView;
 
@@ -61,8 +58,7 @@ public class AdminPermission {
     @Builder
     public AdminPermission(AdminCode adminCode, Boolean isExpoDetailUpdate, Boolean isBoothInfoUpdate,
                            Boolean isScheduleUpdate, Boolean isReserverListView, Boolean isPaymentView,
-                           Boolean isEmailLogView, Boolean isOperationsConfigUpdate, Boolean isSettlementView,
-                           Boolean isInquiryView) {
+                           Boolean isEmailLogView, Boolean isOperationsConfigUpdate, Boolean isInquiryView) {
         adminCode.setAdminPermission(this);
         this.adminCode = adminCode;
         this.isExpoDetailUpdate = isExpoDetailUpdate;
@@ -72,14 +68,13 @@ public class AdminPermission {
         this.isPaymentView = isPaymentView;
         this.isEmailLogView = isEmailLogView;
         this.isOperationsConfigUpdate = isOperationsConfigUpdate;
-        this.isSettlementView = isSettlementView;
         this.isInquiryView = isInquiryView;
     }
 
     public void updateAdminPermission(Boolean isExpoDetailUpdate, Boolean isBoothInfoUpdate,
                                       Boolean isScheduleUpdate, Boolean isReserverListView,
                                       Boolean isPaymentView, Boolean isEmailLogView,
-                                      Boolean isOperationsConfigUpdate, Boolean isSettlementView,Boolean isInquiryView){
+                                      Boolean isOperationsConfigUpdate,Boolean isInquiryView){
         this.isExpoDetailUpdate = isExpoDetailUpdate;
         this.isBoothInfoUpdate = isBoothInfoUpdate;
         this.isScheduleUpdate = isScheduleUpdate;
@@ -87,7 +82,6 @@ public class AdminPermission {
         this.isPaymentView = isPaymentView;
         this.isEmailLogView = isEmailLogView;
         this.isOperationsConfigUpdate = isOperationsConfigUpdate;
-        this.isSettlementView = isSettlementView;
         this.isInquiryView = isInquiryView;
     }
 }

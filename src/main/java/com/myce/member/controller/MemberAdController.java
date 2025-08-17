@@ -2,6 +2,7 @@ package com.myce.member.controller;
 
 import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.auth.dto.CustomUserDetails;
+import com.myce.member.dto.ad.AdRefundReceiptResponse;
 import com.myce.member.dto.ad.AdRefundRequest;
 import com.myce.member.dto.ad.AdvertisementDetailResponse;
 import com.myce.member.dto.ad.AdvertisementPaymentDetailResponse;
@@ -110,5 +111,27 @@ public class MemberAdController {
         AdRejectInfoResponse rejectInfo = memberAdService.getAdvertisementRejectInfo(memberId, advertisementId);
         
         return ResponseEntity.ok(rejectInfo);
+    }
+    
+    @GetMapping("/{advertisementId}/refund-history")
+    public ResponseEntity<AdRefundReceiptResponse> getAdvertisementRefundHistory(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        AdRefundReceiptResponse refundHistory = memberAdService.getAdvertisementRefundHistory(memberId, advertisementId);
+        
+        return ResponseEntity.ok(refundHistory);
+    }
+    
+    @PostMapping("/{advertisementId}/payment/complete")
+    public ResponseEntity<Void> completeAdvertisementPayment(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long advertisementId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberAdService.completeAdvertisementPayment(memberId, advertisementId);
+        
+        return ResponseEntity.noContent().build();
     }
 }

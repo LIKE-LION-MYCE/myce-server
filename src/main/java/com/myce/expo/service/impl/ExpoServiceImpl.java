@@ -146,6 +146,7 @@ public class ExpoServiceImpl implements ExpoService {
     @Override
     public List<ExpoCardResponse> getExpoCardsFiltered(Long memberId,
         String categoryName,
+        String status,
         LocalDate from,
         LocalDate to,
         String keyword,
@@ -161,9 +162,20 @@ public class ExpoServiceImpl implements ExpoService {
         }
 
         String keyWord = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        
+        // status 파라미터 처리 - 기본값은 PUBLISHED
+        ExpoStatus expoStatus = ExpoStatus.PUBLISHED;
+        if (status != null && !status.isBlank()) {
+            try {
+                expoStatus = ExpoStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid status parameter: {}, using default PUBLISHED", status);
+                expoStatus = ExpoStatus.PUBLISHED;
+            }
+        }
 
         Page<Expo> exposPage = expoRepository.findPublishedExposFiltered(
-            ExpoStatus.PUBLISHED,
+            expoStatus,
             categoryId,
             keyWord,
             from,
@@ -200,7 +212,7 @@ public class ExpoServiceImpl implements ExpoService {
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
 
-        if (expo.getStatus() != ExpoStatus.PUBLISHED) {
+        if (expo.getStatus() == ExpoStatus.PENDING_APPROVAL || expo.getStatus() == ExpoStatus.PENDING_PAYMENT) {
             throw new CustomException(CustomErrorCode.EXPO_NOT_PUBLISHED);
         }
 
@@ -208,6 +220,7 @@ public class ExpoServiceImpl implements ExpoService {
         BusinessProfile businessProfile = businessProfileRepository
                 .findByTargetIdAndTargetType(expoId, TargetType.EXPO)
                 .orElse(null);
+        
 
         // 카테고리 목록 조회
         List<String> categories = expo.getExpoCategories().stream()
@@ -219,6 +232,19 @@ public class ExpoServiceImpl implements ExpoService {
         int currentReservationCount = tickets.stream()
                 .mapToInt(Ticket::getRemainingQuantity)
                 .sum();
+
+        // 주최자 상세 정보 빌드
+        ExpoBasicResponse.OrganizerInfo organizerInfo = null;
+        if (businessProfile != null) {
+            organizerInfo = ExpoBasicResponse.OrganizerInfo.builder()
+                    .companyName(businessProfile.getCompanyName())
+                    .ceoName(businessProfile.getCeoName())
+                    .contactPhone(businessProfile.getContactPhone())
+                    .contactEmail(businessProfile.getContactEmail())
+                    .address(businessProfile.getAddress())
+                    .businessRegistrationNumber(businessProfile.getBusinessRegistrationNumber())
+                    .build();
+        }
 
         return ExpoBasicResponse.builder()
                 .expoId(expo.getId())
@@ -238,6 +264,7 @@ public class ExpoServiceImpl implements ExpoService {
                 .currentReservationCount(currentReservationCount)
                 .organizerName(businessProfile != null ? businessProfile.getCeoName() : "정보 없음")
                 .organizerContact(businessProfile != null ? businessProfile.getContactPhone() : "정보 없음")
+                .organizerInfo(organizerInfo)
                 .categories(categories)
                 .build();
     }
@@ -250,22 +277,28 @@ public class ExpoServiceImpl implements ExpoService {
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
 
-        // TODO: 찜하기 기능 구현 후 실제 데이터로 변경
+        // 현재 사용자의 찜 상태 확인 (회원인 경우에만)
         boolean isBookmarked = false;
-        int bookmarkCount = 0;
+        if (memberId != null) {
+            try {
+                isBookmarked = favoriteRepository.existsByMember_IdAndExpo_Id(memberId, expoId);
+            } catch (Exception e) {
+                log.warn("찜 상태 조회 중 예외 발생 - 회원 ID: {}, 박람회 ID: {}, 에러: {}", memberId, expoId, e.getMessage());
+                isBookmarked = false;
+            }
+        }
 
         return ExpoBookmarkResponse.builder()
                 .expoId(expo.getId())
                 .expoTitle(expo.getTitle())
                 .isBookmarked(isBookmarked)
-                .bookmarkCount(bookmarkCount)
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ExpoReviewsResponse getExpoReviews(Long expoId, Long memberId, int page, int size) {
-        log.info("박람회 리뷰 정보 조회 - 박람회 ID: {}, 사용자 ID: {}, 페이지: {}", expoId, memberId, page);
+    public ExpoReviewsResponse getExpoReviews(Long expoId, int page, int size) {
+        log.info("박람회 리뷰 정보 조회 - 박람회 ID: {}, 페이지: {}", expoId, page);
 
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
@@ -298,7 +331,7 @@ public class ExpoServiceImpl implements ExpoService {
                         .content(review.getContent())
                         .rating(review.getRating())
                         .createdAt(review.getCreatedAt())
-                        .isMyReview(memberId != null && memberId.equals(review.getMember().getId()))
+                        .isMyReview(false)  // 조회 전용이므로 항상 false
                         .build())
                 .collect(Collectors.toList());
 

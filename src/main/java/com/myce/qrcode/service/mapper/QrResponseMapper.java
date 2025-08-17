@@ -17,15 +17,28 @@ public class QrResponseMapper {
     /**
      * QR 사용 응답 생성 (성공/실패 모두 처리)
      */
+    public QrUseResponse toUseResponse(QrCode qrCode, boolean wasSuccessfullyUsed) {
+
+        if (wasSuccessfullyUsed) {
+            // 성공적으로 사용 처리된 경우
+            Reserver reserver = qrCode.getReserver();
+            return QrUseResponse.success(SUCCESS_MESSAGE, reserver.getReservation().getTicket().getName());
+        } else {
+            // 사용 처리되지 않은 경우 (APPROVED, EXPIRED, USED 등)
+            QrCodeStatus status = qrCode.getStatus();
+            return QrUseResponse.fail(status.getMessage());
+        }
+    }
+
+    /**
+     * QR 사용 응답 생성 (기존 호환성 유지)
+     */
     public QrUseResponse toUseResponse(QrCode qrCode) {
-
         QrCodeStatus status = qrCode.getStatus();
-
         return switch (status) {
             case ACTIVE -> {
                 Reserver reserver = qrCode.getReserver();
                 yield QrUseResponse.success(SUCCESS_MESSAGE, reserver.getReservation().getTicket().getName());
-
             }
             case USED, EXPIRED, APPROVED -> QrUseResponse.fail(status.getMessage());
         };

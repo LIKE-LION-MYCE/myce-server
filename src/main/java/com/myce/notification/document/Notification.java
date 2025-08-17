@@ -1,5 +1,7 @@
 package com.myce.notification.document;
 
+import com.myce.notification.entity.type.NotificationType;
+import com.myce.notification.entity.type.NotificationTargetType;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -15,7 +17,9 @@ public class Notification {
     @Id
     private String notificationId;
     private Long memberId;
-    private Long expoId;
+    private NotificationType type;          // 알림 종류 (EXPO_REMINDER, QR_ISSUED 등)
+    private NotificationTargetType targetType;  // 클릭 시 이동할 페이지 타입
+    private Long targetId;                  // 이동할 페이지의 ID (expoId, reservationId 등)
     private String title;
     private String content;
     private LocalDateTime readAt;
@@ -23,10 +27,12 @@ public class Notification {
     private LocalDateTime createdAt;
 
     @Builder
-    public Notification(Long memberId, Long expoId, String title, String content,
-                        LocalDateTime readAt, Boolean isRead) {
+    public Notification(Long memberId, NotificationType type, NotificationTargetType targetType, 
+                        Long targetId, String title, String content, LocalDateTime readAt, Boolean isRead) {
         this.memberId = memberId;
-        this.expoId = expoId;
+        this.type = type;
+        this.targetType = targetType;
+        this.targetId = targetId;
         this.title = title;
         this.content = content;
         this.readAt = readAt;

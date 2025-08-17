@@ -40,7 +40,7 @@ public class AdScheduler implements TaskScheduler {
     }
 
     @Override
-    @Scheduled(cron = "${scheduler.days}")
+    @Scheduled(cron = "${scheduler.ad-publish}")
     public void run() {
         try{
             this.process();

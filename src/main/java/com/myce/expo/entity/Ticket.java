@@ -98,7 +98,22 @@ public class Ticket {
         this.useEndDate = useEndDate;
     }
 
+    /**
+     * 티켓 재고 복구 (환불로 인한 판매 취소 시 사용)
+     * 박람회 취소 시 판매된 티켓 수량만큼 재고를 복구합니다.
+     * 
+     * @param quantity 복구할 수량
+     */
+    public void restoreQuantity(Integer quantity) {
+        this.remainingQuantity += quantity;
+        // 안전장치: 총 수량을 초과하지 않도록 제한
+        if (this.remainingQuantity > this.totalQuantity) {
+            this.remainingQuantity = this.totalQuantity;
+        }
+    }
+
     public void updateRemainingQuantity(Integer quantity){
         this.remainingQuantity = quantity;
     }
+
 }

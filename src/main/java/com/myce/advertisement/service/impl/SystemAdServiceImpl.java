@@ -12,6 +12,7 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SystemAdServiceImpl implements SystemAdService {
@@ -74,11 +76,16 @@ public class SystemAdServiceImpl implements SystemAdService {
     // 스케줄러 작업 수행
     @Transactional
     public int publishPendingAds() {
+        LocalDate now = LocalDate.now();
+        log.info("@@@@@@@@@@@@@@@@ now date : {}", now.toString());
+        log.info("[publishPendingAds] find publishing pending ads. nowDate : {}", now);
+
         List<Advertisement> pendingAds = adRepository
                 .findAllByDisplayStartDateLessThanEqualAndStatus(
                         LocalDate.now(),
                         AdvertisementStatus.PENDING_PUBLISH);
 
+        log.info("@@@@@@ find ad: {}", pendingAds.size());
         for (Advertisement ad : pendingAds) {
             ad.publish();
         }

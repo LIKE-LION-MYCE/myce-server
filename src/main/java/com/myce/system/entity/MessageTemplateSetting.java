@@ -37,6 +37,9 @@ public class MessageTemplateSetting {
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "use_image", nullable = false, columnDefinition = "TINYINT(1)")
+    private boolean useImage;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
@@ -44,4 +47,10 @@ public class MessageTemplateSetting {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
+
+    public void updateTemplate(String name, String subject, String content) {
+        this.name = name;
+        this.subject = subject;
+        this.content = content;
+    }
 }

@@ -20,7 +20,7 @@ public interface ExpoService {
 
     ExpoBookmarkResponse getExpoBookmarkStatus(Long expoId, Long memberId);
 
-    ExpoReviewsResponse getExpoReviews(Long expoId, Long memberId, int page, int size);
+    ExpoReviewsResponse getExpoReviews(Long expoId, int page, int size);
 
     ExpoLocationResponse getExpoLocation(Long expoId);
 
@@ -28,6 +28,6 @@ public interface ExpoService {
 
     // 박람회 카드 리스트 조회
     List<ExpoCardResponse> getExpoCardsFiltered(
-            Long memberId, String categoryName, LocalDate from, LocalDate to, String keyword, Pageable pageable);
+            Long memberId, String categoryName, String status, LocalDate from, LocalDate to, String keyword, Pageable pageable);
 }
 

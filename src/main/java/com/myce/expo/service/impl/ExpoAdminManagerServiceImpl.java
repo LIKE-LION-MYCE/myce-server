@@ -3,13 +3,13 @@ package com.myce.expo.service.impl;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.common.permission.ExpoAdminAccessValidate;
+import com.myce.common.permission.ExpoAdminPermission;
 import com.myce.expo.dto.ExpoAdminManagerRequest;
 import com.myce.expo.dto.ExpoAdminManagerResponse;
 import com.myce.expo.entity.AdminCode;
 import com.myce.expo.entity.AdminPermission;
 import com.myce.expo.repository.AdminCodeRepository;
-import com.myce.expo.repository.AdminPermissionRepository;
-import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.service.ExpoAdminManagerService;
 import com.myce.expo.service.mapper.ExpoAdminMangerMapper;
 import lombok.RequiredArgsConstructor;
@@ -24,14 +24,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ExpoAdminManagerServiceImpl implements ExpoAdminManagerService {
 
+    private final ExpoAdminAccessValidate expoAdminAccessValidate;
     private final AdminCodeRepository adminCodeRepository;
-    private final AdminPermissionRepository adminPermissionRepository;
-    private final ExpoRepository expoRepository;
     private final ExpoAdminMangerMapper mapper;
 
     @Override
     public List<ExpoAdminManagerResponse> getMyExpoManagers(Long expoId, Long memberId, LoginType loginType) {
-        validateMyAccess(expoId, memberId, loginType);
+        expoAdminAccessValidate.ensureViewable(expoId, memberId, loginType, ExpoAdminPermission.OPERATIONS_CONFIG_UPDATE);
         List<AdminCode> adminCodes = adminCodeRepository.findAllWithAdminPermissionByExpoId(expoId);
 
         return adminCodes.stream()
@@ -47,7 +46,7 @@ public class ExpoAdminManagerServiceImpl implements ExpoAdminManagerService {
             LoginType loginType,
             List<ExpoAdminManagerRequest> dtos) {
 
-        validateMyAccess(expoId, memberId, loginType);
+        expoAdminAccessValidate.ensureEditable(expoId, memberId, loginType, ExpoAdminPermission.OPERATIONS_CONFIG_UPDATE);
 
         List<Long> ids = dtos.stream()
                 .map(ExpoAdminManagerRequest::getId)
@@ -65,7 +64,7 @@ public class ExpoAdminManagerServiceImpl implements ExpoAdminManagerService {
                 permission.updateAdminPermission(
                         dto.getIsExpoDetailUpdate(), dto.getIsBoothInfoUpdate(), dto.getIsScheduleUpdate(),
                         dto.getIsReserverListView(), dto.getIsPaymentView(), dto.getIsEmailLogView(),
-                        dto.getIsOperationsConfigUpdate(), dto.getIsSettlementView(), dto.getIsInquiryView()
+                        dto.getIsOperationsConfigUpdate(), dto.getIsInquiryView()
                 );
             }else{
                 throw new CustomException(CustomErrorCode.ADMIN_CODE_NOT_FOUND);
@@ -75,25 +74,5 @@ public class ExpoAdminManagerServiceImpl implements ExpoAdminManagerService {
         return adminCodes.stream()
                 .map(mapper::toDto)
                 .toList();
-    }
-
-    private void validateMyAccess(Long expoId, Long memberId, LoginType loginType) {
-        if(memberId == null || loginType == null){
-            throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
-        }
-
-        switch(loginType){
-            case MEMBER -> {
-                if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            case ADMIN_CODE -> {
-                if(!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoIdAndIsOperationsConfigUpdateTrue(memberId, expoId)){
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
-        }
     }
 }

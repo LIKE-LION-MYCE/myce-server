@@ -95,6 +95,11 @@ public class ExpoApplicationDetailResponse {
     private String thumbnailUrl;
     
     /**
+     * 카테고리
+     */
+    private String category;
+    
+    /**
      * 신청일시
      */
     private LocalDateTime createdAt;

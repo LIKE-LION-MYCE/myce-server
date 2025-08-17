@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -118,14 +119,15 @@ public class QrCodeServiceImpl implements QrCodeService {
         validateAdminPermission(adminMemberId, qr.getReserver(), loginType);
 
         // ACTIVE인 경우만 상태 변경
-        if (qr.getStatus() == QrCodeStatus.ACTIVE) {
+        boolean wasActive = qr.getStatus() == QrCodeStatus.ACTIVE;
+        if (wasActive) {
             qr.markAsUsed();
         }
-        log.info("QR 코드 사용 처리 완료 - QR ID: {}, 예약자 ID: {}", 
-                qr.getId(), qr.getReserver().getId());
+        log.info("QR 코드 사용 처리 완료 - QR ID: {}, 예약자 ID: {}, 사용처리됨: {}", 
+                qr.getId(), qr.getReserver().getId(), wasActive);
 
-        // 매퍼를 통해 성공 응답 생성
-        return qrResponseMapper.toUseResponse(qr);
+        // 매퍼를 통해 응답 생성 (사용 처리 성공/실패 구분)
+        return qrResponseMapper.toUseResponse(qr, wasActive);
     }
 
     @Override
@@ -212,12 +214,18 @@ public class QrCodeServiceImpl implements QrCodeService {
             // 티켓 정보를 통해 QR 코드 활성화/만료 시간 계산
             LocalDateTime activatedAt = calculateActivatedAt(reserver);
             LocalDateTime expiredAt = calculateExpiredAt(reserver);
+            
+            // 현재 시간이 티켓 사용 기간 내인지 확인하여 상태 결정
+            LocalDateTime now = LocalDateTime.now();
+            QrCodeStatus initialStatus = (now.isAfter(activatedAt) || now.isEqual(activatedAt)) && now.isBefore(expiredAt) 
+                    ? QrCodeStatus.ACTIVE 
+                    : QrCodeStatus.APPROVED;
 
             QrCode qr = QrCode.builder()
                     .reserver(reserver)
                     .qrToken(token)
                     .qrImageUrl(imageUrl)
-                    .status(QrCodeStatus.APPROVED)
+                    .status(initialStatus)
                     .activatedAt(activatedAt)
                     .expiredAt(expiredAt)
                     .build();
@@ -253,10 +261,10 @@ public class QrCodeServiceImpl implements QrCodeService {
         
         QrCode qrCode = qrCodeRepository.findByQrToken(token)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.QR_NOT_FOUND));
-        
+
         // 관리자 권한 검증
         validateAdminPermission(adminMemberId, qrCode.getReserver(), loginType);
-        
+
         // 매퍼를 통해 응답 생성 (상태만 체크)
         QrVerifyResponse response = qrResponseMapper.toVerifyResponse(qrCode);
         
@@ -266,7 +274,7 @@ public class QrCodeServiceImpl implements QrCodeService {
     }
 
     /**
-     * QR 발급/재발급 시 SSE 알림 전송
+     * QR 발급/재발급 시 알림 전송 (NotificationService에 위임)
      */
     private void sendQrIssuedNotification(Reserver reserver, boolean isReissue) {
         try {
@@ -274,40 +282,123 @@ public class QrCodeServiceImpl implements QrCodeService {
             
             // MEMBER 타입인 경우에만 알림 전송
             if (reservation.getUserType() != UserType.MEMBER) {
-                log.debug("SSE 알림 건너뜀 - 회원이 아닌 예약자 (UserType: {}, 예약자 ID: {})", 
+                log.debug("알림 건너뜀 - 회원이 아닌 예약자 (UserType: {}, 예약자 ID: {})", 
                         reservation.getUserType(), reserver.getId());
                 return;
             }
             
             Long memberId = reservation.getUserId();
-            Long expoId = reservation.getExpo().getId();
             String expoTitle = reservation.getExpo().getTitle();
             
-            String message = String.format(
-                "{\"type\":\"%s\",\"expoTitle\":\"%s\",\"message\":\"%s\"}",
-                isReissue ? "QR_REISSUED" : "QR_ISSUED",
-                expoTitle,
-                isReissue ? "QR코드가 재발급되었습니다." : "QR코드가 발급되었습니다. 박람회 입장 시 사용하세요!"
-            );
+            // NotificationService에서 MongoDB 저장 + SSE 전송 통합 처리
+            notificationService.sendQrIssuedNotification(memberId, reservation.getId(), expoTitle, isReissue);
             
-            // 1. SSE 실시간 알림 전송
-            notifyMemberViaSseEmitters(memberId, message);
-            
-            // 2. MongoDB에 알림 저장
-            notificationService.saveQrIssuedNotification(memberId, expoId, expoTitle, isReissue);
-            
-            log.info("QR {} 알림 전송 및 저장 완료 - 예약자 ID: {}, 회원 ID: {}", 
+            log.info("QR {} 알림 처리 완료 - 예약자 ID: {}, 회원 ID: {}", 
                     isReissue ? "재발급" : "발급", reserver.getId(), memberId);
         } catch (Exception e) {
-            log.error("QR 발급 알림 전송 실패 - 예약자 ID: {}, 오류: {}", 
+            log.error("QR 발급 알림 처리 실패 - 예약자 ID: {}, 오류: {}", 
                     reserver.getId(), e.getMessage(), e);
-            // 알림 실패가 주 기능에 영향을 주지 않도록 예외를 던지지 않음
         }
     }
+
+    @Override
+    @Transactional
+    public void issueQrForReservation(Long reservationId) {
+        log.info("예매 완료 시 QR 코드 즉시 생성 시작 - 예약 ID: {}", reservationId);
+        
+        // 해당 예약의 모든 예약자 조회
+        List<Reserver> reservers = reserverRepository.findByReservationId(reservationId);
+        
+        if (reservers.isEmpty()) {
+            log.warn("예약자를 찾을 수 없습니다 - 예약 ID: {}", reservationId);
+            return;
+        }
+        
+        Reservation reservation = reservers.get(0).getReservation();
+        Expo expo = reservation.getExpo();
+        LocalDate today = LocalDate.now();
+        LocalDate expoStartDate = expo.getStartDate();
+        LocalDate twoDaysBefore = expoStartDate.minusDays(2);
+        
+        // 박람회 시작 2일 전부터 즉시 QR 생성 (스케줄러 백업)
+        if (today.isAfter(twoDaysBefore) || today.isEqual(twoDaysBefore)) {
+            log.info("박람회 시작 2일 전 이후 예매 감지 - 즉시 QR 생성. 박람회: {}, 시작일: {}, 오늘: {}", 
+                    expo.getTitle(), expoStartDate, today);
+            
+            int successCount = 0;
+            int failCount = 0;
+            
+            for (Reserver reserver : reservers) {
+                try {
+                    // 기존 QR이 있는지 확인
+                    if (qrCodeRepository.findByReserver(reserver).isPresent()) {
+                        log.debug("이미 QR 코드가 존재함 - 예약자 ID: {}", reserver.getId());
+                        continue;
+                    }
+                    
+                    // 날짜에 따라 적절한 상태로 QR 코드 생성
+                    createQrCodeWithAppropriateStatus(reserver);
+                    log.debug("즉시 QR 코드 생성 완료 - 예약자 ID: {}", reserver.getId());
+                    
+                    // 알림 전송
+                    sendQrIssuedNotification(reserver, false);
+                    successCount++;
+                } catch (Exception e) {
+                    log.error("즉시 QR 코드 생성 실패 - 예약자 ID: {}, 오류: {}", 
+                            reserver.getId(), e.getMessage(), e);
+                    failCount++;
+                }
+            }
+            
+            log.info("예매 완료 시 QR 코드 즉시 생성 완료 - 예약 ID: {}, 성공: {} 명, 실패: {} 명", 
+                    reservationId, successCount, failCount);
+        } else {
+            log.info("박람회 시작까지 2일 이상 남음 - 스케줄러에서 생성 예정. 박람회: {}, 시작일: {}, 오늘: {}", 
+                    expo.getTitle(), expoStartDate, today);
+        }
+    }
+    
     /**
-     * 특정 회원에게 SSE 알림 전송
+     * 현재 날짜에 따라 적절한 상태로 QR 코드 생성
      */
-    private void notifyMemberViaSseEmitters(Long memberId, String content) {
-        sseService.notifyMemberViaSseEmitters(memberId, content);
+    private void createQrCodeWithAppropriateStatus(Reserver reserver) {
+        try {
+            String token = UUID.randomUUID().toString();
+            
+            // QR 이미지 생성
+            BitMatrix matrix = new MultiFormatWriter()
+                    .encode(token, BarcodeFormat.QR_CODE, 300, 300);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(matrix, "PNG", out);
+            byte[] image = out.toByteArray();
+            
+            String imageUrl = uploadToStorage(image, token);
+            
+            // 티켓 정보를 통해 QR 코드 활성화/만료 시간 계산
+            LocalDateTime activatedAt = calculateActivatedAt(reserver);
+            LocalDateTime expiredAt = calculateExpiredAt(reserver);
+            
+            // 현재 시간이 티켓 사용 기간 내인지 확인하여 상태 결정
+            LocalDateTime now = LocalDateTime.now();
+            QrCodeStatus status = (now.isAfter(activatedAt) || now.isEqual(activatedAt)) && now.isBefore(expiredAt) 
+                    ? QrCodeStatus.ACTIVE 
+                    : QrCodeStatus.APPROVED;
+            
+            QrCode qr = QrCode.builder()
+                    .reserver(reserver)
+                    .qrToken(token)
+                    .qrImageUrl(imageUrl)
+                    .status(status)
+                    .activatedAt(activatedAt)
+                    .expiredAt(expiredAt)
+                    .build();
+            
+            qrCodeRepository.save(qr);
+            
+            log.info("날짜 기반 QR 코드 생성 완료 - 예약자 ID: {}, 상태: {}", reserver.getId(), status);
+        } catch (Exception e) {
+            log.error("날짜 기반 QR 코드 생성 실패 - 예약자 ID: {}, 오류: {}", reserver.getId(), e.getMessage(), e);
+            throw new CustomException(CustomErrorCode.QR_GENERATION_FAILED);
+        }
     }
 }

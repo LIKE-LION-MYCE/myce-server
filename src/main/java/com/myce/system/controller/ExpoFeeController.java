@@ -2,6 +2,7 @@ package com.myce.system.controller;
 
 import com.myce.system.dto.fee.ExpoFeeListResponse;
 import com.myce.system.dto.fee.ExpoFeeRequest;
+import com.myce.system.dto.fee.ExpoFeeResponse;
 import com.myce.system.dto.fee.FeeActiveRequest;
 import com.myce.system.service.fee.ExpoFeeService;
 import jakarta.validation.Valid;
@@ -41,5 +42,11 @@ public class ExpoFeeController {
     public ResponseEntity<Void> updateActivation(@PathVariable Long id, @RequestBody FeeActiveRequest request) {
         expoFeeService.updateExpoFeeActivation(id, request);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<ExpoFeeResponse> getActiveExpoFee() {
+        ExpoFeeResponse response = expoFeeService.getActiveExpoFee();
+        return ResponseEntity.ok(response);
     }
 }

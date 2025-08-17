@@ -92,10 +92,10 @@ public class Advertisement {
         }
         this.status = AdvertisementStatus.PENDING_PAYMENT;
     }
-    
+
     public void cancel() {
         if (this.status != AdvertisementStatus.PUBLISHED &&
-            this.status != AdvertisementStatus.PENDING_CANCEL) {
+                this.status != AdvertisementStatus.PENDING_CANCEL) {
             throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
         }
         this.status = AdvertisementStatus.CANCELLED;
@@ -111,6 +111,13 @@ public class Advertisement {
 
     public void publish() {
         if (this.status != AdvertisementStatus.PENDING_PUBLISH) {
+            throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
+        }
+        this.status = AdvertisementStatus.PUBLISHED;
+    }
+
+    public void denyCancel() {
+        if (this.status != AdvertisementStatus.PENDING_CANCEL) {
             throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
         }
         this.status = AdvertisementStatus.PUBLISHED;

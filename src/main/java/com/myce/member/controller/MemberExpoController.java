@@ -9,6 +9,9 @@ import com.myce.member.dto.expo.ExpoSettlementRequest;
 import com.myce.member.dto.expo.MemberExpoDetailResponse;
 import com.myce.member.dto.expo.MemberExpoResponse;
 import com.myce.member.service.MemberExpoService;
+import com.myce.refund.dto.RefundRequestDto;
+import com.myce.refund.service.RefundRequestService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +27,7 @@ import java.util.List;
 public class MemberExpoController {
     
     private final MemberExpoService memberExpoService;
+    private final RefundRequestService refundRequestService;
 
     @GetMapping
     public ResponseEntity<Page<MemberExpoResponse>> getMemberExpos(
@@ -96,10 +100,25 @@ public class MemberExpoController {
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long expoId) {
         
+        System.out.println("===== MemberExpoController.getExpoRefundReceipt 호출 - expoId: " + expoId + " =====");
+        
         Long memberId = customUserDetails.getMemberId();
         ExpoRefundReceiptResponse refundReceipt = memberExpoService.getExpoRefundReceipt(memberId, expoId);
         
+        System.out.println("===== 응답 refundAmount: " + refundReceipt.getRefundAmount() + " =====");
+        
         return ResponseEntity.ok(refundReceipt);
+    }
+    
+    @GetMapping("/{expoId}/refund-history")
+    public ResponseEntity<ExpoRefundReceiptResponse> getExpoRefundHistory(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        ExpoRefundReceiptResponse refundHistory = memberExpoService.getExpoRefundHistory(memberId, expoId);
+        
+        return ResponseEntity.ok(refundHistory);
     }
     
     @PostMapping("/{expoId}/settlement")
@@ -110,6 +129,29 @@ public class MemberExpoController {
         
         Long memberId = customUserDetails.getMemberId();
         memberExpoService.requestExpoSettlement(memberId, expoId, request);
+        
+        return ResponseEntity.ok().build();
+    }
+    
+    @PostMapping("/{expoId}/payment-complete")
+    public ResponseEntity<Void> completeExpoPayment(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId) {
+        
+        Long memberId = customUserDetails.getMemberId();
+        memberExpoService.completeExpoPayment(memberId, expoId);
+        
+        return ResponseEntity.ok().build();
+    }
+    
+    @PostMapping("/{expoId}/refund-request")
+    public ResponseEntity<Void> requestExpoRefund(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long expoId,
+            @Valid @RequestBody RefundRequestDto requestDto) {
+
+        Long memberId = customUserDetails.getMemberId();
+        refundRequestService.createRefundRequest(memberId, expoId, requestDto);
         
         return ResponseEntity.ok().build();
     }

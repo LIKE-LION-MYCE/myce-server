@@ -31,6 +31,13 @@ public class ExpoSettlementReceiptResponse {
     private Integer commissionAmount;       // 수수료 금액
     private Integer netProfit;              // 순수익 (총매출 - 수수료)
     
+    // 정산 완료 정보 (COMPLETED 상태일 때만)
+    private String receiverName;            // 정산 계좌 예금주 (settlement.receiver_name)
+    private String bankName;                // 은행명 (settlement.bank_name)
+    private String bankAccount;             // 계좌번호 (settlement.bank_account)
+    private String settlementAt;            // 정산 승인 시점 (settlement.settlement_at)
+    private String adminName;               // 정산 처리 담당자 이름 (member.name via settlement.admin_member_id)
+    
     // 영수증 정보
     private LocalDate issueDate;            // 영수증 발행일 (오늘)
     

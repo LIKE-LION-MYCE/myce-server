@@ -3,10 +3,24 @@ package com.myce.schedule.jobs;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
+import com.myce.notification.document.Notification;
+import com.myce.notification.entity.type.NotificationType;
+import com.myce.notification.entity.type.NotificationTargetType;
+import com.myce.notification.repository.NotificationRepository;
+import com.myce.notification.service.NotificationService;
 import com.myce.notification.service.SseService;
 import com.myce.qrcode.service.QrCodeService;
+import com.myce.reservation.entity.Reservation;
+import com.myce.reservation.entity.code.UserType;
 import com.myce.reservation.entity.Reserver;
+import com.myce.reservation.repository.ReservationRepository;
 import com.myce.reservation.repository.ReserverRepository;
+import com.myce.system.entity.MessageTemplateSetting;
+import com.myce.system.entity.type.ChannelType;
+import com.myce.system.entity.type.MessageTemplateCode;
+import com.myce.system.repository.MessageTemplateSettingRepository;
+import com.myce.common.exception.CustomErrorCode;
+import com.myce.common.exception.CustomException;
 import com.myce.schedule.TaskScheduler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -26,9 +41,9 @@ import java.util.List;
 public class ExpoQrGenerateScheduler implements TaskScheduler {
 
     private final ExpoRepository expoRepository;
+    private final ReservationRepository reservationRepository;
     private final ReserverRepository reserverRepository;
     private final QrCodeService qrCodeService;
-    private final SseService sseService;
 
     @Value("${scheduler.expo-qr-generate:0 0 0 * * *}")
     private String cronExpression;
@@ -39,7 +54,6 @@ public class ExpoQrGenerateScheduler implements TaskScheduler {
     }
 
     @Override
-    @Transactional
     @Scheduled(cron = "${scheduler.expo-qr-generate:0 0 0 * * *}")
     public void run() {
         try {
@@ -49,7 +63,6 @@ public class ExpoQrGenerateScheduler implements TaskScheduler {
         }
     }
 
-    @Transactional
     public void process() {
         log.info("박람회 QR코드 일괄 생성 프로세스 시작");
         

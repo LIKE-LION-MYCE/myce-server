@@ -14,7 +14,9 @@ import com.myce.common.dto.PageResponse;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.expo.entity.AdminCode;
+import com.myce.expo.entity.Expo;
 import com.myce.expo.repository.AdminCodeRepository;
+import com.myce.expo.repository.ExpoRepository;
 import com.myce.member.entity.Member;
 import com.myce.member.entity.type.Role;
 import com.myce.member.repository.MemberRepository;
@@ -48,6 +50,7 @@ public class ExpoChatServiceImpl implements ExpoChatService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final AdminCodeRepository adminCodeRepository;
+    private final ExpoRepository expoRepository;
     private final MemberRepository memberRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -126,6 +129,10 @@ public class ExpoChatServiceImpl implements ExpoChatService {
             // readStatusJson 업데이트
             String currentReadStatus = chatRoom.getReadStatusJson();
             String updatedReadStatus = updateReadStatusForAdmin(currentReadStatus, latestMessageId);
+            
+            log.info("EXPO 관리자 읽음 처리 - roomCode: {}, latestMessageId: {}, 이전 readStatus: {}, 업데이트된 readStatus: {}", 
+                roomCode, latestMessageId, currentReadStatus, updatedReadStatus);
+            
             chatRoom.updateReadStatus(updatedReadStatus);
         }
         
@@ -255,10 +262,15 @@ public class ExpoChatServiceImpl implements ExpoChatService {
             // 채팅 권한 확인
             if (adminCode.getAdminPermission() != null && 
                 !adminCode.getAdminPermission().getIsInquiryView()) {
-                log.error("문의 보기 권한 없음 - isInquiryView: {}", 
-                        adminCode.getAdminPermission().getIsInquiryView());
+                log.error("🚫 문의 보기 권한 없음 - adminCode: {}, adminPermission exists: {}, isInquiryView: {}", 
+                        adminCode.getCode(), true, adminCode.getAdminPermission().getIsInquiryView());
                 throw new AccessDeniedException("문의 보기 권한이 없습니다");
             }
+            
+            log.info("✅ Expo 채팅 권한 검증 완료 - adminCode: {}, permission null: {}, isInquiryView: {}", 
+                    adminCode.getCode(), 
+                    adminCode.getAdminPermission() == null,
+                    adminCode.getAdminPermission() != null ? adminCode.getAdminPermission().getIsInquiryView() : "N/A");
             
             
         } else if ("MEMBER".equals(loginType)) {
@@ -331,20 +343,24 @@ public class ExpoChatServiceImpl implements ExpoChatService {
             if ("ADMIN".equals(message.getSenderType())) {
                 // 관리자가 보낸 메시지 -> 사용자가 읽었는지 확인
                 String userLastReadId = extractLastReadMessageId(readStatusJson, "USER");
-                if (userLastReadId == null || message.getId().compareTo(userLastReadId) > 0) {
-                    return 1; // 사용자가 안 읽음
-                }
+                boolean isRead = userLastReadId != null && message.getId().compareTo(userLastReadId) <= 0;
+                
+                log.debug("EXPO 관리자 메시지 읽음 상태 계산 - messageId: {}, userLastReadId: {}, isRead: {}", 
+                    message.getId(), userLastReadId, isRead);
+                
+                return isRead ? 0 : 1;
             } else {
                 // 사용자가 보낸 메시지 -> 관리자가 읽었는지 확인
                 String adminLastReadId = extractLastReadMessageId(readStatusJson, "ADMIN");
-                if (adminLastReadId == null || message.getId().compareTo(adminLastReadId) > 0) {
-                    return 1; // 관리자가 안 읽음
-                }
+                boolean isRead = adminLastReadId != null && message.getId().compareTo(adminLastReadId) <= 0;
+                
+                log.warn("🔍 EXPO 사용자 메시지 읽음 상태 계산 - messageId: {}, adminLastReadId: {}, isRead: {}, readStatusJson: '{}', roomCode: {}", 
+                    message.getId(), adminLastReadId, isRead, readStatusJson, message.getRoomCode());
+                
+                return isRead ? 0 : 1;
             }
-            
-            return 0; // 읽음
         } catch (Exception e) {
-            log.warn("메시지 읽음 상태 계산 실패 - messageId: {}", message.getId());
+            log.warn("메시지 읽음 상태 계산 실패 - messageId: {}", message.getId(), e);
             return 1; // 에러시 안읽음으로 표시
         }
     }
@@ -511,5 +527,74 @@ public class ExpoChatServiceImpl implements ExpoChatService {
         } else {
             return "박람회 관리자 (" + adminCode + ")";
         }
+    }
+    
+    @Override
+    @Transactional
+    public Map<String, Object> getOrCreateExpoChatRoom(Long expoId, CustomUserDetails userDetails) {
+        log.info("🔵 박람회 채팅방 생성/조회 요청 - expoId: {}, userId: {}", expoId, userDetails.getMemberId());
+        
+        Long userId = userDetails.getMemberId();
+        
+        // 1. 박람회 존재 확인
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+        
+        // 2. 사용자 정보 확인
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+        
+        // 3. 채팅방 코드 생성 (admin-{expoId}-{userId})
+        String roomCode = ADMIN_ROOM_PREFIX + expoId + ROOM_DELIMITER + userId;
+        
+        // 4. 기존 채팅방 조회
+        ChatRoom existingRoom = chatRoomRepository.findByRoomCode(roomCode).orElse(null);
+        
+        if (existingRoom != null) {
+            log.info("✅ 기존 채팅방 조회 성공 - roomCode: {}", roomCode);
+            
+            // 기존 채팅방 재활성화 (필요한 경우)
+            if (!existingRoom.getIsActive()) {
+                existingRoom.reactivate();
+                chatRoomRepository.save(existingRoom);
+                log.info("🔄 비활성 채팅방 재활성화 - roomCode: {}", roomCode);
+            }
+            
+            return createChatRoomResponse(existingRoom);
+        }
+        
+        // 5. 새 채팅방 생성
+        ChatRoom newRoom = ChatRoom.builder()
+                .roomCode(roomCode)
+                .memberId(userId)
+                .memberName(member.getName())
+                .expoId(expoId)
+                .expoTitle(expo.getTitle())
+                .build();
+        
+        ChatRoom savedRoom = chatRoomRepository.save(newRoom);
+        log.info("✨ 새 박람회 채팅방 생성 완료 - roomCode: {}, expoTitle: {}", roomCode, expo.getTitle());
+        
+        // 6. AI 환영 메시지 생성 (선택사항 - 필요시 구현)
+        // createWelcomeMessage(savedRoom, expo, member);
+        
+        return createChatRoomResponse(savedRoom);
+    }
+    
+    /**
+     * 채팅방 응답 객체 생성
+     */
+    private Map<String, Object> createChatRoomResponse(ChatRoom chatRoom) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("roomCode", chatRoom.getRoomCode());
+        response.put("expoId", chatRoom.getExpoId());
+        response.put("expoTitle", chatRoom.getExpoTitle());
+        response.put("memberName", chatRoom.getMemberName());
+        response.put("isActive", chatRoom.getIsActive());
+        response.put("currentState", chatRoom.getCurrentState().name());
+        response.put("lastMessageAt", chatRoom.getLastMessageAt());
+        response.put("createdAt", chatRoom.getCreatedAt());
+        
+        return response;
     }
 }

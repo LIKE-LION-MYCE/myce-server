@@ -11,6 +11,7 @@ public class ExpoAdminPaymentMapper {
 
     public ExpoAdminPaymentResponse toDto(ExpoAdminPaymentBasicResponse response) {
         return ExpoAdminPaymentResponse.builder()
+                .reservationId(response.getReservationId())
                 .reservationCode(response.getReservationCode())
                 .name(response.getName())
                 .userType(response.getUserType().getLabel())

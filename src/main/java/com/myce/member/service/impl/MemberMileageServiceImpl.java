@@ -21,7 +21,28 @@ public class MemberMileageServiceImpl implements MemberMileageService {
     Member member = memberRepository.findById(memberId)
         .orElseThrow(()-> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
 
-    member.updateMileage(member.getMileage() - request.getUsedMileage() + request.getSavedMileage());
+    Integer usedMileage = request.getUsedMileage() != null ? request.getUsedMileage() : 0;
+    Integer savedMileage = request.getSavedMileage() != null ? request.getSavedMileage() : 0;
+    member.updateMileage(member.getMileage() - usedMileage + savedMileage);
+  }
+
+  @Transactional
+  @Override
+  public void revertMileageForReservationRefund(Long memberId, MileageUpdateRequest request) {
+    Member member = memberRepository.findById(memberId)
+        .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+
+    Integer currentMileage = member.getMileage();
+    Integer usedMileage = request.getUsedMileage() != null ? request.getUsedMileage() : 0;
+    Integer savedMileage = request.getSavedMileage() != null ? request.getSavedMileage() : 0;
+    Integer newMileage = currentMileage + usedMileage - savedMileage;
+
+    // 음수 방지
+    if (newMileage < 0) {
+      newMileage = 0;
+    }
+
+    member.updateMileage(newMileage);
   }
 
 }
