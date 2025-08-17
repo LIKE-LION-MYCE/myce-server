@@ -65,7 +65,7 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
         Advertisement ad = adRepository.findById(adId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
         AdFeeSetting feeSetting = adFeeSettingRepository
-                .findByAdPositionId(ad.getAdPosition().getId())
+                .findByAdPositionIdAndIsActiveTrue(ad.getAdPosition().getId())
                 .orElseThrow(() -> new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND));
 
         AdPaymentInfo paymentInfo = AdPaymentInfo.builder()
