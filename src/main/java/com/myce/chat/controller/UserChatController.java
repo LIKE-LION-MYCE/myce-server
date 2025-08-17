@@ -32,4 +32,21 @@ public class UserChatController {
         
         return ResponseEntity.ok(result);
     }
+    
+    /**
+     * 박람회 채팅방 생성 또는 조회
+     * 유저가 박람회 상세 페이지에서 1:1 채팅을 시작할 때 사용
+     */
+    @PostMapping("/expo/{expoId}/room")
+    public ResponseEntity<Map<String, Object>> getOrCreateExpoChatRoom(
+            @PathVariable Long expoId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        log.info("🟡 UserChatController.getOrCreateExpoChatRoom called - expoId: {}, userId: {}", 
+                expoId, userDetails.getMemberId());
+        
+        Map<String, Object> chatRoom = chatService.getOrCreateExpoChatRoom(expoId, userDetails);
+        
+        return ResponseEntity.ok(chatRoom);
+    }
 }

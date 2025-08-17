@@ -14,7 +14,9 @@ import com.myce.common.dto.PageResponse;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.expo.entity.AdminCode;
+import com.myce.expo.entity.Expo;
 import com.myce.expo.repository.AdminCodeRepository;
+import com.myce.expo.repository.ExpoRepository;
 import com.myce.member.entity.Member;
 import com.myce.member.entity.type.Role;
 import com.myce.member.repository.MemberRepository;
@@ -48,6 +50,7 @@ public class ExpoChatServiceImpl implements ExpoChatService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final AdminCodeRepository adminCodeRepository;
+    private final ExpoRepository expoRepository;
     private final MemberRepository memberRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -524,5 +527,74 @@ public class ExpoChatServiceImpl implements ExpoChatService {
         } else {
             return "박람회 관리자 (" + adminCode + ")";
         }
+    }
+    
+    @Override
+    @Transactional
+    public Map<String, Object> getOrCreateExpoChatRoom(Long expoId, CustomUserDetails userDetails) {
+        log.info("🔵 박람회 채팅방 생성/조회 요청 - expoId: {}, userId: {}", expoId, userDetails.getMemberId());
+        
+        Long userId = userDetails.getMemberId();
+        
+        // 1. 박람회 존재 확인
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+        
+        // 2. 사용자 정보 확인
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+        
+        // 3. 채팅방 코드 생성 (admin-{expoId}-{userId})
+        String roomCode = ADMIN_ROOM_PREFIX + expoId + ROOM_DELIMITER + userId;
+        
+        // 4. 기존 채팅방 조회
+        ChatRoom existingRoom = chatRoomRepository.findByRoomCode(roomCode).orElse(null);
+        
+        if (existingRoom != null) {
+            log.info("✅ 기존 채팅방 조회 성공 - roomCode: {}", roomCode);
+            
+            // 기존 채팅방 재활성화 (필요한 경우)
+            if (!existingRoom.getIsActive()) {
+                existingRoom.reactivate();
+                chatRoomRepository.save(existingRoom);
+                log.info("🔄 비활성 채팅방 재활성화 - roomCode: {}", roomCode);
+            }
+            
+            return createChatRoomResponse(existingRoom);
+        }
+        
+        // 5. 새 채팅방 생성
+        ChatRoom newRoom = ChatRoom.builder()
+                .roomCode(roomCode)
+                .memberId(userId)
+                .memberName(member.getName())
+                .expoId(expoId)
+                .expoTitle(expo.getTitle())
+                .build();
+        
+        ChatRoom savedRoom = chatRoomRepository.save(newRoom);
+        log.info("✨ 새 박람회 채팅방 생성 완료 - roomCode: {}, expoTitle: {}", roomCode, expo.getTitle());
+        
+        // 6. AI 환영 메시지 생성 (선택사항 - 필요시 구현)
+        // createWelcomeMessage(savedRoom, expo, member);
+        
+        return createChatRoomResponse(savedRoom);
+    }
+    
+    /**
+     * 채팅방 응답 객체 생성
+     */
+    private Map<String, Object> createChatRoomResponse(ChatRoom chatRoom) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("roomCode", chatRoom.getRoomCode());
+        response.put("expoId", chatRoom.getExpoId());
+        response.put("expoTitle", chatRoom.getExpoTitle());
+        response.put("memberName", chatRoom.getMemberName());
+        response.put("isActive", chatRoom.getIsActive());
+        response.put("currentState", chatRoom.getCurrentState().name());
+        response.put("lastMessageAt", chatRoom.getLastMessageAt());
+        response.put("createdAt", chatRoom.getCreatedAt());
+        
+        return response;
     }
 }

@@ -194,15 +194,27 @@ public class PlatformExpoQueryServiceImpl implements PlatformExpoQueryService {
         
         // 5. 개별 예약자 정보 조회
         List<Reservation> reservations = reservationRepository.findByExpoId(expoId);
-        List<Reservation> confirmedReservations = reservations.stream()
-                .filter(reservation -> reservation.getStatus() == ReservationStatus.CONFIRMED)
-                .toList();
+        
+        // 박람회 상태에 따라 다른 예약 필터링 적용
+        List<Reservation> targetReservations;
+        if (expo.getStatus() == ExpoStatus.CANCELLED) {
+            // 취소 완료된 박람회: 환불된 예약들(CANCELLED)도 포함하여 표시
+            targetReservations = reservations.stream()
+                    .filter(reservation -> reservation.getStatus() == ReservationStatus.CONFIRMED 
+                                        || reservation.getStatus() == ReservationStatus.CANCELLED)
+                    .toList();
+        } else {
+            // 취소 대기 상태: 확정된 예약만 표시
+            targetReservations = reservations.stream()
+                    .filter(reservation -> reservation.getStatus() == ReservationStatus.CONFIRMED)
+                    .toList();
+        }
         
         // 6. 개별 예약자 환불 정보 생성
         List<ExpoCancelDetailResponse.IndividualReservationRefund> reservationRefunds = new ArrayList<>();
         Integer totalReservationAmount = 0;
         
-        for (Reservation reservation : confirmedReservations) {
+        for (Reservation reservation : targetReservations) {
             // 예약 결제 정보 조회
             ReservationPaymentInfo reservationPaymentInfo = reservationPaymentInfoRepository
                     .findByReservationId(reservation.getId())
@@ -246,13 +258,13 @@ public class PlatformExpoQueryServiceImpl implements PlatformExpoQueryService {
                 .usedDays(expoRefund.getIsPartial() ? calculateUsedDays(expo) : 0)
                 .refundAmount(expoRefund.getAmount())
                 .totalUsageFee(expoPaymentInfo.getDailyUsageFee() * expoPaymentInfo.getTotalDay())
-                .totalReservations(confirmedReservations.size())
+                .totalReservations(targetReservations.size())
                 .totalReservationAmount(totalReservationAmount)
                 .reservationRefunds(reservationRefunds)
                 .build();
         
         log.info("박람회 취소 상세 정보 조회 완료 - expoId: {}, 예약자 수: {}, 총 예약자 환불액: {}", 
-                expoId, confirmedReservations.size(), totalReservationAmount);
+                expoId, targetReservations.size(), totalReservationAmount);
         
         return response;
     }
