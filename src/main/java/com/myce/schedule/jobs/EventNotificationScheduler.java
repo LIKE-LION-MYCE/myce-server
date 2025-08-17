@@ -5,9 +5,12 @@ import com.myce.common.exception.CustomException;
 import com.myce.expo.entity.Event;
 import com.myce.expo.repository.EventRepository;
 import com.myce.notification.document.Notification;
+import com.myce.notification.entity.type.NotificationType;
+import com.myce.notification.entity.type.NotificationTargetType;
 import com.myce.notification.repository.NotificationRepository;
 import com.myce.notification.service.SseService;
 import com.myce.reservation.entity.Reservation;
+import com.myce.reservation.entity.code.UserType;
 import com.myce.reservation.repository.ReservationRepository;
 import com.myce.schedule.TaskScheduler;
 import com.myce.system.entity.MessageTemplateSetting;
@@ -43,37 +46,37 @@ public class EventNotificationScheduler implements TaskScheduler {
 
     @PostConstruct
     public void init() {
-        log.info("[Scheduler] 이벤트 시작 1시간 전 알림 스케줄러 초기화, cron: {}", cronExpression);
+        log.info("[Scheduler] 이벤트 당일 알림 스케줄러 초기화, cron: {}", cronExpression);
     }
 
     @Override
     @Scheduled(cron = "${scheduler.event-notification}")
     @Transactional
     public void run() {
-        log.info("[Scheduler] 이벤트 시작 1시간 전 알림 스케줄러 실행");
+        log.info("[Scheduler] 이벤트 당일 알림 스케줄러 실행");
         try {
             process();
         } catch (Exception e) {
-            log.error("[Scheduler] 이벤트 시작 1시간 전 알림 스케줄러 실행 중 오류 발생", e);
+            log.error("[Scheduler] 이벤트 당일 알림 스케줄러 실행 중 오류 발생", e);
         }
     }
 
     @Override
     @Transactional
     public void process() {
-        // 한 시간 내 임박한 행사 가져오기
-        // 예시: now는 14:00:00이고 oneHourLater는 15:00:00, startTime이 14:00:01부터 14:59:59 사이인 모든 행사
+        // 오늘 하루 종일 진행되는 이벤트 가져오기 (오전 9시에 실행되어 당일 이벤트 알림)
         LocalDate today = LocalDate.now();
-        LocalTime now = LocalTime.now();
-        LocalTime oneHourLater = now.plusHours(1);
+        LocalTime dayStart = LocalTime.of(0, 0);
+        LocalTime dayEnd = LocalTime.of(23, 59, 59);
 
-        List<Event> eventsStartingSoon = eventRepository.findByEventDateAndStartTimeBetween(today, now, oneHourLater);
-        if (eventsStartingSoon.isEmpty()) {
-            log.info("[Scheduler] 1시간 내에 시작하는 이벤트가 없습니다.");
+        List<Event> todayEvents = eventRepository.findByEventDateAndStartTimeBetween(today, dayStart, dayEnd);
+        if (todayEvents.isEmpty()) {
+            log.info("[Scheduler] 오늘 진행되는 이벤트가 없습니다.");
             return;
         }
 
-        sendNotificationsForEvents(eventsStartingSoon);
+        log.info("[Scheduler] 오늘 진행되는 이벤트 {} 개에 대한 알림을 전송합니다.", todayEvents.size());
+        sendNotificationsForEvents(todayEvents);
     }
 
     private void sendNotificationsForEvents(List<Event> events) {
@@ -96,15 +99,20 @@ public class EventNotificationScheduler implements TaskScheduler {
             List<Reservation> reservations = reservationRepository.findByExpoId(event.getExpo().getId());
 
             for (Reservation reservation : reservations) {
-                Long userId = reservation.getUserId();
-                Notification notification = Notification.builder()
-                        .memberId(userId)
-                        .expoId(event.getExpo().getId())
-                        .title(template.getSubject())
-                        .content(content)
-                        .isRead(false)
-                        .build();
-                notificationsToSave.add(notification);
+                // 회원 예약만 알림 발송
+                if (reservation.getUserType() == UserType.MEMBER) {
+                    Long userId = reservation.getUserId();
+                    Notification notification = Notification.builder()
+                            .memberId(userId)
+                            .type(NotificationType.EVENT_REMINDER)
+                            .targetType(NotificationTargetType.EXPO)
+                            .targetId(event.getExpo().getId())
+                            .title(template.getSubject())
+                            .content(content)
+                            .isRead(false)
+                            .build();
+                    notificationsToSave.add(notification);
+                }
             }
         }
 
