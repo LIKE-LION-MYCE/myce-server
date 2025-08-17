@@ -173,3 +173,4 @@ scheduler:
   admin-timeout: 0 */1 * * * * # 1분마다 (테스트용) -> 담당자 배졍
   expo-publish: "0 */10 * * * *" # 10분마다 박람회 게시 상태 체크 및 종료 처리
   event-notification: "0 0 9 * * *" # 이벤트 당일 알림 - 매일 오전 9시에 실행
+  expo-notification: "0 0 9 * * *"

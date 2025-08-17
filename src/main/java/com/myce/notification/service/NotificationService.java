@@ -12,6 +12,7 @@ public interface NotificationService {
                           NotificationType type, NotificationTargetType targetType);
     void sendQrIssuedNotification(Long memberId, Long reservationId, String expoTitle, boolean isReissue);
     void sendExpoStartNotification(Long expoId);
+    void sendPaymentCompleteNotification(Long memberId, Long reservationId, String expoTitle, String paymentAmount);
     List<NotificationResponse> getNotificationsByMemberId(Long memberId);
     void markAsRead(String notificationId, Long memberId);
     void markAllAsRead(Long memberId);

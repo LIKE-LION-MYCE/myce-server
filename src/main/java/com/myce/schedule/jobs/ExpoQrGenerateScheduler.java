@@ -44,8 +44,6 @@ public class ExpoQrGenerateScheduler implements TaskScheduler {
     private final ReservationRepository reservationRepository;
     private final ReserverRepository reserverRepository;
     private final QrCodeService qrCodeService;
-    private final NotificationService notificationService;
-    private final MessageTemplateSettingRepository messageTemplateSettingRepository;
 
     @Value("${scheduler.expo-qr-generate:0 0 0 * * *}")
     private String cronExpression;
@@ -77,10 +75,9 @@ public class ExpoQrGenerateScheduler implements TaskScheduler {
         
         for (Expo expo : targetExpos) {
             generateQrCodesForExpo(expo);
-            sendExpoStartNotification(expo);
         }
         
-        log.info("박람회 QR코드 일괄 생성 및 시작 알림 프로세스 완료");
+        log.info("박람회 QR코드 일괄 생성 프로세스 완료");
     }
 
     private void generateQrCodesForExpo(Expo expo) {
@@ -114,12 +111,5 @@ public class ExpoQrGenerateScheduler implements TaskScheduler {
         
         log.info("박람회 QR코드 생성 완료 - 박람회: {}, 성공: {} 명, 실패: {} 명", 
                 expo.getTitle(), successCount, failCount);
-    }
-    
-    private void sendExpoStartNotification(Expo expo) {
-        log.info("박람회 시작 알림 전송 시작 - 박람회: {} (ID: {})", expo.getTitle(), expo.getId());
-        
-        // NotificationService에서 모든 알림 로직 처리
-        notificationService.sendExpoStartNotification(expo.getId());
     }
 }

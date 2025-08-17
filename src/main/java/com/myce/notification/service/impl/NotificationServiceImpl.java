@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 import static com.myce.system.entity.type.MessageTemplateCode.QR_ISSUED;
 import static com.myce.system.entity.type.MessageTemplateCode.QR_REISSUED;
+import static com.myce.system.entity.type.MessageTemplateCode.PAYMENT_COMPLETE;
 
 @Service
 @RequiredArgsConstructor
@@ -131,6 +132,28 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    public void sendPaymentCompleteNotification(Long memberId, Long reservationId, String expoTitle, String paymentAmount) {
+        try {
+            MessageTemplateSetting template = messageTemplateSettingRepository
+                    .findByCodeAndChannelType(PAYMENT_COMPLETE, ChannelType.NOTIFICATION)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_MESSAGE_TEMPLATE));
+
+            String title = template.getSubject();
+            String content = template.getContent()
+                    .replace("{expoTitle}", expoTitle)
+                    .replace("{paymentAmount}", paymentAmount);
+            
+            // 공통 saveNotification 메서드 호출
+            saveNotification(memberId, reservationId, title, content, 
+                           NotificationType.RESERVATION_CONFIRM, NotificationTargetType.RESERVATION);
+                           
+            log.info("결제 완료 알림 처리 완료 - 회원 ID: {}, 예매 ID: {}, 금액: {}", memberId, reservationId, paymentAmount);
+        } catch (Exception e) {
+            log.error("결제 완료 알림 처리 실패 - 회원 ID: {}, 예매 ID: {}, 오류: {}", memberId, reservationId, e.getMessage(), e);
+        }
+    }
+
+    @Override
     public void sendExpoStartNotification(Long expoId) {
         try {
             // 메시지 템플릿 조회
@@ -160,7 +183,7 @@ public class NotificationServiceImpl implements NotificationService {
                         expoId, 
                         template.getSubject(), 
                         content,
-                        NotificationType.GENERAL,
+                        NotificationType.EXPO_REMINDER,
                         NotificationTargetType.EXPO
                     );
                     notificationCount++;
