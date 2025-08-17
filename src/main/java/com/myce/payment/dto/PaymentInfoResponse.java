@@ -17,27 +17,25 @@ public class PaymentInfoResponse {
     private LocalDate serviceStartAt;
     private LocalDate serviceEndAt;
     private LocalDateTime createdAt;
-    private Integer totalDays;
-    private Integer totalPrice;
-    private BigDecimal ticketFee;
-    private BigDecimal totalRevenue;
+    private Integer deposit;
+    private BigDecimal ticketBenefit;
+    private BigDecimal totalBenefit;
     private String status;
     @Builder
     public PaymentInfoResponse(Long id, String title, String type,
                                LocalDate serviceStartAt, LocalDate serviceEndAt,
                                LocalDateTime createdAt,
-                               Integer totalDays, Integer totalPrice, BigDecimal ticketFee,
-                               BigDecimal totalRevenue, String status) {
+                               Integer deposit, BigDecimal ticketBenefit,
+                               BigDecimal totalBenefit, String status) {
         this.id = id;
         this.title = title;
         this.type = type;
         this.serviceStartAt = serviceStartAt;
         this.serviceEndAt = serviceEndAt;
         this.createdAt = createdAt;
-        this.totalDays = totalDays;
-        this.totalPrice = totalPrice;
-        this.ticketFee = ticketFee;
-        this.totalRevenue = totalRevenue;
+        this.deposit = deposit;
+        this.ticketBenefit = ticketBenefit;
+        this.totalBenefit = totalBenefit;
         this.status = status;
     }
 }

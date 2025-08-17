@@ -17,9 +17,9 @@ public class PaymentInfoMapper {
                 .serviceStartAt(paymentInfo.getExpo().getDisplayStartDate())
                 .serviceEndAt(paymentInfo.getExpo().getDisplayEndDate())
                 .createdAt(paymentInfo.getCreatedAt())
-                .totalDays(paymentInfo.getTotalDay())
-                .ticketFee(ticketBenefit)
-                .totalPrice(paymentInfo.getTotalAmount())
+                .deposit(paymentInfo.getDeposit() + paymentInfo.getPremiumDeposit())
+                .ticketBenefit(ticketBenefit)
+                .totalBenefit(BigDecimal.valueOf(paymentInfo.getTotalAmount() + ticketBenefit.doubleValue()))
                 .status(paymentInfo.getStatus().name())
                 .build();
     }
@@ -33,8 +33,8 @@ public class PaymentInfoMapper {
                 .serviceStartAt(paymentInfo.getAdvertisement().getDisplayStartDate())
                 .serviceEndAt(paymentInfo.getAdvertisement().getDisplayEndDate())
                 .createdAt(paymentInfo.getCreatedAt())
-                .totalDays(paymentInfo.getTotalDay())
-                .totalPrice(paymentInfo.getTotalAmount())
+                .deposit(paymentInfo.getTotalAmount())
+                .totalBenefit(BigDecimal.valueOf(paymentInfo.getTotalAmount()))
                 .status(paymentInfo.getStatus().name())
                 .build();
     }
