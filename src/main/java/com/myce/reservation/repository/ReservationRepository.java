@@ -79,7 +79,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                     ELSE g.email
                 END,
                 r.quantity,
-                (p.totalAmount + p.usedMileage),
+                (p.totalAmount + p.usedMileage - r.quantity * 1000),
                 r.status,
                 r.createdAt
             )
