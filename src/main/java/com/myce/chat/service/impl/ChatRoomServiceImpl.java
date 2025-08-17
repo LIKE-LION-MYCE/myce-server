@@ -74,14 +74,12 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         // 3. 역할별 채팅방 조회 로직 분기
         List<ChatRoom> chatRooms;
         
-        if (Role.EXPO_ADMIN.name().equals(memberRole)) {
-            // 박람회 관리자인 경우: 본인이 관리하는 박람회들의 모든 채팅방 조회
-            chatRooms = getChatRoomsForAdmin(memberId);
-        } else if (Role.PLATFORM_ADMIN.name().equals(memberRole)) {
+        if (Role.PLATFORM_ADMIN.name().equals(memberRole)) {
             // 플랫폼 관리자인 경우: 모든 플랫폼 채팅방 조회 (platform-* rooms)
             chatRooms = chatRoomRepository.findByExpoIdIsNullAndIsActiveTrueOrderByLastMessageAtDesc();
         } else {
-            // 일반 사용자인 경우: 본인이 참여한 채팅방만 조회
+            // 일반 사용자와 EXPO_ADMIN 모두 동일하게 처리: 본인이 참여한 채팅방만 조회
+            // EXPO_ADMIN의 관리자 채팅은 /admin/inquiry 페이지에서 별도 처리
             chatRooms = chatRoomRepository.findByMemberIdAndIsActiveTrueOrderByLastMessageAtDesc(memberId);
             
             // 플랫폼 상담방 자동 생성 (사용자용)
@@ -411,9 +409,11 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 }
             }
             
-            // 3-2. 일반 사용자는 본인이 참여한 채팅방만 접근 가능
-            if (Role.USER.name().equals(memberRole) && chatRoom.getMemberId().equals(memberId)) {
-                log.info("✅ 사용자가 본인 박람회 채팅방 접근 - roomCode: {}, userId: {}", roomCode, memberId);
+            // 3-2. 일반 사용자와 EXPO_ADMIN(유저로서)은 본인이 참여한 채팅방만 접근 가능
+            if ((Role.USER.name().equals(memberRole) || Role.EXPO_ADMIN.name().equals(memberRole)) 
+                && chatRoom.getMemberId().equals(memberId)) {
+                log.info("✅ 사용자가 본인 박람회 채팅방 접근 - roomCode: {}, userId: {}, role: {}", 
+                        roomCode, memberId, memberRole);
                 return;
             }
         }
@@ -508,9 +508,20 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         
         try {
             // 3. 역할에 따른 unread count 계산
-            if (Role.PLATFORM_ADMIN.name().equals(memberRole) || Role.EXPO_ADMIN.name().equals(memberRole)) {
-                // 관리자 입장: 사용자가 보낸 메시지 중 읽지 않은 것만 계산
+            if (Role.PLATFORM_ADMIN.name().equals(memberRole)) {
+                // 플랫폼 관리자 입장: 사용자가 보낸 메시지 중 읽지 않은 것만 계산
                 return calculateUnreadCountForAdmin(chatRoom);
+            } else if (Role.EXPO_ADMIN.name().equals(memberRole)) {
+                // EXPO_ADMIN의 경우 박람회 소유자인지 확인
+                if (chatRoom.getExpoId() != null) {
+                    boolean isExpoOwner = expoRepository.existsByIdAndMemberId(chatRoom.getExpoId(), memberId);
+                    if (isExpoOwner) {
+                        // 박람회 소유자인 경우 관리자 관점
+                        return calculateUnreadCountForAdmin(chatRoom);
+                    }
+                }
+                // 박람회 소유자가 아니거나 플랫폼 채팅방인 경우 일반 사용자 관점
+                return calculateUnreadCountForUser(chatRoom);
             } else {
                 // 일반 사용자 입장: 관리자/AI가 보낸 메시지 중 읽지 않은 것만 계산  
                 return calculateUnreadCountForUser(chatRoom);

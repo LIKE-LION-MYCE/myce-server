@@ -38,4 +38,9 @@ public interface ExpoChatService {
      * 사용자용 전체 읽지 않은 메시지 수 조회 (FAB용)
      */
     Map<String, Object> getAllUnreadCountsForUser(CustomUserDetails userDetails);
+    
+    /**
+     * 박람회 채팅방 생성 또는 조회
+     */
+    Map<String, Object> getOrCreateExpoChatRoom(Long expoId, CustomUserDetails userDetails);
 }
