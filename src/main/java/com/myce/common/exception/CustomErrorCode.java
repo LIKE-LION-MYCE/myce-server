@@ -71,6 +71,7 @@ public enum CustomErrorCode {
     TICKET_NOT_BELONG_TO_EXPO(HttpStatus.FORBIDDEN, "T002", "해당 티켓은 현재 박람회에 속하지 않습니다."),
     TICKET_TYPE_INVALID(HttpStatus.BAD_REQUEST, "T003", "유효하지 않은 티켓 타입입니다."),
     TICKET_SOLD_OUT(HttpStatus.CONFLICT, "T004", "티켓이 매진되었습니다."),
+    TICKET_EDIT_DENIED(HttpStatus.FORBIDDEN, "T005", "판매 시작일 이후에는 티켓을 수정할 수 없습니다."),
 
     // 채팅 C
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "C001", "채팅방을 찾을 수 없습니다."),

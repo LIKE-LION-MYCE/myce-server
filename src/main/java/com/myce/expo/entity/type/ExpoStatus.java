@@ -43,7 +43,6 @@ public enum ExpoStatus {
     //박람회 관리자가 조회 가능한 상태
     public static final List<ExpoStatus> ADMIN_VIEWABLE_STATUSES = List.of(
             PENDING_PUBLISH,
-            PENDING_CANCEL,
             PUBLISHED,
             PUBLISH_ENDED,
             SETTLEMENT_REQUESTED,
