@@ -39,6 +39,9 @@ import com.myce.payment.entity.type.PaymentTargetType;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
 import com.myce.payment.repository.PaymentRepository;
 import com.myce.payment.repository.RefundRepository;
+import com.myce.reservation.entity.Reservation;
+import com.myce.reservation.entity.code.ReservationStatus;
+import com.myce.reservation.repository.ReservationRepository;
 import com.myce.settlement.entity.Settlement;
 import com.myce.settlement.repository.SettlementRepository;
 import com.myce.settlement.service.SettlementExpoAdminService;
@@ -76,6 +79,7 @@ public class MemberExpoServiceImpl implements MemberExpoService {
     private final AdminPermissionRepository adminPermissionRepository;
     private final RefundRepository refundRepository;
     private final PaymentRepository paymentRepository;
+    private final ReservationRepository reservationRepository;
 
     @Override
     public Page<MemberExpoResponse> getMemberExpos(Long memberId, Pageable pageable) {
@@ -198,6 +202,11 @@ public class MemberExpoServiceImpl implements MemberExpoService {
 
         // 해당 박람회의 티켓 목록 조회
         List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
+        
+        // 해당 박람회의 CONFIRMED 예약 목록 조회 (정산용)
+        List<Reservation> confirmedReservations = reservationRepository.findByExpoId(expoId).stream()
+                .filter(reservation -> reservation.getStatus() == ReservationStatus.CONFIRMED)
+                .toList();
 
         // 박람회 결제 정보 조회 (결제 시점의 수수료율 사용)
         ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
@@ -209,8 +218,9 @@ public class MemberExpoServiceImpl implements MemberExpoService {
             settlement = settlementRepository.findByExpoId(expoId).orElse(null);
         }
         
-        // Mapper에서 모든 정보를 한번에 처리
-        return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, expoPaymentInfo, settlement);
+        // Mapper에서 모든 정보를 한번에 처리 (reservations 추가)
+        return expoSettlementReceiptMapper.toSettlementReceiptResponse(
+                expo, tickets, confirmedReservations, expoPaymentInfo, settlement);
     }
 
     @Override
