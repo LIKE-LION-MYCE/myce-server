@@ -5,9 +5,10 @@ import com.myce.common.entity.BusinessProfile;
 import com.myce.common.entity.type.TargetType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.common.permission.ExpoAdminAccessValidate;
+import com.myce.common.permission.ExpoAdminPermission;
 import com.myce.common.repository.BusinessProfileRepository;
 import com.myce.expo.entity.Expo;
-import com.myce.expo.repository.AdminPermissionRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.notification.service.EmailSendService;
 import com.myce.reservation.repository.ReserverRepository;
@@ -30,9 +31,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
 
+    private final ExpoAdminAccessValidate expoAdminAccessValidate;
     private final ExpoRepository expoRepository;
     private final BusinessProfileRepository businessProfileRepository;
-    private final AdminPermissionRepository adminPermissionRepository;
 
     private final ReserverRepository reserverRepository;
     private final EmailLogRepository emailLogRepository;
@@ -57,7 +58,7 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
                          String reservationCode,
                          String ticketName) {
 
-        validateMyAccess(expoId, memberId, loginType);
+        expoAdminAccessValidate.ensureEditable(expoId, memberId, loginType, ExpoAdminPermission.RESERVER_LIST_VIEW);
         String html = renderEmailHtml(expoId,dto);
 
         List<EmailLog.RecipientInfo> recipientInfos;
@@ -112,26 +113,5 @@ public class ExpoAdminEmailServiceImpl implements ExpoAdminEmailService {
         if (html == null) return "";
         String text = html.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ").trim();
         return text.length() > maxLen ? text.substring(0, maxLen) + "…" : text;
-    }
-
-    //TODO: 1차 구현 이후 유틸메소드화(중복 코드들 제거 및 유지보수 용이하도록) 및 권한 로직 수정
-    private void validateMyAccess(Long expoId, Long memberId, LoginType loginType) {
-        if(memberId == null || loginType == null){
-            throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
-        }
-
-        switch(loginType){
-            case MEMBER -> {
-                if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            case ADMIN_CODE -> {
-                if(!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoIdAndIsReserverListViewTrue(memberId, expoId)){
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
-        }
     }
 }
