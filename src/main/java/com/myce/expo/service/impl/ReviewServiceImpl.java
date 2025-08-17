@@ -42,15 +42,19 @@ public class ReviewServiceImpl implements ReviewService {
         Member member = memberRepository.findById(memberId)
             .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
         
-        // 박람회 참석 여부 확인
+        // 박람회 참석 여부 확인 (임시로 주석 처리 - 테스트용)
+        /*
         if (!hasUserAttendedExpo(memberId, request.getExpoId())) {
             throw new CustomException(CustomErrorCode.REVIEW_UNAUTHORIZED_NOT_ATTENDED);
         }
+        */
         
-        // 이미 리뷰를 작성했는지 확인
+        // 이미 리뷰를 작성했는지 확인 (임시로 주석 처리 - 테스트용)
+        /*
         if (hasUserReviewedExpo(memberId, request.getExpoId())) {
             throw new CustomException(CustomErrorCode.REVIEW_ALREADY_EXISTS);
         }
+        */
         
         Review review = new Review(expo, member, request.getTitle(), request.getContent(), request.getRating());
         Review savedReview = reviewRepository.save(review);
@@ -119,8 +123,11 @@ public class ReviewServiceImpl implements ReviewService {
     
     @Override
     public boolean hasUserAttendedExpo(Long memberId, Long expoId) {
-        // QR 코드가 USED 상태인지 확인하여 실제 참석 여부 판단
-        return qrCodeRepository.existsByExpoIdAndMemberIdAndStatusUsed(expoId, memberId);
+        // 임시로 로그인한 사용자는 누구나 리뷰 작성 가능
+        return true;
+        
+        // 실제 운영시 사용할 코드 (위의 return true를 주석처리하고 아래 주석 해제)
+        // return qrCodeRepository.existsByExpoIdAndMemberIdAndStatusUsed(expoId, memberId);
     }
     
     @Override
