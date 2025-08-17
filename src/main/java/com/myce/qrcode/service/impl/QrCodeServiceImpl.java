@@ -267,7 +267,7 @@ public class QrCodeServiceImpl implements QrCodeService {
     }
 
     /**
-     * QR 발급/재발급 시 SSE 알림 전송
+     * QR 발급/재발급 시 알림 전송 (NotificationService에 위임)
      */
     private void sendQrIssuedNotification(Reserver reserver, boolean isReissue) {
         try {
@@ -275,41 +275,23 @@ public class QrCodeServiceImpl implements QrCodeService {
             
             // MEMBER 타입인 경우에만 알림 전송
             if (reservation.getUserType() != UserType.MEMBER) {
-                log.debug("SSE 알림 건너뜀 - 회원이 아닌 예약자 (UserType: {}, 예약자 ID: {})", 
+                log.debug("알림 건너뜀 - 회원이 아닌 예약자 (UserType: {}, 예약자 ID: {})", 
                         reservation.getUserType(), reserver.getId());
                 return;
             }
             
             Long memberId = reservation.getUserId();
-            Long expoId = reservation.getExpo().getId();
             String expoTitle = reservation.getExpo().getTitle();
             
-            String message = String.format(
-                "{\"type\":\"%s\",\"expoTitle\":\"%s\",\"message\":\"%s\"}",
-                isReissue ? "QR_REISSUED" : "QR_ISSUED",
-                expoTitle,
-                isReissue ? "QR코드가 재발급되었습니다." : "QR코드가 발급되었습니다. 박람회 입장 시 사용하세요!"
-            );
+            // NotificationService에서 MongoDB 저장 + SSE 전송 통합 처리
+            notificationService.sendQrIssuedNotification(memberId, reservation.getId(), expoTitle, isReissue);
             
-            // 1. SSE 실시간 알림 전송
-            notifyMemberViaSseEmitters(memberId, message);
-            
-            // 2. MongoDB에 알림 저장
-            notificationService.saveQrIssuedNotification(memberId, expoId, expoTitle, isReissue);
-            
-            log.info("QR {} 알림 전송 및 저장 완료 - 예약자 ID: {}, 회원 ID: {}", 
+            log.info("QR {} 알림 처리 완료 - 예약자 ID: {}, 회원 ID: {}", 
                     isReissue ? "재발급" : "발급", reserver.getId(), memberId);
         } catch (Exception e) {
-            log.error("QR 발급 알림 전송 실패 - 예약자 ID: {}, 오류: {}", 
+            log.error("QR 발급 알림 처리 실패 - 예약자 ID: {}, 오류: {}", 
                     reserver.getId(), e.getMessage(), e);
-            // 알림 실패가 주 기능에 영향을 주지 않도록 예외를 던지지 않음
         }
-    }
-    /**
-     * 특정 회원에게 SSE 알림 전송
-     */
-    private void notifyMemberViaSseEmitters(Long memberId, String content) {
-        sseService.notifyMemberViaSseEmitters(memberId, content);
     }
 
     @Override
