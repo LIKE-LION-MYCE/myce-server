@@ -3,6 +3,8 @@ package com.myce.expo.service.impl;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.common.permission.ExpoAdminAccessValidate;
+import com.myce.common.permission.ExpoAdminPermission;
 import com.myce.expo.dto.EventRequest;
 import com.myce.expo.dto.EventResponse;
 import com.myce.expo.entity.AdminCode;
@@ -33,12 +35,13 @@ public class EventServiceImpl implements EventService {
     private final EventMapper eventMapper;
     private final AdminCodeRepository adminCodeRepository;
     private final AdminPermissionRepository adminPermissionRepository;
+    private final ExpoAdminAccessValidate expoAdminAccessValidate;
 
     // 행사 등록
     @Override
     public EventResponse saveEvent(Long expoId, EventRequest eventRequest, LoginType loginType, Long principalId) {
         // 접근 권한 검증
-        validateMyPermission(expoId, loginType, principalId);
+        expoAdminAccessValidate.ensureEditable(expoId, principalId, loginType, ExpoAdminPermission.SCHEDULE_UPDATE);
 
         // 운영중인 박람회 조회
         Expo expo = expoRepository.findById(expoId)
@@ -59,7 +62,7 @@ public class EventServiceImpl implements EventService {
     @Transactional(readOnly = true)
     public List<EventResponse> getEvents(Long expoId, LoginType loginType, Long principalId) {
         // 접근 권한 검증
-        validateMyPermission(expoId, loginType, principalId);
+        expoAdminAccessValidate.ensureViewable(expoId, principalId, loginType, ExpoAdminPermission.SCHEDULE_UPDATE);
 
         // 행사 엔티티 목록 조회
         List<Event> events = eventRepository.findAllByExpoId(expoId);
@@ -87,7 +90,7 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventResponse updateEvent(Long expoId, Long eventId, EventRequest eventRequest, LoginType loginType, Long principalId) {
         // 접근 권한 검증
-        validateMyPermission(expoId, loginType, principalId);
+        expoAdminAccessValidate.ensureEditable(expoId, principalId, loginType, ExpoAdminPermission.SCHEDULE_UPDATE);
 
         // 행사 검증 후 검증된 행사 엔티티 반환
         Event event = getEventAndValidate(expoId, eventId);
@@ -103,7 +106,7 @@ public class EventServiceImpl implements EventService {
     @Override
     public void deleteEvent(Long expoId, Long eventId, LoginType loginType, Long principalId) {
         // 접근 권한 검증
-        validateMyPermission(expoId, loginType, principalId);
+        expoAdminAccessValidate.ensureEditable(expoId, principalId, loginType, ExpoAdminPermission.SCHEDULE_UPDATE);
 
         // 행사 검증 후 검증된 행사 엔티티 반환
         Event event = getEventAndValidate(expoId, eventId);
@@ -112,34 +115,6 @@ public class EventServiceImpl implements EventService {
         eventRepository.delete(event);
     }
 
-    /// 검증 유틸 메소드
-    // 접근 권한 검증
-    private void validateMyPermission(Long expoId, LoginType loginType, Long principalId) {
-        switch (loginType) {
-            // 일반 회원 로그인인 경우
-            case MEMBER -> {
-                // 해당 박람회에 대한 최상위 관리자인지 확인
-                if (!expoRepository.existsByIdAndMemberId(expoId, principalId)) { //  principalId == memberId
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            // 관리자 로그인인 경우
-            case ADMIN_CODE -> {
-                // 하위 관리자 코드 조회
-                AdminCode adminCode = adminCodeRepository.findById(principalId) // principalId == adminCodeId
-                        .orElseThrow(() -> new CustomException(CustomErrorCode.ADMIN_CODE_NOT_FOUND));
-
-                // 행사 일정 메뉴 접근 권한 검증
-                if (!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoIdAndIsScheduleUpdateTrue(principalId, expoId)) {
-                    throw new CustomException(CustomErrorCode.EVENT_ACCESS_DENIED);
-                }
-
-            }
-            // 잘못된 로그인 방식
-            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
-        }
-
-    }
 
     // 행사 검증 후 검증된 행사 엔티티 반환
     private Event getEventAndValidate(Long expoId, Long eventId) {
