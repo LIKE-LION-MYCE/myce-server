@@ -20,6 +20,7 @@ import com.myce.payment.repository.PaymentRepository;
 import com.myce.payment.repository.RefundRepository;
 import com.myce.system.entity.AdFeeSetting;
 import com.myce.system.repository.AdFeeSettingRepository;
+import com.myce.notification.service.NotificationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
     private final PaymentRepository paymentRepository;
     private final RefundRepository refundRepository;
     private final AdFeeSettingRepository adFeeSettingRepository;
+    private final NotificationService notificationService;
 
     public AdPaymentInfoCheck generatePaymentCheck(Long adId) {
         Advertisement ad = adRepository.findById(adId)
@@ -78,7 +80,17 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
 
         log.info("approveApply - Advertisement : {}", ad);
         adPaymentInfoRepository.save(paymentInfo);
+        
+        String oldStatus = ad.getStatus().name();
         ad.approve();
+        String newStatus = ad.getStatus().name();
+        
+        // 상태 변경 알림 전송
+        try {
+            notificationService.sendAdvertisementStatusChangeNotification(adId, ad.getTitle(), oldStatus, newStatus);
+        } catch (Exception e) {
+            log.warn("광고 승인 알림 전송 실패 - adId: {}, 오류: {}", adId, e.getMessage());
+        }
     }
 
     @Transactional
@@ -94,7 +106,17 @@ public class PlatformApplyAdServiceImpl implements PlatformApplyAdService {
         log.info("rejectApply - Advertisement : {}", ad);
 
         rejectInfoRepository.save(rejectInfo);
+        
+        String oldStatus = ad.getStatus().name();
         ad.reject();
+        String newStatus = ad.getStatus().name();
+        
+        // 상태 변경 알림 전송
+        try {
+            notificationService.sendAdvertisementStatusChangeNotification(adId, ad.getTitle(), oldStatus, newStatus);
+        } catch (Exception e) {
+            log.warn("광고 거절 알림 전송 실패 - adId: {}, 오류: {}", adId, e.getMessage());
+        }
     }
 
     public AdRejectInfoResponse getRejectInfo(Long adId) {

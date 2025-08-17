@@ -7,6 +7,7 @@ import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.service.SystemExpoService;
 import com.myce.settlement.service.SettlementSystemService;
+import com.myce.notification.service.NotificationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ public class SystemExpoServiceImpl implements SystemExpoService {
     
     private final ExpoRepository expoRepository;
     private final SettlementSystemService settlementSystemService;
+    private final NotificationService notificationService;
     
     private static final List<ExpoStatus> ACTIVE_STATUSES = List.of(
             ExpoStatus.PUBLISHED,
@@ -56,7 +58,16 @@ public class SystemExpoServiceImpl implements SystemExpoService {
         
         
         for (Expo expo : pendingExpos) {
+            String oldStatus = expo.getStatus().name();
             expo.publish();
+            String newStatus = expo.getStatus().name();
+            
+            // 상태 변경 알림 전송
+            try {
+                notificationService.sendExpoStatusChangeNotification(expo.getId(), expo.getTitle(), oldStatus, newStatus);
+            } catch (Exception e) {
+                log.warn("박람회 자동 게시 알림 전송 실패 - expoId: {}, 오류: {}", expo.getId(), e.getMessage());
+            }
         }
         
         if (!pendingExpos.isEmpty()) {
@@ -78,7 +89,16 @@ public class SystemExpoServiceImpl implements SystemExpoService {
         
         
         for (Expo expo : endedExpos) {
+            String oldStatus = expo.getStatus().name();
             expo.complete(); // PUBLISHED → PUBLISH_ENDED
+            String newStatus = expo.getStatus().name();
+            
+            // 상태 변경 알림 전송
+            try {
+                notificationService.sendExpoStatusChangeNotification(expo.getId(), expo.getTitle(), oldStatus, newStatus);
+            } catch (Exception e) {
+                log.warn("박람회 게시 종료 알림 전송 실패 - expoId: {}, 오류: {}", expo.getId(), e.getMessage());
+            }
             
             // Settlement 자동 생성 (SettlementSystemService로 위임)
             settlementSystemService.createInitialSettlement(expo);
