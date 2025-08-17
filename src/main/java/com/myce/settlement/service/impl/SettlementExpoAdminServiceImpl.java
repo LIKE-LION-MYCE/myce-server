@@ -12,6 +12,9 @@ import com.myce.member.dto.expo.ExpoSettlementRequest;
 import com.myce.member.mapper.expo.ExpoSettlementReceiptMapper;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
+import com.myce.reservation.entity.Reservation;
+import com.myce.reservation.entity.code.ReservationStatus;
+import com.myce.reservation.repository.ReservationRepository;
 import com.myce.settlement.entity.Settlement;
 import com.myce.settlement.repository.SettlementRepository;
 import com.myce.settlement.service.SettlementExpoAdminService;
@@ -37,6 +40,7 @@ public class SettlementExpoAdminServiceImpl implements SettlementExpoAdminServic
     private final ExpoRepository expoRepository;
     private final TicketRepository ticketRepository;
     private final ExpoPaymentInfoRepository expoPaymentInfoRepository;
+    private final ReservationRepository reservationRepository;
     private final ExpoSettlementReceiptMapper expoSettlementReceiptMapper;
     
     @Override
@@ -102,6 +106,11 @@ public class SettlementExpoAdminServiceImpl implements SettlementExpoAdminServic
         // Ticket list lookup
         List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
         
+        // CONFIRMED reservations lookup for settlement calculation
+        List<Reservation> confirmedReservations = reservationRepository.findByExpoId(expoId).stream()
+                .filter(reservation -> reservation.getStatus() == ReservationStatus.CONFIRMED)
+                .toList();
+        
         // Payment info lookup (for commission rate)
         ExpoPaymentInfo expoPaymentInfo = expoPaymentInfoRepository.findByExpoId(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
@@ -113,6 +122,6 @@ public class SettlementExpoAdminServiceImpl implements SettlementExpoAdminServic
         }
         
         // Mapper processing for all info
-        return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, expoPaymentInfo, settlement);
+        return expoSettlementReceiptMapper.toSettlementReceiptResponse(expo, tickets, confirmedReservations, expoPaymentInfo, settlement);
     }
 }

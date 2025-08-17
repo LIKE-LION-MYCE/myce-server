@@ -10,7 +10,7 @@ import java.util.List;
 public enum ExpoStatus {
   
     PENDING_APPROVAL("승인 대기"),
-    PENDING_PAYMENT("승인 완료"),
+    PENDING_PAYMENT("결제 대기"),
     PENDING_PUBLISH("게시 대기"),
     PENDING_CANCEL("취소 대기"),
     PUBLISHED("게시 중"),

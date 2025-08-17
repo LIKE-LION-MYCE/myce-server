@@ -17,6 +17,7 @@ import com.myce.common.entity.RejectInfo;
 import com.myce.common.repository.RejectInfoRepository;
 import com.myce.expo.service.PlatformExpoQueryService;
 import com.myce.expo.service.mapper.ExpoApplicationMapper;
+import com.myce.expo.service.mapper.ExpoCancelDetailMapper;
 import com.myce.member.dto.expo.ExpoPaymentDetailResponse;
 import com.myce.member.dto.expo.ExpoRefundReceiptResponse;
 import com.myce.member.mapper.expo.ExpoPaymentDetailMapper;
@@ -46,6 +47,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -244,24 +247,22 @@ public class PlatformExpoQueryServiceImpl implements PlatformExpoQueryService {
                 expoRefund.getRefundedAt().toLocalDate().toString() : 
                 expoRefund.getCreatedAt().toLocalDate().toString();
         
-        // 8. 응답 DTO 구성
-        ExpoCancelDetailResponse response = ExpoCancelDetailResponse.builder()
-                .expoTitle(expo.getTitle())
-                .applicantName(businessProfile != null ? businessProfile.getCompanyName() : 
-                              expo.getMember().getName())
-                .displayStartDate(expo.getDisplayStartDate())
-                .displayEndDate(expo.getDisplayEndDate())
-                .refundRequestDate(refundRequestDate)
-                .refundReason(expoRefund.getReason())
-                .totalAmount(expoPaymentInfo.getTotalAmount())
-                .usedAmount(expoRefund.getIsPartial() ? calculateUsedAmount(expo, expoPaymentInfo) : 0)
-                .usedDays(expoRefund.getIsPartial() ? calculateUsedDays(expo) : 0)
-                .refundAmount(expoRefund.getAmount())
-                .totalUsageFee(expoPaymentInfo.getDailyUsageFee() * expoPaymentInfo.getTotalDay())
-                .totalReservations(targetReservations.size())
-                .totalReservationAmount(totalReservationAmount)
-                .reservationRefunds(reservationRefunds)
-                .build();
+        // 8. 응답 DTO 구성 (Mapper 사용)
+        Integer usedAmount = expoRefund.getIsPartial() ? calculateUsedAmount(expo, expoPaymentInfo) : 0;
+        Integer usedDays = expoRefund.getIsPartial() ? calculateUsedDays(expo) : 0;
+        
+        ExpoCancelDetailResponse response = ExpoCancelDetailMapper.toResponse(
+                expo,
+                businessProfile,
+                expoPaymentInfo,
+                expoRefund,
+                refundRequestDate,
+                usedAmount,
+                usedDays,
+                targetReservations.size(),
+                totalReservationAmount,
+                reservationRefunds
+        );
         
         log.info("박람회 취소 상세 정보 조회 완료 - expoId: {}, 예약자 수: {}, 총 예약자 환불액: {}", 
                 expoId, targetReservations.size(), totalReservationAmount);
@@ -288,18 +289,25 @@ public class PlatformExpoQueryServiceImpl implements PlatformExpoQueryService {
      * 사용한 금액 계산 (부분환불인 경우)
      */
     private Integer calculateUsedAmount(Expo expo, ExpoPaymentInfo paymentInfo) {
-        // 실제 사용 일수에 따른 계산 로직
-        // 여기서는 간단히 (총액 - 환불액)으로 계산
-        return paymentInfo.getTotalAmount() - paymentInfo.getTotalAmount(); // TODO: 실제 계산 로직 구현
+        // 사용한 일수 기반으로 이용료 계산
+        int usedDays = calculateUsedDays(expo);
+        return usedDays * paymentInfo.getDailyUsageFee();
     }
     
     /**
      * 사용한 일수 계산 (부분환불인 경우)  
      */
     private Integer calculateUsedDays(Expo expo) {
-        // 실제 사용 일수 계산 로직
-        // 여기서는 간단히 0으로 반환 (개최 전 취소라고 가정)
-        return 0; // TODO: 실제 계산 로직 구현
+        LocalDate today = LocalDate.now();
+        LocalDate displayStartDate = expo.getDisplayStartDate();
+        
+        // 게시 시작일부터 오늘까지의 일수 계산 (시작일 포함)
+        int usedDays = (int) java.time.temporal.ChronoUnit.DAYS.between(displayStartDate, today) + 1;
+        
+        // 게시 시작 전이면 0일
+        if (usedDays < 0) usedDays = 0;
+        
+        return usedDays;
     }
 
     @Override
