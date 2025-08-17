@@ -3,6 +3,8 @@ package com.myce.expo.service.impl;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.common.permission.ExpoAdminAccessValidate;
+import com.myce.common.permission.ExpoAdminPermission;
 import com.myce.expo.dto.ExpoAdminPermissionResponse;
 import com.myce.expo.dto.MyExpoDetailResponse;
 import com.myce.expo.dto.MyExpoUpdateRequest;
@@ -38,6 +40,7 @@ public class MyExpoServiceImpl implements MyExpoService {
     private final AdminPermissionRepository adminPermissionRepository;
     private final MyExpoMapper expoMapper;
     private final ExpoAdminPermissionMapper expoAdminPermissionMapper;
+    private final ExpoAdminAccessValidate expoAdminAccessValidate;
 
     @Override
     public ExpoAdminPermissionResponse getExpoAdminPermission(Long memberId, LoginType loginType) {
@@ -63,7 +66,7 @@ public class MyExpoServiceImpl implements MyExpoService {
     @Override
     @Transactional(readOnly = true)
     public MyExpoDetailResponse getMyExpoDetail(Long expoId, LoginType loginType, Long principalId) {
-        validateMyPermission(expoId, loginType, principalId, false); // 조회 권한은 수정 권한이 아니어도 됨
+        expoAdminAccessValidate.ensureViewable(expoId, principalId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
         List<ExpoCategory> expoCategories = expoCategoryRepository.findByExpoId(expo.getId());
@@ -72,7 +75,8 @@ public class MyExpoServiceImpl implements MyExpoService {
 
     @Override
     public MyExpoDetailResponse updateMyExpoDetail(Long expoId, MyExpoUpdateRequest updateRequest, LoginType loginType, Long principalId) {
-        validateMyPermission(expoId, loginType, principalId, true); // 수정 권한 필요
+        // 박람회 수정은 특별히 PENDING_PUBLISH 상태에서만 허용
+        validateExpoUpdatePermission(expoId, principalId, loginType);
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
 
@@ -83,25 +87,16 @@ public class MyExpoServiceImpl implements MyExpoService {
         return expoMapper.toMyExpoDetailResponse(expo, expoCategories);
     }
 
-    private void validateMyPermission(Long expoId, LoginType loginType, Long principalId, boolean requireUpdatePermission) {
-        switch (loginType) {
-            case MEMBER -> {
-                if (!expoRepository.existsByIdAndMemberId(expoId, principalId)) {
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            case ADMIN_CODE -> {
-                AdminCode adminCode = adminCodeRepository.findById(principalId)
-                        .orElseThrow(() -> new CustomException(CustomErrorCode.ADMIN_CODE_NOT_FOUND));
-
-
-                if (requireUpdatePermission) {
-                    if (!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoIdAndIsExpoDetailUpdateTrue(principalId, expoId)) {
-                        throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                    }
-                }
-            }
-            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
+    private void validateExpoUpdatePermission(Long expoId, Long principalId, LoginType loginType) {
+        // 기본 권한 검증 (EXPO_DETAIL_UPDATE 권한 필요)
+        expoAdminAccessValidate.ensureViewable(expoId, principalId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
+        
+        // 박람회 수정은 특별히 PENDING_PUBLISH 상태에서만 허용
+        ExpoStatus status = expoRepository.findStatusById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
+        
+        if (status != ExpoStatus.PENDING_PUBLISH) {
+            throw new CustomException(CustomErrorCode.EXPO_EDIT_DENIED);
         }
     }
 
