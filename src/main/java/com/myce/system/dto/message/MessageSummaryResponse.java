@@ -7,13 +7,11 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class MessageTemplateResponse {
+public class MessageSummaryResponse {
     private Long id;
     private String name;
     private String channelType;
     private String subject;
-    private String template;
-    private String content;
     private boolean useImage;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;

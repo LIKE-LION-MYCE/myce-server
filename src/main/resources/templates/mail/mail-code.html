@@ -39,58 +39,6 @@
       text-decoration: underline;
     }
   </style>
-  <script>
-    function copyVerificationCode() {
-      const codeElement = document.getElementById('verificationCode');
-      const code = codeElement.textContent;
-
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(code).then(function() {
-          const button = document.getElementById('copyButton');
-          const originalText = button.textContent;
-          button.textContent = '복사됨!';
-          button.style.background = '#28a745';
-
-          setTimeout(function() {
-            button.textContent = originalText;
-            button.style.background = '#111111';
-          }, 2000);
-        }).catch(function() {
-          fallbackCopyTextToClipboard(code);
-        });
-      } else {
-        fallbackCopyTextToClipboard(code);
-      }
-    }
-
-    function fallbackCopyTextToClipboard(text) {
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      textArea.style.position = "fixed";
-      textArea.style.left = "-999999px";
-      textArea.style.top = "-999999px";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-
-      try {
-        document.execCommand('copy');
-        const button = document.getElementById('copyButton');
-        const originalText = button.textContent;
-        button.textContent = '복사됨!';
-        button.style.background = '#28a745';
-
-        setTimeout(function() {
-          button.textContent = originalText;
-          button.style.background = '#111111';
-        }, 2000);
-      } catch (err) {
-        console.error('복사 실패:', err);
-      }
-
-      document.body.removeChild(textArea);
-    }
-  </script>
 </head>
 <body style="margin:0; padding:0; background:#f6f7f9;">
 
@@ -133,6 +81,10 @@
           <td class="px-32" style="padding:8px 32px 16px 32px; font-family: 'Apple SD Gothic Neo','Malgun Gothic','Segoe UI',Arial,sans-serif;">
             <div style="font-size:15px; line-height:1.8; color:#222222;"
                  th:utext="${greetingMessage}">안녕하세요.<br><strong>회원가입</strong>을 완료하기 위해 아래 인증번호를 입력해주세요.</div>
+            <div>
+              <span style="font-size:15px; line-height:1.8; color:#222222;" th:utext="${verificationName}"> ** </span>
+              <span style="font-size:15px; line-height:1.8; color:#222222;" th:utext="${postMessage}"> 을 완료하기 위해 아래 인증번호를 입력해주세요.</span>
+            </div>
           </td>
         </tr>
 
@@ -154,7 +106,7 @@
             <div style="background:#fff8e1; border:1px solid #ffd93d; border-radius:6px; padding:16px; font-size:14px; color:#856404;">
               ⚠️ <strong th:text="${warningPrefix}">중요:</strong>
               <span th:text="${warningMessage}">이 인증번호는</span>
-              <strong th:text="|${limitTime}분|">5분</strong>
+              <strong th:text="|${limitTime}분|">10분</strong>
               <span th:text="${warningSuffix}">후에 만료됩니다.</span>
             </div>
           </td>
