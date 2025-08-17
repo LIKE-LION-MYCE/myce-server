@@ -98,6 +98,7 @@ public class PortOneApiServiceImpl implements PortOneApiService {
         String jsonBody;
         try {
             jsonBody = objectMapper.writeValueAsString(body);
+            log.info("[포트원 환불 요청 바디] {}", jsonBody);
         } catch (JsonProcessingException e) {
             throw new CustomException(CustomErrorCode.PORTONE_REQUEST_SERIALIZATION_FAILED);
         }
@@ -107,13 +108,23 @@ public class PortOneApiServiceImpl implements PortOneApiService {
         ResponseEntity<Map> response;
         try {
             response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, Map.class);
+            log.info("[포트원 환불 응답 전체] {}", response.getBody());
         } catch (Exception e) {
+            log.error("[포트원 환불 API 호출 실패] {}", e.getMessage());
             throw new CustomException(CustomErrorCode.PORTONE_REFUND_FAILED);
         }
 
-        Map<String, Object> responseBody = (Map<String, Object>) response.getBody().get("response");
-        if (responseBody == null || !("cancelled".equals(responseBody.get("status"))
-                || "paid".equals(responseBody.get("status")))) {
+        Map<String, Object> fullResponse = response.getBody();
+        Map<String, Object> responseBody = (Map<String, Object>) fullResponse.get("response");
+        
+        if (responseBody == null) {
+            log.error("[포트원 환불 응답 오류] response 필드가 없음. 전체 응답: {}", fullResponse);
+            throw new CustomException(CustomErrorCode.PORTONE_REFUND_FAILED);
+        }
+        
+        String status = (String) responseBody.get("status");
+        if (!("cancelled".equals(status) || "paid".equals(status))) {
+            log.error("[포트원 환불 상태 오류] 예상: cancelled/paid, 실제: {}. 전체 응답: {}", status, responseBody);
             throw new CustomException(CustomErrorCode.PORTONE_REFUND_FAILED);
         }
         return responseBody;
@@ -132,12 +143,12 @@ public class PortOneApiServiceImpl implements PortOneApiService {
             body.put("reason", request.getReason());
         }
 
-        if (request.getCancelAmount() != null) {
-            if (request.getCancelAmount() > originalPaidAmount) {
-                throw new CustomException(CustomErrorCode.REFUND_AMOUNT_EXCEEDS_PAID);
-            }
-            body.put("amount", request.getCancelAmount());
+        // 환불 금액 설정 (부분 환불이면 해당 금액, 전체 환불이면 원본 금액)
+        Integer refundAmount = request.getCancelAmount() != null ? request.getCancelAmount() : originalPaidAmount;
+        if (refundAmount > originalPaidAmount) {
+            throw new CustomException(CustomErrorCode.REFUND_AMOUNT_EXCEEDS_PAID);
         }
+        body.put("amount", refundAmount);
         body.put("checksum", originalPaidAmount);
 
         if (request.getRefundHolder() != null) {
