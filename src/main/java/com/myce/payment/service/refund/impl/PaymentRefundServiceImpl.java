@@ -1,21 +1,28 @@
 package com.myce.payment.service.refund.impl;
 
+import com.myce.advertisement.repository.AdRepository;
+import com.myce.common.entity.type.TargetType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.payment.dto.PaymentImpUidForRefundRequest;
 import com.myce.payment.dto.PaymentInfoForRefund;
 import com.myce.payment.dto.PaymentRefundRequest;
+import com.myce.payment.dto.AdRefundRequest;
 import com.myce.payment.entity.AdPaymentInfo;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.entity.Payment;
 import com.myce.payment.entity.Refund;
 import com.myce.payment.entity.ReservationPaymentInfo;
 import com.myce.payment.entity.type.PaymentStatus;
+import com.myce.payment.entity.type.PaymentTargetType;
 import com.myce.payment.entity.type.RefundStatus;
 import com.myce.payment.repository.AdPaymentInfoRepository;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
 import com.myce.payment.repository.PaymentRepository;
 import com.myce.payment.repository.RefundRepository;
 import com.myce.payment.repository.ReservationPaymentInfoRepository;
+import com.myce.advertisement.entity.Advertisement;
+import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.payment.service.portone.PortOneApiService;
 import com.myce.payment.service.refund.PaymentRefundService;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -37,6 +45,7 @@ public class PaymentRefundServiceImpl implements PaymentRefundService {
     private final ExpoPaymentInfoRepository expoPaymentInfoRepository;
     private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
     private final RefundRepository refundRepository;
+    private final AdRepository advertisementRepository;
 
     @Override
     @Transactional
@@ -75,16 +84,38 @@ public class PaymentRefundServiceImpl implements PaymentRefundService {
         boolean isPartial =
                 request.getCancelAmount() != null && request.getCancelAmount() < originalPaidAmount;
 
-        // 환불 엔티티 저장
-        Refund refund = Refund.builder()
-                .payment(payment)
-                .amount(refundedAmount)
-                .reason(request.getReason())
-                .status(RefundStatus.REFUNDED)
-                .isPartial(isPartial)
-                .refundedAt(LocalDateTime.now())
-                .build();
-        refundRepository.save(refund);
+        // 환불 엔티티 처리 (타겟 타입에 따라 다르게 처리)
+        if (payment.getTargetType() == PaymentTargetType.RESERVATION) {
+            // RESERVATION: 새로 생성
+            Refund refund = Refund.builder()
+                    .payment(payment)
+                    .amount(refundedAmount)
+                    .reason(request.getReason())
+                    .status(RefundStatus.REFUNDED)
+                    .isPartial(isPartial)
+                    .refundedAt(LocalDateTime.now())
+                    .build();
+            refundRepository.save(refund);
+        } else {
+            // AD, EXPO: 기존 PENDING 상태를 REFUNDED로 업데이트
+            Optional<Refund> existingRefund = refundRepository.findByPaymentAndStatus(payment, RefundStatus.PENDING);
+            if (existingRefund.isPresent()) {
+                Refund refund = existingRefund.get();
+                refund.updateToRefund(); // PENDING -> REFUNDED로 상태 변경
+                refundRepository.save(refund);
+            } else {
+                // PENDING 상태의 환불이 없는 경우 새로 생성 (fallback)
+                Refund refund = Refund.builder()
+                        .payment(payment)
+                        .amount(refundedAmount)
+                        .reason(request.getReason())
+                        .status(RefundStatus.REFUNDED)
+                        .isPartial(isPartial)
+                        .refundedAt(LocalDateTime.now())
+                        .build();
+                refundRepository.save(refund);
+            }
+        }
 
         updatePaymentInfoStatus(paymentInfoEntity, isPartial);
     }
@@ -135,5 +166,51 @@ public class PaymentRefundServiceImpl implements PaymentRefundService {
                 throw new CustomException(CustomErrorCode.INVALID_PAYMENT_TARGET_TYPE);
         }
         return new PaymentInfoForRefund(paymentInfoEntity, originalPaidAmount);
+    }
+
+    @Override
+    public String getImpUidForRefund(PaymentImpUidForRefundRequest request) {
+        Payment payment = paymentRepository.findByTargetIdAndTargetType(request.getTargetId(), request.getTargetType())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_NOT_FOUND));
+        return payment.getImpUid();
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> processAdRefund(AdRefundRequest request) {
+        log.info("[광고 통합 환불 처리] adId={}, cancelAmount={}", request.getAdId(), request.getCancelAmount());
+        
+        // 1. 광고 정보 조회
+        Advertisement advertisement = advertisementRepository.findById(request.getAdId())
+                .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
+        
+        // 2. 결제 정보 조회
+        AdPaymentInfo adPaymentInfo = adPaymentInfoRepository.findByAdvertisementId(request.getAdId())
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        
+        Payment payment = paymentRepository.findByTargetIdAndTargetType(request.getAdId(), PaymentTargetType.AD)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
+        
+        // 3. 포트원 환불 요청을 위한 기존 로직 재사용
+        PaymentRefundRequest refundRequest = new PaymentRefundRequest();
+        refundRequest.setImpUid(payment.getImpUid());
+        refundRequest.setCancelAmount(request.getCancelAmount());
+        refundRequest.setReason(request.getReason());
+        
+        // 4. 포트원 환불 처리
+        Map<String, Object> portOneResponse = refundPayment(refundRequest);
+        
+        // 5. 광고 상태를 CANCELLED로 변경
+        advertisement.updateStatus(AdvertisementStatus.CANCELLED);
+        advertisementRepository.save(advertisement);
+        
+        // 6. 결제 상태 업데이트 (부분환불/전체환불 구분)
+        // 프론트에서 cancelAmount가 있으면 부분환불, null이면 전체환불
+        boolean isPartialRefund = request.getCancelAmount() != null;
+        adPaymentInfo.setStatus(isPartialRefund ? PaymentStatus.PARTIAL_REFUNDED : PaymentStatus.REFUNDED);
+        adPaymentInfoRepository.save(adPaymentInfo);
+        
+        log.info("[광고 통합 환불 완료] adId={}, isPartial={}", request.getAdId(), isPartialRefund);
+        return portOneResponse;
     }
 }

@@ -98,4 +98,10 @@ public class PlatformAdController {
         return applyAdService.getCancelHistory(adId);
     }
 
+    @PatchMapping("/{adId}/status")
+    public ResponseEntity<Void> updateAdStatus(@PathVariable Long adId,
+        @RequestBody AdStatusUpdateRequest request) {
+        service.updateAdStatus(adId, request.getAdvertisementStatus());
+        return ResponseEntity.ok().build();
+    }
 }
