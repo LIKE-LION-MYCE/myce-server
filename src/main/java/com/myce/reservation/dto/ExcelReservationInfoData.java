@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -16,4 +17,6 @@ public class ExcelReservationInfoData {
     private String phone;
     private String email;
     private String ticketName;
+    private LocalDateTime entranceAt;
+    private String entranceStatus;
 }

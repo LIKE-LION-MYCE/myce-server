@@ -4,8 +4,6 @@ import com.myce.auth.dto.type.LoginType;
 import com.myce.common.permission.ExpoAdminAccessValidate;
 import com.myce.common.permission.ExpoAdminPermission;
 import com.myce.expo.entity.Ticket;
-import com.myce.expo.repository.AdminPermissionRepository;
-import com.myce.expo.repository.ExpoRepository;
 import com.myce.expo.repository.TicketRepository;
 import com.myce.reservation.dto.ExpoAdminReservationResponse;
 import com.myce.reservation.repository.ReserverRepository;
