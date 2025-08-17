@@ -1,10 +1,14 @@
 package com.myce.payment.controller;
 
+import com.myce.payment.dto.AdPaymentInfoStatusUpdateRequest;
+import com.myce.payment.dto.PaymentImpUidForRefundRequest;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.PaymentRefundRequest;
 import com.myce.payment.dto.PortOneWebhookRequest;
+import com.myce.payment.dto.AdRefundRequest;
 import com.myce.payment.service.PaymentService;
+import com.myce.payment.service.refund.PaymentRefundService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -18,6 +22,7 @@ import java.util.Map;
 @Slf4j
 public class PaymentController {
   private final PaymentService paymentService;
+  private final PaymentRefundService paymentRefundService;
 
   // 결제 검증 API (POST 방식)
   @PostMapping("/verify")
@@ -49,5 +54,30 @@ public class PaymentController {
     log.info("[포트원 웹훅]: {}", request);
     paymentService.processWebhook(request);
     return ResponseEntity.ok().build();
+  }
+
+  // 프론트에서 target_id, target_type을 통해 imp_uid 가져오기
+  @PostMapping("/imp-uid")
+  public ResponseEntity<String> impUid(
+      @RequestBody PaymentImpUidForRefundRequest request
+  ) {
+    String impUid = paymentRefundService.getImpUidForRefund(request);
+    return ResponseEntity.ok(impUid);
+  }
+
+  @PatchMapping("/{adId}/status")
+  public ResponseEntity<Void> updateAdPaymentInfoStatus(
+      @PathVariable Long adId, @RequestBody AdPaymentInfoStatusUpdateRequest request
+  ){
+    paymentService.updateAdPaymentInfo(adId, request.getPaymentStatus());
+    return ResponseEntity.ok().build();
+  }
+
+  // 광고 통합 환불 API - 포트원 환불 + 광고 상태 변경 + 결제 상태 변경을 한번에 처리
+  @PostMapping("/ad-refund")
+  public ResponseEntity<Map<String, Object>> processAdRefund(
+      @RequestBody AdRefundRequest request) {
+    Map<String, Object> response = paymentRefundService.processAdRefund(request);
+    return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 }

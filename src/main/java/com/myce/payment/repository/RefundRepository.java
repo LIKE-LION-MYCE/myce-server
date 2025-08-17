@@ -11,7 +11,9 @@ import java.util.Optional;
 
 public interface RefundRepository extends JpaRepository<Refund, Long> {
     Optional<Refund> findByPayment(Payment payment);
-    
+    // 특정 결제에 대한 상태별 환불 조회
+    Optional<Refund> findByPaymentAndStatus(Payment payment, RefundStatus status);
+
     // 특정 결제에 대한 대기 중인 환불 신청이 있는지 확인
     boolean existsByPaymentAndStatus(Payment payment, RefundStatus status);
     
