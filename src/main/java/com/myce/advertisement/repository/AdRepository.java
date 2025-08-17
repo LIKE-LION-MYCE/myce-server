@@ -63,4 +63,6 @@ public interface AdRepository extends JpaRepository<Advertisement, Long> {
             "WHERE a.displayEndDate >= :date " +
             "and a.displayEndDate <= CURRENT_DATE")
     long countAllByDateAfter(LocalDate date);
+
+    long countAllByCreatedAtBetween(LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
 }

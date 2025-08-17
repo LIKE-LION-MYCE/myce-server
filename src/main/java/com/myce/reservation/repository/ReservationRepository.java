@@ -209,4 +209,5 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     BigDecimal sumTotalRevenueByExpoId(@Param("expoId") Long expoId);
     List<Reservation> findByUserIdAndUserTypeAndStatus(Long userId, UserType userType, ReservationStatus status);
 
+    Long countAllByCreatedAtBetween(LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
 }

@@ -16,10 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -50,10 +47,12 @@ public class UsageServiceImpl implements UsageService {
     }
 
     private DashboardSummary getTotalExpos(Long periodTime) {
-        LocalDateTime timestamp = LocalDateTime.now().minusDays(periodTime);
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = endDate.minusDays(periodTime);
 
-        long currentCount = expoRepository.countAllAfterDate(timestamp.toLocalDate());
-        long pastCount = expoRepository.countAllAfterDate(timestamp.minusDays(periodTime).toLocalDate());
+        long currentCount = expoRepository.countAllByCreatedAtBetween(startDate, endDate);
+        long pastCount = expoRepository.countAllByCreatedAtBetween(startDate.minusDays(periodTime)
+                , endDate.minusDays(periodTime));
 
         CheckDivideZero comparisonInfo = ComparisonUtil.getCheckDivideZero(pastCount, currentCount);
 
@@ -62,10 +61,12 @@ public class UsageServiceImpl implements UsageService {
     }
 
     private DashboardSummary getTotalReservation(Long period) {
-        LocalDateTime timestamp = LocalDateTime.now().minusDays(period);
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = endDate.minusDays(period);
 
-        long currentCount = reservationRepository.countAllByCreatedAtAfter(timestamp);
-        long pastCount = reservationRepository.countAllByCreatedAtAfter(timestamp.minusDays(period));
+        long currentCount = reservationRepository.countAllByCreatedAtBetween(startDate, endDate);
+        long pastCount = reservationRepository.countAllByCreatedAtBetween(startDate.minusDays(period)
+                , endDate.minusDays(period));
 
         CheckDivideZero comparisonInfo = ComparisonUtil.getCheckDivideZero(pastCount, currentCount);
 
@@ -74,10 +75,12 @@ public class UsageServiceImpl implements UsageService {
     }
 
     private DashboardSummary getTotalAdApply(Long period) {
-        LocalDateTime timestamp = LocalDateTime.now().minusDays(period);
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = endDate.minusDays(period);
 
-        long currentCount = adRepository.countAllByDateAfter(timestamp.toLocalDate());
-        long pastCount = adRepository.countAllByDateAfter(timestamp.minusDays(period).toLocalDate());
+        long currentCount = adRepository.countAllByCreatedAtBetween(startDate, endDate);
+        long pastCount = adRepository.countAllByCreatedAtBetween(startDate.minusDays(period)
+                , endDate.minusDays(period));
 
         CheckDivideZero comparisonInfo = ComparisonUtil.getCheckDivideZero(pastCount, currentCount);
 
@@ -97,40 +100,50 @@ public class UsageServiceImpl implements UsageService {
     }
 
     private DashboardChartData getExpoChartData(long periodTime, long size) {
-        LocalDateTime timestamp = LocalDateTime.now().minusDays(periodTime);
         List<Long> data = new ArrayList<>();
-        for (int i = 1; i <= size; i++) {
-            long currentCount = expoRepository.countAllAfterDate(timestamp.toLocalDate());
-            long pastCount = expoRepository.countAllAfterDate(timestamp.minusDays(periodTime).toLocalDate());
-            data.add(pastCount - currentCount);
-            timestamp = timestamp.minusDays(periodTime);
+
+        LocalDateTime endDate = LocalDateTime.now();
+
+        for (int i = 0; i < size; i++) {
+            LocalDateTime startDate = endDate.minusDays(periodTime);
+
+            long count = expoRepository.countAllByCreatedAtBetween(startDate, endDate);
+            data.add(count);
+
+            endDate = startDate;
         }
         return ChartUtil.getDashboardChartData(periodTime, size, data);
     }
 
     private DashboardChartData getReservationChartData(long periodTime, long size) {
-        LocalDateTime timestamp = LocalDateTime.now().minusDays(periodTime);
         List<Long> data = new ArrayList<>();
-        for (int i = 1; i <= size; i++) {
-            long currentCount = reservationRepository.countAllByCreatedAtAfter(timestamp);
-            long pastCount = reservationRepository.countAllByCreatedAtAfter(timestamp.minusDays(periodTime));
-            data.add(pastCount - currentCount);
-            timestamp = timestamp.minusDays(periodTime);
+
+        LocalDateTime endDate = LocalDateTime.now();
+
+        for (int i = 0; i < size; i++) {
+            LocalDateTime startDate = endDate.minusDays(periodTime);
+
+            long count = reservationRepository.countAllByCreatedAtBetween(startDate, endDate);
+            data.add(count);
+
+            endDate = startDate;
         }
         return ChartUtil.getDashboardChartData(periodTime, size, data);
     }
 
     private DashboardChartData getAdChartData(long periodTime, long size){
-        LocalDateTime timestamp = LocalDateTime.now().minusDays(periodTime);
         List<Long> data = new ArrayList<>();
-        for(int i = 1; i<= size; i++){
-            long currentCount = adRepository.countAllByDateAfter(timestamp.toLocalDate());
-            long pastCount = adRepository.countAllByDateAfter(timestamp.minusDays(periodTime).toLocalDate());
-            data.add(pastCount - currentCount);
-            timestamp = timestamp.minusDays(periodTime);
+
+        LocalDateTime endDate = LocalDateTime.now();
+
+        for(int i = 0; i < size; i++){
+            LocalDateTime startDate = endDate.minusDays(periodTime);
+
+            long count = adRepository.countAllByCreatedAtBetween(startDate, endDate);
+            data.add(count);
+
+            endDate = startDate;
         }
         return ChartUtil.getDashboardChartData(periodTime, size, data);
     }
-
-
 }
