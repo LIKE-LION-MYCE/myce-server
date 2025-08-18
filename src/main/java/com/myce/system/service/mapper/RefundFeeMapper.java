@@ -1,8 +1,10 @@
 package com.myce.system.service.mapper;
 
 import com.myce.system.dto.fee.RefundFeeListResponse;
+import com.myce.system.dto.fee.RefundFeeRequest;
 import com.myce.system.dto.fee.RefundFeeResponse;
 import com.myce.system.entity.RefundFeeSetting;
+import com.myce.system.entity.type.StandardType;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +13,18 @@ import java.util.List;
 
 @Component
 public class RefundFeeMapper {
+
+    public RefundFeeSetting toRefundFeeSetting(RefundFeeRequest request) {
+        return RefundFeeSetting.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .standardType(StandardType.fromString(request.getStandardType()))
+                .standardDayCount(request.getStandardDayCount())
+                .feeRate(request.getFeeRate())
+                .validFrom(request.getValidFrom())
+                .validUntil(request.getValidUntil())
+                .build();
+    }
 
     public RefundFeeListResponse toListResponse(Page<RefundFeeSetting> settings) {
         int currentPage = settings.getNumber() + 1;
@@ -49,6 +63,7 @@ public class RefundFeeMapper {
                 .validUntil(setting.getValidUntil())
                 .createdAt(setting.getCreatedAt())
                 .updatedAt(setting.getUpdatedAt())
+                .isActive(setting.isActive())
                 .build();
     }
 }

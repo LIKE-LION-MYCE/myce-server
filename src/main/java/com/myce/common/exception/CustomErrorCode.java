@@ -156,6 +156,9 @@ public enum CustomErrorCode {
     NOT_EXIST_AD_FEE_SETTING(HttpStatus.NOT_FOUND, "SY002", "광고 요금제가 존재하지 않습니다."),
     NOT_EXIST_EXPO_FEE_SETTING(HttpStatus.NOT_FOUND, "SY003", "박람회 요금제가 존재하지 않습니다."),
     ALREADY_SET_ACTIVATION(HttpStatus.BAD_REQUEST, "SY004", "이미 설정되어있는 활성화 값입니다."),
+    NOT_EXIST_REFUND_TYPE(HttpStatus.NOT_FOUND, "SY005", "존재하지 않는 반환 기준 타입입니다."),
+    ALREADY_EXIST_FEE_IN_DATE(HttpStatus.BAD_REQUEST, "SY006", "해당 날짜에 설정된 요금제가 있습니다."),
+    NOT_EXIST_REFUND_FEE_SETTING(HttpStatus.NOT_FOUND, "SY007", "환불 요금제가 존재하지 않습니다."),
 
     // 엑셀 EX
     EXCEL_EXPORT_FAILED(HttpStatus.NOT_FOUND, "EX001", "엑셀 추출에 실패하였습니다."),
