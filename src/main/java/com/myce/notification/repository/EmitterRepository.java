@@ -9,4 +9,5 @@ public interface EmitterRepository {
     SseEmitter save(String emitterId, SseEmitter sseEmitter);
     void removeSseEmitter(String memberId);
     List<SseEmitter> findAllSseEmitterByMemberId(String memberId);
+    Iterable<SseEmitter> findAll();
 }

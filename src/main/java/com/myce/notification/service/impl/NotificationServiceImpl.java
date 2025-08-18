@@ -25,7 +25,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.myce.system.entity.type.MessageTemplateCode.QR_ISSUED;
@@ -170,7 +169,7 @@ public class NotificationServiceImpl implements NotificationService {
                     .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_MESSAGE_TEMPLATE));
 
             // 해당 박람회 예약자들 조회
-            List<Reservation> reservations = reservationRepository.findByExpoId(expoId);
+            List<Reservation> reservations = reservationRepository.findByExpoIdWithDistinctMemberId(expoId);
             
             if (reservations.isEmpty()) {
                 log.info("알림 전송 대상이 없습니다 - 박람회 ID: {}", expoId);
