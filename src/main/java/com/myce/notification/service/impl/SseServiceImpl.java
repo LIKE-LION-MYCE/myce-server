@@ -76,8 +76,10 @@ public class SseServiceImpl implements SseService {
                     .name(eventName) // 이벤트 이름 추가
                     .data(data));
         } catch (IOException e) {
-            log.error("Failed to send SSE message, sseEmitter complete with error.", e);
             sseEmitter.completeWithError(e);
+            if(e.getMessage().contains("Broken pipe")){
+                log.error("Broken pipe: {}", e.getMessage());
+            }
         }
     }
 

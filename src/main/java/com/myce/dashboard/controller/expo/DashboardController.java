@@ -2,7 +2,6 @@ package com.myce.dashboard.controller.expo;
 
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.common.permission.ExpoAdminAccessValidate;
-import com.myce.common.permission.ExpoAdminPermission;
 import com.myce.dashboard.dto.expo.ExpoDashboardResponse;
 import com.myce.dashboard.dto.expo.DailyReservation;
 import com.myce.dashboard.dto.expo.WeeklyReservationResponse;
@@ -31,7 +30,7 @@ public class DashboardController {
     public ResponseEntity<ExpoDashboardResponse> getExpoDashboard(
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        expoAdminAccessValidate.ensureViewable(expoId, userDetails.getMemberId(), userDetails.getLoginType(), ExpoAdminPermission.EXPO_DETAIL_UPDATE);
+        expoAdminAccessValidate.ensureAdmin(expoId, userDetails.getMemberId(), userDetails.getLoginType());
         ExpoDashboardResponse response = expoDashboardService.getExpoDashboard(expoId);
         return ResponseEntity.ok(response);
     }
@@ -56,7 +55,7 @@ public class DashboardController {
     public ResponseEntity<LocalDate[]> getExpoDisplayDateRange(
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        expoAdminAccessValidate.ensureViewable(expoId, userDetails.getMemberId(), userDetails.getLoginType(), ExpoAdminPermission.EXPO_DETAIL_UPDATE);
+        expoAdminAccessValidate.ensureAdmin(expoId, userDetails.getMemberId(), userDetails.getLoginType());
         LocalDate[] dateRange = expoDashboardService.getExpoDisplayDateRange(expoId);
         return ResponseEntity.ok(dateRange);
     }
@@ -68,7 +67,7 @@ public class DashboardController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        expoAdminAccessValidate.ensureViewable(expoId, userDetails.getMemberId(), userDetails.getLoginType(), ExpoAdminPermission.EXPO_DETAIL_UPDATE);
+        expoAdminAccessValidate.ensureAdmin(expoId, userDetails.getMemberId(), userDetails.getLoginType());
         List<DailyReservation> reservations = expoDashboardService.getWeeklyReservationsByDateRange(expoId, startDate, endDate);
         LocalDate[] displayDateRange = expoDashboardService.getExpoDisplayDateRange(expoId);
         
@@ -86,7 +85,7 @@ public class DashboardController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         
-        expoAdminAccessValidate.ensureViewable(expoId, userDetails.getMemberId(), userDetails.getLoginType(), ExpoAdminPermission.EXPO_DETAIL_UPDATE);
+        expoAdminAccessValidate.ensureAdmin(expoId, userDetails.getMemberId(), userDetails.getLoginType());
         List<HourlyCheckin> hourlyCheckins = checkinStatsService.getHourlyCheckinsByDate(expoId, date);
         return ResponseEntity.ok(hourlyCheckins);
     }

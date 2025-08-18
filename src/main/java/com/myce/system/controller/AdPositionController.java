@@ -9,6 +9,7 @@ import java.util.List;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -36,6 +37,7 @@ public class AdPositionController {
     }
 
     @PutMapping("/{bannerId}/update")
+    @PreAuthorize("hasAuthority('PLATFORM_ADMIN')")
     public ResponseEntity<Void> updateAdPosition(@PathVariable long bannerId,
             @RequestBody @Valid AdPositionUpdateRequest request) {
         adPositionService.updateAdPosition(bannerId, request);
@@ -43,6 +45,7 @@ public class AdPositionController {
     }
 
     @PostMapping("/new")
+    @PreAuthorize("hasAuthority('PLATFORM_ADMIN')")
     public ResponseEntity<Void> newAdPosition(
             @RequestBody @Valid AdPositionNewRequest request){
         adPositionService.addAdPosition(request);
@@ -50,6 +53,7 @@ public class AdPositionController {
     }
 
     @DeleteMapping("/{bannerId}/delete")
+    @PreAuthorize("hasAuthority('PLATFORM_ADMIN')")
     public ResponseEntity<Void> deleteAdPosition(@PathVariable long bannerId) {
         adPositionService.deleteAdPosition(bannerId);
         return ResponseEntity.ok().build();

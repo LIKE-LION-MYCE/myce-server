@@ -33,6 +33,17 @@ import java.time.LocalTime;
     Class<? extends Payload>[] payload() default {};
 }
 
+// 시작시간 분 단위 검증을 위한 커스텀 어노테이션
+@Constraint(validatedBy = EventRequest.ValidStartTimeMinuteValidator.class)
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@interface ValidStartTimeMinute {
+    String message() default "시작시간은 정각(00분) 또는 30분만 입력 가능합니다.";
+    Class<?>[] groups() default {};
+    Class<? extends Payload>[] payload() default {};
+}
+
 @Getter
 @Builder
 @NoArgsConstructor
@@ -49,6 +60,7 @@ public class EventRequest {
 
     @NotNull(message = "시작 시간을 입력해주세요.")
     @JsonFormat(pattern = "HH:mm")
+    @ValidStartTimeMinute
     private LocalTime startTime;
 
     @NotNull(message = "종료 시간을 입력해주세요.")
@@ -80,6 +92,19 @@ public class EventRequest {
                 return true; // null 체크는 @NotNull에서 처리
             }
             return eventRequest.getStartTime().isBefore(eventRequest.getEndTime());
+        }
+    }
+
+    // 시작시간 분 단위 검증 클래스
+    public static class ValidStartTimeMinuteValidator implements ConstraintValidator<ValidStartTimeMinute, LocalTime> {
+        @Override
+        public boolean isValid(LocalTime startTime, ConstraintValidatorContext context) {
+            if (startTime == null) {
+                return true; // null 체크는 @NotNull에서 처리
+            }
+            // 분이 0 또는 30인 경우만 허용
+            int minute = startTime.getMinute();
+            return minute == 0 || minute == 30;
         }
     }
 }

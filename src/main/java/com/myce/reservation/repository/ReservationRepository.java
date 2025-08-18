@@ -190,13 +190,13 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("SELECT t.name as ticketType, " +
             "t.totalQuantity as totalQuantity, " +
             "COALESCE(SUM(r.quantity), 0) as soldCount, " +
-            "t.remainingQuantity as remainingCount, " +
+            "(t.totalQuantity - COALESCE(SUM(r.quantity), 0)) as remainingCount, " +
             "t.price as unitPrice, " +
             "COALESCE(SUM(r.quantity * t.price), 0) as totalRevenue " +
             "FROM Ticket t " +
             "LEFT JOIN Reservation r ON r.ticket.id = t.id AND r.status = 'CONFIRMED' AND r.expo.id = :expoId " +
             "WHERE t.expo.id = :expoId " +
-            "GROUP BY t.id, t.name, t.totalQuantity, t.remainingQuantity, t.price " +
+            "GROUP BY t.id, t.name, t.totalQuantity, t.price " +
             "ORDER BY totalRevenue DESC")
     List<Object[]> getTicketSalesDetailByExpoId(@Param("expoId") Long expoId);
 

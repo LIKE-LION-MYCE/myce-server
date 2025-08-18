@@ -65,6 +65,37 @@ public class ExpoAdminAccessValidate {
         }
     }
 
+    // 대시보드용 단순 관리자 권한 체크 (권한별 세부 검증 없이 관리자인지만 확인)
+    public void ensureAdmin(Long expoId, Long memberId, LoginType loginType) {
+        if (memberId == null || loginType == null) {
+            throw new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
+        }
+
+        // 해당 박람회의 상태가 조회 가능한 상태인지 확인
+        ExpoStatus status = expoRepository.findStatusById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
+
+        if (!ExpoStatus.ADMIN_VIEWABLE_STATUSES.contains(status)) {
+            throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+        }
+
+        // 박람회 관리자인지만 간단히 확인
+        switch (loginType) {
+            case MEMBER -> {
+                if (!expoRepository.existsByIdAndMemberId(expoId, memberId)) {
+                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+                }
+            }
+            case ADMIN_CODE -> {
+                // 관리 코드로 로그인한 경우, 해당 박람회의 관리 코드인지만 확인
+                if (!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoId(memberId, expoId)) {
+                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
+                }
+            }
+            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
+        }
+    }
+
     private void expoAdminValidate(Long expoId, Long memberId, LoginType loginType, ExpoAdminPermission permission) {
         switch (loginType){
             case MEMBER -> {

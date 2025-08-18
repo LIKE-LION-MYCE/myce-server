@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import static com.myce.system.entity.type.MessageTemplateCode.QR_ISSUED;
 import static com.myce.system.entity.type.MessageTemplateCode.QR_REISSUED;
 import static com.myce.system.entity.type.MessageTemplateCode.PAYMENT_COMPLETE;
+import static com.myce.system.entity.type.MessageTemplateCode.EVENT_REMINDER;
 
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.advertisement.repository.AdRepository;
@@ -138,6 +139,36 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void sendQrIssuedNotificationByReservationId(Long reservationId) {
+        try {
+            // 새로운 트랜잭션에서 예약 정보를 조회하여 LazyInitializationException 방지
+            Reservation reservation = reservationRepository.findById(reservationId)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+            
+            // MEMBER 타입인 경우에만 알림 전송
+            if (reservation.getUserType() != UserType.MEMBER) {
+                log.debug("알림 건너뜀 - 회원이 아닌 예약 (UserType: {}, 예약 ID: {})", 
+                        reservation.getUserType(), reservation.getId());
+                return;
+            }
+            
+            Long memberId = reservation.getUserId();
+            String expoTitle = reservation.getExpo().getTitle();
+            
+            // 기존 sendQrIssuedNotification 메서드 호출
+            sendQrIssuedNotification(memberId, reservation.getId(), expoTitle, false);
+            
+            log.info("QR 발급 알림 처리 완료 - 예약 ID: {}, 회원 ID: {}", 
+                    reservation.getId(), memberId);
+        } catch (Exception e) {
+            log.error("QR 발급 알림 처리 실패 - 예약 ID: {}, 오류: {}", 
+                    reservationId, e.getMessage(), e);
+            throw e; // 트랜잭션 롤백을 위해 예외 재발생
+        }
+    }
+
+    @Override
     public void sendPaymentCompleteNotification(Long memberId, Long reservationId, String expoTitle, String paymentAmount) {
         try {
             MessageTemplateSetting template = messageTemplateSettingRepository
@@ -202,6 +233,56 @@ public class NotificationServiceImpl implements NotificationService {
                     
         } catch (Exception e) {
             log.error("박람회 시작 알림 전송 실패 - 박람회 ID: {}, 오류: {}", 
+                    expoId, e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void sendEventHourReminderNotification(Long expoId, String eventName, String startTime) {
+        try {
+            // 메시지 템플릿 조회
+            MessageTemplateSetting template = messageTemplateSettingRepository.findByCodeAndChannelType(
+                            EVENT_REMINDER, ChannelType.NOTIFICATION)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_MESSAGE_TEMPLATE));
+
+            // 해당 박람회 예약자들 조회
+            List<Reservation> reservations = reservationRepository.findByExpoIdWithDistinctMemberId(expoId);
+            
+            if (reservations.isEmpty()) {
+                log.info("1시간 전 알림 전송 대상이 없습니다 - 박람회 ID: {}", expoId);
+                return;
+            }
+
+            // 박람회 정보 조회
+            Expo expo = expoRepository.findById(expoId)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+            String content = template.getContent()
+                    .replace("{expoTitle}", expo.getTitle())
+                    .replace("{eventName}", eventName)
+                    .replace("{startTime}", startTime);
+
+            // 각 예약자에게 알림 전송
+            int notificationCount = 0;
+            for (Reservation reservation : reservations) {
+                // 회원 예약만 알림 발송
+                if (reservation.getUserType() == UserType.MEMBER) {
+                    saveNotification(
+                        reservation.getUserId(), 
+                        expoId, 
+                        template.getSubject(), 
+                        content,
+                        NotificationType.EVENT_REMINDER,
+                        NotificationTargetType.EXPO
+                    );
+                    notificationCount++;
+                }
+            }
+            
+            log.info("행사 1시간 전 알림 처리 완료 - 박람회 ID: {}, 알림 수: {} 개", 
+                    expoId, notificationCount);
+                    
+        } catch (Exception e) {
+            log.error("행사 1시간 전 알림 전송 실패 - 박람회 ID: {}, 오류: {}", 
                     expoId, e.getMessage(), e);
         }
     }

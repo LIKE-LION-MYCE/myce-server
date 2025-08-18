@@ -6,6 +6,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AdminPermissionRepository extends JpaRepository<AdminPermission, Long> {
+    // 해당 박람회의 관리 코드인지 확인 (권한 상관없이)
+    boolean existsByAdminCodeIdAndAdminCodeExpoId(Long adminCodeId, Long expoId);
+    
     boolean existsByAdminCodeIdAndAdminCodeExpoIdAndIsExpoDetailUpdateTrue(Long adminCodeId, Long expoId);
     boolean existsByAdminCodeIdAndAdminCodeExpoIdAndIsBoothInfoUpdateTrue(Long adminCodeId, Long expoId);
     boolean existsByAdminCodeIdAndAdminCodeExpoIdAndIsScheduleUpdateTrue(Long adminCodeId, Long expoId);

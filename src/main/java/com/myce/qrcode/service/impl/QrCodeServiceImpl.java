@@ -77,6 +77,28 @@ public class QrCodeServiceImpl implements QrCodeService {
 
     @Override
     @Transactional
+    public void issueQrWithoutNotification(Long reserverId) {
+        log.info("QR 코드 발급 시작 (알림 없음) - 예약자 ID: {}", reserverId);
+
+        Reserver reserver = reserverRepository.findById(reserverId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVER_NOT_FOUND));
+
+        if (qrCodeRepository.findByReserver(reserver).isPresent()) {
+            log.debug("[issueQrWithoutNotification] 중복 발급 요청 차단 - 이미 QR 존재. reserverId={}", reserverId);
+            return;
+        }
+
+        try {
+            createAndSaveQrCode(reserver);
+            log.info("QR 코드 발급 완료 (알림 없음) - 예약자 ID: {}", reserverId);
+        } catch (Exception e) {
+            log.error("QR 코드 발급 실패 (알림 없음) - 예약자 ID: {}, 오류: {}", reserverId, e.getMessage(), e);
+            throw new CustomException(CustomErrorCode.QR_GENERATION_FAILED);
+        }
+    }
+
+    @Override
+    @Transactional
     public void reissueQr(Long reserverId, Long adminMemberId, LoginType loginType) {
         log.info("QR 코드 재발급 시작 - 예약자 ID: {}, 관리자 ID: {}", reserverId, adminMemberId);
 
@@ -346,7 +368,9 @@ public class QrCodeServiceImpl implements QrCodeService {
             
             int successCount = 0;
             int failCount = 0;
+            boolean shouldSendNotification = false;
             
+            // 1단계: 모든 reserver에 대해 QR 생성
             for (Reserver reserver : reservers) {
                 try {
                     // 기존 QR이 있는지 확인
@@ -359,13 +383,24 @@ public class QrCodeServiceImpl implements QrCodeService {
                     createQrCodeWithAppropriateStatus(reserver);
                     log.debug("즉시 QR 코드 생성 완료 - 예약자 ID: {}", reserver.getId());
                     
-                    // 알림 전송
-                    sendQrIssuedNotification(reserver, false);
                     successCount++;
+                    shouldSendNotification = true; // 하나라도 성공하면 알림 전송
                 } catch (Exception e) {
                     log.error("즉시 QR 코드 생성 실패 - 예약자 ID: {}, 오류: {}", 
                             reserver.getId(), e.getMessage(), e);
                     failCount++;
+                }
+            }
+            
+            // 2단계: QR 생성이 성공한 경우에만 예약별 알림 전송 (1회)
+            if (shouldSendNotification && reservation.getUserType() == UserType.MEMBER) {
+                try {
+                    Long memberId = reservation.getUserId();
+                    String expoTitle = reservation.getExpo().getTitle();
+                    notificationService.sendQrIssuedNotification(memberId, reservation.getId(), expoTitle, false);
+                    log.info("QR 발급 알림 처리 완료 - 예약 ID: {}, 회원 ID: {}", reservationId, memberId);
+                } catch (Exception e) {
+                    log.error("QR 발급 알림 처리 실패 - 예약 ID: {}, 오류: {}", reservationId, e.getMessage(), e);
                 }
             }
             
