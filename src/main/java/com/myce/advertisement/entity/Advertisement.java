@@ -120,7 +120,13 @@ public class Advertisement {
         if (this.status != AdvertisementStatus.PENDING_CANCEL) {
             throw new CustomException(CustomErrorCode.INVALID_ADVERTISEMENT_STATUS);
         }
-        this.status = AdvertisementStatus.PUBLISHED;
+        if (this.displayEndDate.isBefore(LocalDate.now())) {
+            this.status = AdvertisementStatus.COMPLETED;
+        }else if(this.displayStartDate.isBefore(LocalDate.now())){
+            this.status = AdvertisementStatus.PUBLISHED;
+        }else{
+            this.status = AdvertisementStatus.PENDING_PUBLISH;
+        }
     }
 
     public void complete() {
