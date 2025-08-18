@@ -76,8 +76,6 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
         Refund refund = refundRepository.findByPayment(payment)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.REFUND_NOT_FOUND));
 
-        refund.updateToRefund();
-
         if(refund.getIsPartial()){
             adPayment.setStatus(PaymentStatus.PARTIAL_REFUNDED);
         }else{
@@ -86,7 +84,9 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
         adPayment.setUpdatedAt(LocalDateTime.now());
 
         log.info("cancelCurrent - Advertisement : {}, Payment : {}", ad, payment);
+        log.info("refund.isPartial = {}", refund.getIsPartial());
 
+        refund.updateToRefund();
         ad.cancel();
     }
 }
