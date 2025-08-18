@@ -94,4 +94,15 @@ public class ReservationController {
         reservationService.deletePendingReservation(reservationId);
         return ResponseEntity.noContent().build();
     }
+
+    // 비회원 예매 조회 (이메일 + 예매번호)
+    @GetMapping("/non-member")
+    public ResponseEntity<ReservationDetailResponse> getNonMemberReservation(
+            @RequestParam String email,
+            @RequestParam String reservationCode) {
+        
+        ReservationDetailResponse reservationDetail = reservationService.getNonMemberReservationDetail(email, reservationCode);
+        
+        return ResponseEntity.ok(reservationDetail);
+    }
 }

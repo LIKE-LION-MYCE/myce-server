@@ -26,4 +26,6 @@ public interface ReservationService {
     void deletePendingReservation(Long reservationId);
 
     ReservationPendingResponse getVirtualAccountInfo(Long reservationId);
+
+    ReservationDetailResponse getNonMemberReservationDetail(String email, String reservationCode);
 }

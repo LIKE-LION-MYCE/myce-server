@@ -134,6 +134,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     List<Reservation> findByExpoId(Long expoId);
 
+    @Query("SELECT r FROM Reservation r " +
+            "WHERE r.expo.id = :expoId AND r.userType = 'MEMBER' " +
+            "GROUP BY r.userId")
+    List<Reservation> findByExpoIdWithDistinctMemberId(Long expoId);
+
     // === 대시보드 통계용 쿼리 메서드들 ===
 
     // 특정 박람회의 누적 판매 개수 (현재 존재하는 티켓의 확정된 예약 수량 총합)
@@ -213,4 +218,19 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> findByUserIdAndUserTypeAndStatus(Long userId, UserType userType, ReservationStatus status);
 
     Long countAllByCreatedAtBetween(LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
+
+    @Query("""
+            SELECT r FROM Reservation r 
+            JOIN FETCH r.expo e 
+            JOIN FETCH r.ticket t 
+            LEFT JOIN Guest g ON r.userType = com.myce.reservation.entity.code.UserType.GUEST AND r.userId = g.id 
+            LEFT JOIN Member m ON r.userType = com.myce.reservation.entity.code.UserType.MEMBER AND r.userId = m.id 
+            WHERE r.reservationCode = :reservationCode 
+            AND (
+                (r.userType = com.myce.reservation.entity.code.UserType.GUEST AND g.email = :email) OR 
+                (r.userType = com.myce.reservation.entity.code.UserType.MEMBER AND m.email = :email)
+            )
+            """)
+    Optional<Reservation> findByReservationCodeAndEmail(@Param("reservationCode") String reservationCode, 
+                                                        @Param("email") String email);
 }

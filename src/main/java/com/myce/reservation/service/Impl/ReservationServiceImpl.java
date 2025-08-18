@@ -237,4 +237,35 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationMapper.toPendingResponse(payment, reservationPaymentInfo.getTotalAmount(),
             formattedDueDate);
     }
+
+    @Override
+    public ReservationDetailResponse getNonMemberReservationDetail(String email, String reservationCode) {
+        Reservation reservation = reservationRepository.findByReservationCodeAndEmail(reservationCode, email)
+            .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+
+        // 예매자 정보 조회
+        List<Reserver> reservers = reserverRepository.findByReservationId(reservation.getId());
+
+        // 결제 정보 조회
+        ReservationPaymentInfo paymentInfo = reservationPaymentInfoRepository.findByReservationId(reservation.getId())
+            .orElse(null);
+
+        // 결제 완료된 경우 Payment 정보와 Member 등급 조회
+        if (paymentInfo != null) {
+            Payment payment = paymentRepository.findByTargetIdAndTargetType(reservation.getId(), PaymentTargetType.RESERVATION)
+                .orElse(null);
+            
+            MemberGrade memberGrade = null;
+            if (reservation.getUserType() == UserType.MEMBER) {
+                Member member = memberRepository.findById(reservation.getUserId())
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+                memberGrade = member.getMemberGrade();
+            }
+            
+            return reservationDetailMapper.toResponseDto(reservation, reservers, paymentInfo, payment, memberGrade);
+        } else {
+            // 결제 정보가 없는 경우 (예: 대기 상태)
+            return reservationDetailMapper.toResponseDto(reservation, reservers);
+        }
+    }
 }

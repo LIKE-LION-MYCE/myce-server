@@ -31,4 +31,9 @@ public class EmitterRepositoryImpl implements EmitterRepository {
                 .map(sseEmitters::get)
                 .toList();
     }
+
+    @Override
+    public Iterable<SseEmitter> findAll() {
+        return sseEmitters.values();
+    }
 }

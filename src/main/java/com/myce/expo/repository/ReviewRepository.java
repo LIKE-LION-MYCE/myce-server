@@ -34,4 +34,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     
     // 사용자별 리뷰 목록 조회
     Page<Review> findByMemberIdOrderByCreatedAtDesc(Long memberId, Pageable pageable);
+    
+    // 베스트 리뷰 조회 (평점 높고 최신순)
+    @Query("SELECT r FROM Review r ORDER BY r.rating DESC, r.createdAt DESC")
+    Page<Review> findBestReviews(Pageable pageable);
 }
