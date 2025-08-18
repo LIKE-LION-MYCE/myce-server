@@ -139,6 +139,36 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void sendQrIssuedNotificationByReservationId(Long reservationId) {
+        try {
+            // 새로운 트랜잭션에서 예약 정보를 조회하여 LazyInitializationException 방지
+            Reservation reservation = reservationRepository.findById(reservationId)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+            
+            // MEMBER 타입인 경우에만 알림 전송
+            if (reservation.getUserType() != UserType.MEMBER) {
+                log.debug("알림 건너뜀 - 회원이 아닌 예약 (UserType: {}, 예약 ID: {})", 
+                        reservation.getUserType(), reservation.getId());
+                return;
+            }
+            
+            Long memberId = reservation.getUserId();
+            String expoTitle = reservation.getExpo().getTitle();
+            
+            // 기존 sendQrIssuedNotification 메서드 호출
+            sendQrIssuedNotification(memberId, reservation.getId(), expoTitle, false);
+            
+            log.info("QR 발급 알림 처리 완료 - 예약 ID: {}, 회원 ID: {}", 
+                    reservation.getId(), memberId);
+        } catch (Exception e) {
+            log.error("QR 발급 알림 처리 실패 - 예약 ID: {}, 오류: {}", 
+                    reservationId, e.getMessage(), e);
+            throw e; // 트랜잭션 롤백을 위해 예외 재발생
+        }
+    }
+
+    @Override
     public void sendPaymentCompleteNotification(Long memberId, Long reservationId, String expoTitle, String paymentAmount) {
         try {
             MessageTemplateSetting template = messageTemplateSettingRepository

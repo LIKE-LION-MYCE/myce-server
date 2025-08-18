@@ -38,7 +38,7 @@ public class ExpoNotificationScheduler implements TaskScheduler {
     @Scheduled(cron = "${scheduler.expo-notification}")
     @Transactional
     public void run() {
-        log.info("[Scheduler] 박람회 시작 하루 전 알림 스케줄러 실행");
+        log.info("[Scheduler] 박람회 시작 하루 전 알림 스케줄러 실행 - 실행 시간: {}", java.time.LocalDateTime.now());
         try {
             process();
         } catch (Exception e) {
