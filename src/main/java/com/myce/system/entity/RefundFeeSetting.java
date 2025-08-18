@@ -53,8 +53,9 @@ public class RefundFeeSetting {
     private LocalDateTime updatedAt;
 
     @Builder
-    public RefundFeeSetting(StandardType standardType, int standardDayCount,
+    public RefundFeeSetting(String name, StandardType standardType, int standardDayCount,
             BigDecimal feeRate, String description, LocalDateTime validFrom, LocalDateTime validUntil) {
+        this.name = name;
         this.standardType = standardType;
         this.standardDayCount = standardDayCount;
         this.feeRate = feeRate;
@@ -64,8 +65,27 @@ public class RefundFeeSetting {
         this.validUntil = validUntil;
     }
 
+    public void updateFeeSetting(String name, int standardDayCount,
+            BigDecimal feeRate, String description, LocalDateTime validFrom, LocalDateTime validUntil) {
+        this.name = name;
+        this.standardDayCount = standardDayCount;
+        this.feeRate = feeRate;
+        this.description = description;
+//        this.isActive = checkIsActive(validFrom, validUntil);
+        this.validFrom = validFrom;
+        this.validUntil = validUntil;
+    }
+
     private boolean checkIsActive(LocalDateTime validFrom, LocalDateTime validUntil) {
         LocalDateTime now = LocalDateTime.now();
         return validFrom.isBefore(now) && validUntil.isAfter(now);
+    }
+
+    public void inactive() {
+        this.isActive = false;
+    }
+
+    public void active() {
+        this.isActive = true;
     }
 }

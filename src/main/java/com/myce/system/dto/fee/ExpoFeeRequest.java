@@ -1,6 +1,7 @@
 package com.myce.system.dto.fee;
 
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import lombok.Getter;
@@ -11,6 +12,10 @@ import lombok.ToString;
 @Getter
 @NoArgsConstructor
 public class ExpoFeeRequest {
+
+    @NotBlank(message = "요금제명을 입력해주세요.")
+    private String name;
+
     @NotNull(message = "등록금을 입력해주세요.")
     @Min(value = 0, message = "등록금은 0원 이상 입력되어야 합니다.")
     private Integer deposit;

@@ -12,6 +12,7 @@ public class ExpoFeeMapper {
 
     public ExpoFeeSetting toExpoFeeSetting(ExpoFeeRequest request) {
         return ExpoFeeSetting.builder()
+                .name(request.getName())
                 .deposit(request.getDeposit())
                 .premiumDeposit(request.getPremiumDeposit())
                 .settlementCommission(request.getSettlementCommission())
