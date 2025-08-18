@@ -78,7 +78,7 @@ public class EventServiceImpl implements EventService {
     @Transactional(readOnly = true)
     public List<EventResponse> getPublicEvents(Long expoId) {
         // 행사 엔티티 목록 조회 (권한 검증 없음)
-        List<Event> events = eventRepository.findAllByExpoId(expoId);
+        List<Event> events = eventRepository.findAllByExpoIdOrderByEventDateAscStartTimeAsc(expoId);
 
         // 행사 엔티티를 응답 dto로 매핑하여 리스트로 반환
         return events.stream()
