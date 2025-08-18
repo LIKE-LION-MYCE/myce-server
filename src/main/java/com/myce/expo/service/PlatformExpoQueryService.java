@@ -1,10 +1,7 @@
 package com.myce.expo.service;
 
 import com.myce.common.dto.PageResponse;
-import com.myce.expo.dto.ExpoApplicationResponse;
-import com.myce.expo.dto.ExpoApplicationDetailResponse;
-import com.myce.expo.dto.ExpoRejectionInfoResponse;
-import com.myce.expo.dto.ExpoCancelDetailResponse;
+import com.myce.expo.dto.*;
 import com.myce.member.dto.expo.ExpoPaymentDetailResponse;
 import com.myce.member.dto.expo.ExpoRefundReceiptResponse;
 
@@ -54,4 +51,6 @@ public interface PlatformExpoQueryService {
     PageResponse<ExpoApplicationResponse> getCurrentExpos(
             int page, int pageSize,
             boolean latestFirst, String status, String keyword);
+
+    ExpoAdminInfoResponse getExpoAdminInfo(Long expoId);
 }

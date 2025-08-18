@@ -2,10 +2,7 @@ package com.myce.expo.controller;
 
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.common.dto.PageResponse;
-import com.myce.expo.dto.ExpoApplicationResponse;
-import com.myce.expo.dto.ExpoApplicationDetailResponse;
-import com.myce.expo.dto.ExpoPaymentPreviewResponse;
-import com.myce.expo.dto.ExpoRejectionRequest;
+import com.myce.expo.dto.*;
 import com.myce.expo.service.PlatformExpoQueryService;
 import com.myce.expo.service.PlatformExpoManageService;
 import com.myce.member.dto.expo.ExpoSettlementReceiptResponse;
@@ -220,5 +217,11 @@ public class PlatformExpoController {
         ExpoSettlementReceiptResponse response = memberExpoService.getExpoSettlementReceipt(memberId, expoId);
         
         return ResponseEntity.ok(response);
+    }
+    // 박람회 관리자 목록 조회
+    @GetMapping("/{expoId}/admin-info")
+    public ResponseEntity<ExpoAdminInfoResponse> getExpoAdminInfo(@PathVariable Long expoId) {
+
+        return ResponseEntity.ok(platformExpoQueryService.getExpoAdminInfo(expoId));
     }
 }

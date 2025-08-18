@@ -6,18 +6,18 @@ import com.myce.common.entity.type.TargetType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
-import com.myce.expo.dto.ExpoApplicationResponse;
-import com.myce.expo.dto.ExpoApplicationDetailResponse;
-import com.myce.expo.dto.ExpoRejectionInfoResponse;
-import com.myce.expo.dto.ExpoCancelDetailResponse;
+import com.myce.expo.dto.*;
+import com.myce.expo.entity.AdminCode;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.type.ExpoStatus;
+import com.myce.expo.repository.AdminCodeRepository;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.common.entity.RejectInfo;
 import com.myce.common.repository.RejectInfoRepository;
 import com.myce.expo.service.PlatformExpoQueryService;
 import com.myce.expo.service.mapper.ExpoApplicationMapper;
 import com.myce.expo.service.mapper.ExpoCancelDetailMapper;
+import com.myce.expo.service.mapper.PlatformExpoMapper;
 import com.myce.member.dto.expo.ExpoPaymentDetailResponse;
 import com.myce.member.dto.expo.ExpoRefundReceiptResponse;
 import com.myce.member.mapper.expo.ExpoPaymentDetailMapper;
@@ -75,6 +75,8 @@ public class PlatformExpoQueryServiceImpl implements PlatformExpoQueryService {
     private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
     private final MemberRepository memberRepository;
     private final GuestRepository guestRepository;
+
+    private final AdminCodeRepository adminCodeRepository;
 
     @Override
     public PageResponse<ExpoApplicationResponse> getAllExpoApplications(
@@ -348,5 +350,13 @@ public class PlatformExpoQueryServiceImpl implements PlatformExpoQueryService {
                 Sort.by("createdAt").descending() : 
                 Sort.by("createdAt").ascending();
         return PageRequest.of(page, pageSize, sort);
+    }
+
+    @Override
+    public ExpoAdminInfoResponse getExpoAdminInfo(Long expoId) {
+        List<AdminCode> subAdmins = adminCodeRepository.findByExpoId(expoId);
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
+        return PlatformExpoMapper.getExpoAdminInfoResponse(expo, subAdmins);
     }
 }
