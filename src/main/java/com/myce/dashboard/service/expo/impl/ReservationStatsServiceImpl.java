@@ -57,7 +57,7 @@ public class ReservationStatsServiceImpl implements ReservationStatsService {
 
         // RDB에서 직접 조회할 데이터 (정확성 중요) - 캐싱 적용
         Long totalReservations = getCachedValueOrCompute(
-                expoId + ":total_reservations:v2",
+                expoId + ":total_reservations:v4",
                 () -> reservationRepository.countTotalReservationsByExpoId(expoId),
                 Long.class,
                 HEAVY_CACHE_TTL_MINUTES
@@ -102,7 +102,7 @@ public class ReservationStatsServiceImpl implements ReservationStatsService {
 
         // 캐시 키 삭제 후 다음 조회 시 자동으로 갱신되도록 함
         String todayKey = REDIS_KEY_PREFIX + expoId + ":reservations:today:v3";
-        String totalKey = REDIS_KEY_PREFIX + expoId + ":total_reservations:v2";
+        String totalKey = REDIS_KEY_PREFIX + expoId + ":total_reservations:v4";
         String genderKey = REDIS_KEY_PREFIX + expoId + ":gender_stats";
         String ageKey = REDIS_KEY_PREFIX + expoId + ":age_stats";
 
@@ -120,7 +120,7 @@ public class ReservationStatsServiceImpl implements ReservationStatsService {
 
         // 모든 예약 관련 캐시 키 삭제
         String todayKey = REDIS_KEY_PREFIX + expoId + ":reservations:today:v3";
-        String totalKey = REDIS_KEY_PREFIX + expoId + ":total_reservations:v2";
+        String totalKey = REDIS_KEY_PREFIX + expoId + ":total_reservations:v4";
         String genderKey = REDIS_KEY_PREFIX + expoId + ":gender_stats:v2";
         String ageKey = REDIS_KEY_PREFIX + expoId + ":age_stats:v2";
 
