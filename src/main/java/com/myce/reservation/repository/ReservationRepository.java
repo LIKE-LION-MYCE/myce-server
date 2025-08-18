@@ -181,7 +181,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("SELECT COUNT(r) FROM Reservation r WHERE r.expo.id = :expoId AND r.status = 'CANCELLED'")
     Long countCancelledReservationsByExpoId(@Param("expoId") Long expoId);
 
-    // 특정 박람회의 티켓 종류별 판매 현황 (reservation 테이블 기준)
+    // 특정 박람회의 티켓 종류별 판매 현황 (현재 존재하는 티켓의 확정된 예약만)
     @Query("SELECT t.name as ticketType, " +
             "t.totalQuantity as totalQuantity, " +
             "COALESCE(SUM(r.quantity), 0) as soldCount, " +
@@ -189,7 +189,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             "t.price as unitPrice, " +
             "COALESCE(SUM(r.quantity * t.price), 0) as totalRevenue " +
             "FROM Ticket t " +
-            "LEFT JOIN Reservation r ON r.ticket.id = t.id AND r.status = 'CONFIRMED' " +
+            "LEFT JOIN Reservation r ON r.ticket.id = t.id AND r.status = 'CONFIRMED' AND r.expo.id = :expoId " +
             "WHERE t.expo.id = :expoId " +
             "GROUP BY t.id, t.name, t.totalQuantity, t.remainingQuantity, t.price " +
             "ORDER BY totalRevenue DESC")
