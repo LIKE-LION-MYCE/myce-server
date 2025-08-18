@@ -13,6 +13,7 @@ public interface NotificationService {
     void sendQrIssuedNotification(Long memberId, Long reservationId, String expoTitle, boolean isReissue);
     void sendQrIssuedNotificationByReservationId(Long reservationId);
     void sendExpoStartNotification(Long expoId);
+    void sendEventHourReminderNotification(Long expoId, String eventName, String startTime);
     void sendPaymentCompleteNotification(Long memberId, Long reservationId, String expoTitle, String paymentAmount);
     void sendExpoStatusChangeNotification(Long expoId, String expoTitle, String oldStatus, String newStatus);
     void sendAdvertisementStatusChangeNotification(Long advertisementId, String adTitle, String oldStatus, String newStatus);
