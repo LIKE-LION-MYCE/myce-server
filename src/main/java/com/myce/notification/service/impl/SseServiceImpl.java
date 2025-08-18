@@ -12,6 +12,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.List;
+import org.apache.catalina.connector.ClientAbortException;
 
 @Service
 @RequiredArgsConstructor
@@ -64,8 +65,17 @@ public class SseServiceImpl implements SseService {
         try {
             sseEmitter.send(SseEmitter.event()
                     .data(content));
+        } catch (ClientAbortException e) {
+            // 클라이언트 연결 중단 - 정상적인 상황, debug 레벨로 로그
+            log.debug("SSE 클라이언트 연결이 중단되었습니다 (정상): {}", e.getMessage());
+            sseEmitter.completeWithError(e);
         } catch (IOException e) {
-            log.error("Failed to send SSE message, sseEmitter complete with error.", e);
+            // 기타 IO 예외
+            log.warn("SSE 연결 IO 오류: {}", e.getMessage());
+            sseEmitter.completeWithError(e);
+        } catch (Exception e) {
+            // 예상하지 못한 예외
+            log.error("SSE 메시지 전송 중 예상치 못한 오류 발생", e);
             sseEmitter.completeWithError(e);
         }
     }
