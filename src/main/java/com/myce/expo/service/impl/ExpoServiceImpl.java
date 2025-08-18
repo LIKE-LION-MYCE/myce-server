@@ -402,7 +402,7 @@ public class ExpoServiceImpl implements ExpoService {
             throw new CustomException(CustomErrorCode.EXPO_NOT_PUBLISHED);
         }
 
-        List<Booth> booths = boothRepository.findAllByExpoId(expoId);
+                List<Booth> booths = boothRepository.findByExpoIdSorted(expoId);
 
         return booths.stream()
                 .map(boothMapper::toResponse)
