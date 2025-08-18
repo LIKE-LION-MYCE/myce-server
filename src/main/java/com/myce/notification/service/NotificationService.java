@@ -13,6 +13,8 @@ public interface NotificationService {
     void sendQrIssuedNotification(Long memberId, Long reservationId, String expoTitle, boolean isReissue);
     void sendExpoStartNotification(Long expoId);
     void sendPaymentCompleteNotification(Long memberId, Long reservationId, String expoTitle, String paymentAmount);
+    void sendExpoStatusChangeNotification(Long expoId, String expoTitle, String oldStatus, String newStatus);
+    void sendAdvertisementStatusChangeNotification(Long advertisementId, String adTitle, String oldStatus, String newStatus);
     List<NotificationResponse> getNotificationsByMemberId(Long memberId);
     void markAsRead(String notificationId, Long memberId);
     void markAllAsRead(Long memberId);

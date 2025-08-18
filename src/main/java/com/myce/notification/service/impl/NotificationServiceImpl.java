@@ -1,5 +1,7 @@
 package com.myce.notification.service.impl;
 
+import com.myce.advertisement.entity.Advertisement;
+import com.myce.expo.entity.Expo;
 import com.myce.notification.document.Notification;
 import com.myce.notification.dto.NotificationResponse;
 import com.myce.notification.entity.type.NotificationType;
@@ -30,6 +32,9 @@ import static com.myce.system.entity.type.MessageTemplateCode.QR_ISSUED;
 import static com.myce.system.entity.type.MessageTemplateCode.QR_REISSUED;
 import static com.myce.system.entity.type.MessageTemplateCode.PAYMENT_COMPLETE;
 
+import com.myce.expo.repository.ExpoRepository;
+import com.myce.advertisement.repository.AdRepository;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -39,6 +44,8 @@ public class NotificationServiceImpl implements NotificationService {
     private final SseService sseService;
     private final ReservationRepository reservationRepository;
     private final MessageTemplateSettingRepository messageTemplateSettingRepository;
+    private final ExpoRepository expoRepository;
+    private final AdRepository advertisementRepository;
 
 
     @Override
@@ -146,6 +153,7 @@ public class NotificationServiceImpl implements NotificationService {
             // 공통 saveNotification 메서드 호출
             saveNotification(memberId, reservationId, title, content, 
                            NotificationType.RESERVATION_CONFIRM, NotificationTargetType.RESERVATION);
+
                            
             log.info("결제 완료 알림 처리 완료 - 회원 ID: {}, 예매 ID: {}, 금액: {}", memberId, reservationId, paymentAmount);
         } catch (Exception e) {
@@ -196,6 +204,96 @@ public class NotificationServiceImpl implements NotificationService {
         } catch (Exception e) {
             log.error("박람회 시작 알림 전송 실패 - 박람회 ID: {}, 오류: {}", 
                     expoId, e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void sendExpoStatusChangeNotification(Long expoId, String expoTitle, String oldStatus, String newStatus) {
+        try {
+
+            MessageTemplateSetting template = messageTemplateSettingRepository.findByCodeAndChannelType(
+                            MessageTemplateCode.EXPO_STATUS_CHANGE, ChannelType.NOTIFICATION)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_MESSAGE_TEMPLATE));
+            // 박람회 정보 조회
+            Expo expo = expoRepository.findById(expoId)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+
+            Long memberId = expo.getMember().getId();
+
+
+            String title = template.getSubject();
+            String content = template.getContent()
+                    .replace("{expoTitle}", expoTitle)
+                    .replace("{oldStatus}", getStatusDisplayName(oldStatus))
+                    .replace("{newStatus}", getStatusDisplayName(newStatus));
+
+            saveNotification(memberId, expoId, title, content,
+                    NotificationType.EXPO_STATUS_CHANGE, NotificationTargetType.EXPO_STATUS);
+
+
+            log.info("박람회 상태 변경 알림 처리 완료 - 박람회 ID: {}, 회원 ID: {}, {} -> {}",
+                    expoId, memberId, oldStatus, newStatus);
+
+        } catch (Exception e) {
+            log.error("박람회 상태 변경 알림 전송 실패 - 박람회 ID: {}, 오류: {}", expoId, e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void sendAdvertisementStatusChangeNotification(Long advertisementId, String adTitle, String oldStatus, String newStatus) {
+        try {
+
+            MessageTemplateSetting template = messageTemplateSettingRepository.findByCodeAndChannelType(
+                            MessageTemplateCode.AD_STATUS_CHANGE, ChannelType.NOTIFICATION)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_MESSAGE_TEMPLATE));
+
+            Advertisement advertisement = advertisementRepository.findById(advertisementId)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
+
+            Long memberId = advertisement.getMember().getId();
+
+            String title = template.getSubject();
+            String content = template.getContent()
+                    .replace("{adTitle}", adTitle)
+                    .replace("{oldStatus}", getStatusDisplayName(oldStatus))
+                    .replace("{newStatus}", getStatusDisplayName(newStatus));
+
+            saveNotification(memberId, advertisementId, title, content,
+                    NotificationType.AD_STATUS_CHANGE, NotificationTargetType.AD_STATUS);
+
+
+            log.info("광고 상태 변경 알림 처리 완료 - 광고 ID: {}, 회원 ID: {}, {} -> {}",
+                    advertisementId, memberId, oldStatus, newStatus);
+
+        } catch (Exception e) {
+            log.error("광고 상태 변경 알림 전송 실패 - 광고 ID: {}, 오류: {}", advertisementId, e.getMessage(), e);
+        }
+    }
+    
+    private String getStatusDisplayName(String status) {
+        switch (status) {
+            case "PENDING_APPROVAL":
+                return "승인 대기";
+            case "PENDING_PAYMENT":
+                return "결제 대기";
+            case "PENDING_PUBLISH":
+                return "게시 대기";
+            case "PENDING_CANCEL":
+                return "취소 대기";
+            case "PUBLISHED":
+                return "게시 중";
+            case "PUBLISH_ENDED":
+                return "게시 종료";
+            case "SETTLEMENT_REQUESTED":
+                return "정산 요청";
+            case "COMPLETED":
+                return "종료됨";
+            case "REJECTED":
+                return "승인 거절";
+            case "CANCELLED":
+                return "취소 완료";
+            default:
+                return status;
         }
     }
 
