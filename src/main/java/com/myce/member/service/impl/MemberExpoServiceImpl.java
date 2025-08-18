@@ -380,7 +380,7 @@ public class MemberExpoServiceImpl implements MemberExpoService {
                     .isReserverListView(true)
                     .isPaymentView(true)
                     .isEmailLogView(true)
-                    .isOperationsConfigUpdate(true)
+                    .isOperationsConfigUpdate(false)
                     .isInquiryView(true)
                     .build();
             adminPermissions.add(permission);

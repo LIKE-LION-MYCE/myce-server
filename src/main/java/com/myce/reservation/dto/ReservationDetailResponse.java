@@ -48,6 +48,7 @@ public class ReservationDetailResponse {
     public static class ReservationInfo {
         private Long reservationId;
         private String reservationCode;
+        private String status;
         private Integer quantity;
         private LocalDateTime createdAt;
         private Integer ticketPrice;
@@ -68,6 +69,8 @@ public class ReservationDetailResponse {
         private String phone;
         private String email;
         private String qrCodeUrl;
+        private String qrStatus;
+        private LocalDateTime qrUsedAt;
     }
     
     @Getter

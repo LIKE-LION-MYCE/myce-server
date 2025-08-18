@@ -60,6 +60,7 @@ public class ReservationDetailMapper {
         return ReservationDetailResponse.ReservationInfo.builder()
                 .reservationId(reservation.getId())
                 .reservationCode(reservation.getReservationCode())
+                .status(reservation.getStatus().name())
                 .quantity(reservation.getQuantity())
                 .createdAt(reservation.getCreatedAt())
                 .ticketPrice(reservation.getTicket().getPrice())
@@ -83,6 +84,9 @@ public class ReservationDetailMapper {
                     String qrCodeUrl = qrCodeOpt
                             .map(QrCode::getQrImageUrl)
                             .orElse(null);
+                    String qrStatus = qrCodeOpt
+                            .map(qrCode -> qrCode.getStatus().name())
+                            .orElse("NOT_ISSUED");
                     
                     return ReservationDetailResponse.ReserverInfo.builder()
                             .reserverId(reserver.getId())
@@ -91,6 +95,8 @@ public class ReservationDetailMapper {
                             .phone(reserver.getPhone())
                             .email(reserver.getEmail())
                             .qrCodeUrl(qrCodeUrl)
+                            .qrStatus(qrStatus)
+                            .qrUsedAt(qrCodeOpt.map(QrCode::getUsedAt).orElse(null))
                             .build();
                 })
                 .collect(Collectors.toList());

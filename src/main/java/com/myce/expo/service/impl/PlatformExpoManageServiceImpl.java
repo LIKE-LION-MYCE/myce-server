@@ -104,12 +104,10 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
                     return new CustomException(CustomErrorCode.EXPO_NOT_FOUND);
                 });
         
-        // 3. 수수료 설정 조회
-        ExpoFeeSetting feeSetting = expoFeeSettingRepository.findAll()
-                .stream()
-                .findFirst()
+        // 3. 활성화된 수수료 설정 조회
+        ExpoFeeSetting feeSetting = expoFeeSettingRepository.findByIsActiveTrue()
                 .orElseThrow(() -> {
-                    log.error("박람회 수수료 설정이 존재하지 않음");
+                    log.error("활성화된 박람회 수수료 설정이 존재하지 않음");
                     return new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND);
                 });
         
@@ -409,12 +407,10 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
             throw new CustomException(CustomErrorCode.INVALID_EXPO_STATUS);
         }
         
-        // 4. 수수료 설정 조회
-        ExpoFeeSetting feeSetting = expoFeeSettingRepository.findAll()
-                .stream()
-                .findFirst()
+        // 4. 활성화된 수수료 설정 조회
+        ExpoFeeSetting feeSetting = expoFeeSettingRepository.findByIsActiveTrue()
                 .orElseThrow(() -> {
-                    log.error("박람회 수수료 설정이 존재하지 않음");
+                    log.error("활성화된 박람회 수수료 설정이 존재하지 않음");
                     return new CustomException(CustomErrorCode.FEE_SETTING_NOT_FOUND);
                 });
         
