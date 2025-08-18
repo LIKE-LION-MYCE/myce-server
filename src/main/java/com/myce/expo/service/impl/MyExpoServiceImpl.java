@@ -7,7 +7,7 @@ import com.myce.common.permission.ExpoAdminAccessValidate;
 import com.myce.common.permission.ExpoAdminPermission;
 import com.myce.expo.dto.ExpoAdminPermissionResponse;
 import com.myce.expo.dto.MyExpoDetailResponse;
-import com.myce.expo.dto.MyExpoUpdateRequest;
+import com.myce.expo.dto.MyExpoDescriptionUpdateRequest;
 import com.myce.expo.entity.AdminCode;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
@@ -73,44 +73,22 @@ public class MyExpoServiceImpl implements MyExpoService {
         return expoMapper.toMyExpoDetailResponse(expo, expoCategories);
     }
 
+
+
+
     @Override
-    public MyExpoDetailResponse updateMyExpoDetail(Long expoId, MyExpoUpdateRequest updateRequest, LoginType loginType, Long principalId) {
-        // 박람회 수정은 특별히 PENDING_PUBLISH 상태에서만 허용
-        validateExpoUpdatePermission(expoId, principalId, loginType);
+    public MyExpoDetailResponse updateMyExpoDescription(Long expoId, MyExpoDescriptionUpdateRequest updateRequest, LoginType loginType, Long principalId) {
+        // 권한 검증 (EXPO_DETAIL_UPDATE 권한 필요)
+        expoAdminAccessValidate.ensureViewable(expoId, principalId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
+        
+        // 박람회 조회
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
 
-        expo.updateFromDto(updateRequest);
-        updateExpoCategories(expo, updateRequest.getCategoryIds());
+        // 설명만 업데이트 (상태 제한 없음 - 프론트엔드에서 제어)
+        expo.updateDescription(updateRequest.getDescription());
 
         List<ExpoCategory> expoCategories = expoCategoryRepository.findByExpoId(expo.getId());
         return expoMapper.toMyExpoDetailResponse(expo, expoCategories);
-    }
-
-    private void validateExpoUpdatePermission(Long expoId, Long principalId, LoginType loginType) {
-        // 기본 권한 검증 (EXPO_DETAIL_UPDATE 권한 필요)
-        expoAdminAccessValidate.ensureViewable(expoId, principalId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
-        
-        // 박람회 수정은 특별히 PENDING_PUBLISH 상태에서만 허용
-        ExpoStatus status = expoRepository.findStatusById(expoId)
-                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
-        
-        if (status != ExpoStatus.PENDING_PUBLISH) {
-            throw new CustomException(CustomErrorCode.EXPO_EDIT_DENIED);
-        }
-    }
-
-    private void updateExpoCategories(Expo expo, List<Long> categoryIds) {
-        expoCategoryRepository.deleteAllByExpo(expo);
-        if (categoryIds != null && !categoryIds.isEmpty()) {
-            List<Category> categories = categoryRepository.findAllById(categoryIds);
-            if (categories.size() != categoryIds.size()) {
-                throw new CustomException(CustomErrorCode.CATEGORY_NOT_EXIST);
-            }
-            List<ExpoCategory> newExpoCategories = categories.stream()
-                    .map(category -> ExpoCategory.builder().expo(expo).category(category).build())
-                    .collect(Collectors.toList());
-            expoCategoryRepository.saveAll(newExpoCategories);
-        }
     }
 }

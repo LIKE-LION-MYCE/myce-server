@@ -4,15 +4,15 @@ import com.myce.auth.dto.CustomUserDetails;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.expo.dto.ExpoAdminPermissionResponse;
 import com.myce.expo.dto.MyExpoDetailResponse;
-import com.myce.expo.dto.MyExpoUpdateRequest;
+import com.myce.expo.dto.MyExpoDescriptionUpdateRequest;
 import com.myce.expo.service.MyExpoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,13 +43,14 @@ public class MyExpoController {
         return ResponseEntity.ok(response);
     }
 
-    // 나의 박람회 상세 정보 수정
-    @PutMapping("/{expoId}")
-    public ResponseEntity<MyExpoDetailResponse> updateMyExpoDetail(
+
+    // 나의 박람회 설명 부분 수정 (PENDING_PUBLISH 상태용)
+    @PatchMapping("/{expoId}/description")
+    public ResponseEntity<MyExpoDetailResponse> updateMyExpoDescription(
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-            @Valid @RequestBody MyExpoUpdateRequest updateRequest) {
-        MyExpoDetailResponse updatedExpo = expoService.updateMyExpoDetail(expoId, updateRequest, customUserDetails.getLoginType(), customUserDetails.getMemberId());
+            @RequestBody MyExpoDescriptionUpdateRequest updateRequest) {
+        MyExpoDetailResponse updatedExpo = expoService.updateMyExpoDescription(expoId, updateRequest, customUserDetails.getLoginType(), customUserDetails.getMemberId());
         return ResponseEntity.ok(updatedExpo);
     }
 }
