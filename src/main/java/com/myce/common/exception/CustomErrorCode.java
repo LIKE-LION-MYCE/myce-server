@@ -145,6 +145,12 @@ public enum CustomErrorCode {
     ALREADY_REFUNDED(HttpStatus.NOT_FOUND, "RF001", "이미 환불이 완료된 결제 입니다."),
     REFUND_NOT_ALLOWED( HttpStatus.NOT_ACCEPTABLE, "RF004", "환불이 불가능한 날짜입니다"),
 
+    // 리뷰 RV
+    REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "RV001", "리뷰를 찾을 수 없습니다."),
+    REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "RV002", "이미 리뷰를 작성하셨습니다."),
+    REVIEW_UNAUTHORIZED_NOT_ATTENDED(HttpStatus.FORBIDDEN, "RV003", "박람회에 참석하지 않은 사용자는 리뷰를 작성할 수 없습니다."),
+    REVIEW_UNAUTHORIZED_NOT_OWNER(HttpStatus.FORBIDDEN, "RV004", "본인이 작성한 리뷰만 수정/삭제할 수 있습니다."),
+
     // 시스템 설정 에러
     NOT_EXIST_MESSAGE_TEMPLATE(HttpStatus.NOT_FOUND, "SY001", "메시지 템플릿이 존재하지 않습니다."),
     NOT_EXIST_AD_FEE_SETTING(HttpStatus.NOT_FOUND, "SY002", "광고 요금제가 존재하지 않습니다."),
