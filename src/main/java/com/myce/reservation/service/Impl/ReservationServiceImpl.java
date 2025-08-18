@@ -205,13 +205,21 @@ public class ReservationServiceImpl implements ReservationService {
         try {
             preReservationRepository.save(cacheDto, 10);
             log.info("결제 세션 Redis 저장 완료 (DB 저장 안함) - reservationCode: {}", reservationCode);
+            
+            // 저장 직후 바로 조회해서 검증
+            PreReservationCacheDto testRead = preReservationRepository.findById(0L);
+            if (testRead != null) {
+                log.info("Redis 저장 검증 성공 - 조회된 reservationCode: {}", testRead.getReservationCode());
+            } else {
+                log.error("Redis 저장 검증 실패 - 바로 조회했는데 null 반환");
+            }
         } catch (Exception e) {
             log.error("결제 세션 Redis 저장 실패 - reservationCode: {}, 오류: {}", reservationCode, e.getMessage());
             throw new CustomException(CustomErrorCode.RESERVATION_CODE_GENERATION_FAILED);
         }
 
-        // reservationCode 반환 (Redis 키로 사용)
-        return new PreReservationResponse(reservationCode);
+        // 임시 ID 0 반환
+        return new PreReservationResponse(0L);
     }
 
     @Override
@@ -253,31 +261,6 @@ public class ReservationServiceImpl implements ReservationService {
         String ticketName = "[" + ticketType + "] " + ticket.getName();
 
         return reservationMapper.toPaymentSummary(ticket, ticketName, reservation.getQuantity());
-    }
-
-    @Override
-    public ReservationPaymentSummaryResponse getPaymentSummaryByCode(String reservationCode) {
-        log.info("getPaymentSummaryByCode 호출 - reservationCode: {}", reservationCode);
-        
-        // Redis에서 reservationCode로 조회
-        PreReservationCacheDto cachedDto = preReservationRepository.findByReservationCode(reservationCode);
-        
-        if (cachedDto == null) {
-            log.error("Redis에서 캐시 데이터를 찾을 수 없음 - reservationCode: {}", reservationCode);
-            throw new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND);
-        }
-        
-        log.info("Redis에서 캐시 데이터 조회 성공 - reservationCode: {}", reservationCode);
-        
-        Ticket ticket = ticketRepository.findById(cachedDto.getTicketId())
-            .orElseThrow(() -> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
-        
-        // 티켓 타입
-        String ticketType = ticket.getType().toString();
-        // 티켓 이름
-        String ticketName = "[" + ticketType + "] " + ticket.getName();
-        
-        return reservationMapper.toPaymentSummary(ticket, ticketName, cachedDto.getQuantity());
     }
 
     @Transactional

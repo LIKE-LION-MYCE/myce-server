@@ -8,10 +8,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PreReservationResponse {
-  private String preReservationId; // reservationCode를 저장
-  
-  // 레거시 호환성을 위한 생성자
-  public PreReservationResponse(Long reservationId) {
-    this.preReservationId = reservationId.toString();
-  }
+  private Long reservationId;
 }

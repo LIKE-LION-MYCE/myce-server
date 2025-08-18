@@ -83,17 +83,8 @@ public class ReservationController {
     }
 
     @GetMapping("/payment-summary")
-    public ResponseEntity<ReservationPaymentSummaryResponse> getPaymentSummary(@RequestParam String preReservationId){
-        // preReservationId가 reservationCode인지 숫자 ID인지 확인
-        ReservationPaymentSummaryResponse response;
-        try {
-            // 숫자로 파싱 가능하면 기존 로직 (레거시)
-            Long reservationId = Long.parseLong(preReservationId);
-            response = reservationService.getPaymentSummary(reservationId);
-        } catch (NumberFormatException e) {
-            // 숫자가 아니면 reservationCode로 처리
-            response = reservationService.getPaymentSummaryByCode(preReservationId);
-        }
+    public ResponseEntity<ReservationPaymentSummaryResponse> getPaymentSummary(@RequestParam Long preReservationId){
+        ReservationPaymentSummaryResponse response = reservationService.getPaymentSummary(preReservationId);
         return ResponseEntity.ok(response);
     }
 

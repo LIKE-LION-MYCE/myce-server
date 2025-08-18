@@ -7,5 +7,9 @@ public interface PreReservationRepository {
 
     PreReservationCacheDto findById(Long id);
     
+    PreReservationCacheDto findByReservationCode(String reservationCode);
+    
     void delete(Long id);
+    
+    void deleteByReservationCode(String reservationCode);
 }

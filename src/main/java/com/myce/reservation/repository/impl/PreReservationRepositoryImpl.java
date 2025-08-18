@@ -12,36 +12,21 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class PreReservationRepositoryImpl implements PreReservationRepository {
 
-    private static final String KEY_FORMAT = "reservation:pre:%s";
+    private static final String KEY_FORMAT = "reservation:pre:%d";
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
 
     @Override
     public void save(PreReservationCacheDto cacheDto, int limitTime) {
-        // reservationCode를 키로 사용
-        String key = String.format(KEY_FORMAT, cacheDto.getReservationCode());
+        // 임시 ID 0으로 Redis 저장
+        String key = String.format(KEY_FORMAT, 0L);
         redisTemplate.opsForValue().set(key, cacheDto, limitTime, TimeUnit.MINUTES);
-    }
-
-    public PreReservationCacheDto findByReservationCode(String reservationCode) {
-        String key = String.format(KEY_FORMAT, reservationCode);
-        Object result = redisTemplate.opsForValue().get(key);
-        if (result == null) {
-            return null;
-        }
-        return objectMapper.convertValue(result, PreReservationCacheDto.class);
-    }
-    
-    public void deleteByReservationCode(String reservationCode) {
-        String key = String.format(KEY_FORMAT, reservationCode);
-        redisTemplate.delete(key);
     }
 
     @Override
     public PreReservationCacheDto findById(Long id) {
-        // 레거시 호환성을 위해 유지
-        String key = String.format(KEY_FORMAT, id.toString());
+        String key = String.format(KEY_FORMAT, id);
         Object result = redisTemplate.opsForValue().get(key);
         if (result == null) {
             return null;
@@ -50,9 +35,20 @@ public class PreReservationRepositoryImpl implements PreReservationRepository {
     }
     
     @Override
+    public PreReservationCacheDto findByReservationCode(String reservationCode) {
+        // 사용 안함 - ID 0으로 조회
+        return findById(0L);
+    }
+    
+    @Override
     public void delete(Long id) {
-        // 레거시 호환성을 위해 유지
-        String key = String.format(KEY_FORMAT, id.toString());
+        String key = String.format(KEY_FORMAT, id);
         redisTemplate.delete(key);
+    }
+    
+    @Override
+    public void deleteByReservationCode(String reservationCode) {
+        // 사용 안함 - ID 0으로 삭제
+        delete(0L);
     }
 }

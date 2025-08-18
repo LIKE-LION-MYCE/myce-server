@@ -22,8 +22,6 @@ public interface ReservationService {
     PreReservationResponse savePreReservation(PreReservationRequest request);
 
     ReservationPaymentSummaryResponse getPaymentSummary(Long reservationId);
-    
-    ReservationPaymentSummaryResponse getPaymentSummaryByCode(String reservationCode);
 
     void deletePendingReservation(Long reservationId);
 
