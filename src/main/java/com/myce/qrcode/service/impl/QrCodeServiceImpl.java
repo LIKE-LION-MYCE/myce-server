@@ -13,6 +13,7 @@ import com.myce.expo.entity.Expo;
 import com.myce.expo.repository.AdminCodeRepository;
 import com.myce.notification.service.NotificationService;
 import com.myce.notification.service.SseService;
+import com.myce.notification.service.SupportEmailService;
 import com.myce.qrcode.dto.QrUseResponse;
 import com.myce.qrcode.dto.QrVerifyResponse;
 import com.myce.qrcode.entity.QrCode;
@@ -47,6 +48,7 @@ public class QrCodeServiceImpl implements QrCodeService {
     private final QrResponseMapper qrResponseMapper;
     private final SseService sseService;
     private final NotificationService notificationService;
+    private final SupportEmailService supportEmailService;
 
     @Override
     @Transactional
@@ -280,21 +282,39 @@ public class QrCodeServiceImpl implements QrCodeService {
         try {
             Reservation reservation = reserver.getReservation();
             
-            // MEMBER 타입인 경우에만 알림 전송
-            if (reservation.getUserType() != UserType.MEMBER) {
-                log.debug("알림 건너뜀 - 회원이 아닌 예약자 (UserType: {}, 예약자 ID: {})", 
-                        reservation.getUserType(), reserver.getId());
-                return;
-            }
-            
-            Long memberId = reservation.getUserId();
             String expoTitle = reservation.getExpo().getTitle();
             
-            // NotificationService에서 MongoDB 저장 + SSE 전송 통합 처리
-            notificationService.sendQrIssuedNotification(memberId, reservation.getId(), expoTitle, isReissue);
-            
-            log.info("QR {} 알림 처리 완료 - 예약자 ID: {}, 회원 ID: {}", 
-                    isReissue ? "재발급" : "발급", reserver.getId(), memberId);
+            if (reservation.getUserType() == UserType.MEMBER) {
+                // 회원: 사이트 내 알림 + SSE 전송
+                Long memberId = reservation.getUserId();
+                notificationService.sendQrIssuedNotification(memberId, reservation.getId(), expoTitle, isReissue);
+                log.info("회원 QR {} 알림 처리 완료 - 예약자 ID: {}, 회원 ID: {}", 
+                        isReissue ? "재발급" : "발급", reserver.getId(), memberId);
+            } else {
+                // 비회원: 이메일 알림
+                String subject = String.format("[박람회 QR 코드 %s] %s", 
+                        isReissue ? "재발급" : "발급", expoTitle);
+                String body = String.format(
+                    "안녕하세요 %s님,\n\n" +
+                    "박람회 '%s'의 QR 코드가 %s되었습니다.\n\n" +
+                    "[예매 정보]\n" +
+                    "- 예약자: %s\n" +
+                    "- 예약번호: %s\n" +
+                    "QR 코드는 박람회 당일 입장 시 필요합니다.\n" +
+                    "예매 상세 조회: https://myce.live/guest-reservation\n\n" +
+                    "감사합니다.",
+                    reserver.getName(),
+                    expoTitle,
+                    isReissue ? "재발급" : "발급",
+                    reserver.getName(),
+                    reservation.getReservationCode(),
+                    expoTitle
+                );
+                
+                supportEmailService.sendSupportMail(reserver.getEmail(), subject, body);
+                log.info("비회원 QR {} 이메일 알림 전송 완료 - 예약자 ID: {}, 이메일: {}", 
+                        isReissue ? "재발급" : "발급", reserver.getId(), reserver.getEmail());
+            }
         } catch (Exception e) {
             log.error("QR 발급 알림 처리 실패 - 예약자 ID: {}, 오류: {}", 
                     reserver.getId(), e.getMessage(), e);
