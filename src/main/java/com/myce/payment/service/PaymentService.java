@@ -4,6 +4,7 @@ import com.myce.payment.dto.PaymentRefundRequest;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.PortOneWebhookRequest;
+import com.myce.payment.entity.type.PaymentStatus;
 import java.util.Map;
 
 public interface PaymentService {
@@ -19,4 +20,6 @@ public interface PaymentService {
   // 포트원 웹훅 처리
   void processWebhook(PortOneWebhookRequest request);
 
+  // AdPaymentInfo 상태 변경
+  void updateAdPaymentInfo(Long adId, PaymentStatus paymentStatus);
 }

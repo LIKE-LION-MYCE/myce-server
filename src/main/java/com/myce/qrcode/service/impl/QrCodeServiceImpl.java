@@ -119,14 +119,15 @@ public class QrCodeServiceImpl implements QrCodeService {
         validateAdminPermission(adminMemberId, qr.getReserver(), loginType);
 
         // ACTIVE인 경우만 상태 변경
-        if (qr.getStatus() == QrCodeStatus.ACTIVE) {
+        boolean wasActive = qr.getStatus() == QrCodeStatus.ACTIVE;
+        if (wasActive) {
             qr.markAsUsed();
         }
-        log.info("QR 코드 사용 처리 완료 - QR ID: {}, 예약자 ID: {}", 
-                qr.getId(), qr.getReserver().getId());
+        log.info("QR 코드 사용 처리 완료 - QR ID: {}, 예약자 ID: {}, 사용처리됨: {}", 
+                qr.getId(), qr.getReserver().getId(), wasActive);
 
-        // 매퍼를 통해 성공 응답 생성
-        return qrResponseMapper.toUseResponse(qr);
+        // 매퍼를 통해 응답 생성 (사용 처리 성공/실패 구분)
+        return qrResponseMapper.toUseResponse(qr, wasActive);
     }
 
     @Override
@@ -213,12 +214,18 @@ public class QrCodeServiceImpl implements QrCodeService {
             // 티켓 정보를 통해 QR 코드 활성화/만료 시간 계산
             LocalDateTime activatedAt = calculateActivatedAt(reserver);
             LocalDateTime expiredAt = calculateExpiredAt(reserver);
+            
+            // 현재 시간이 티켓 사용 기간 내인지 확인하여 상태 결정
+            LocalDateTime now = LocalDateTime.now();
+            QrCodeStatus initialStatus = (now.isAfter(activatedAt) || now.isEqual(activatedAt)) && now.isBefore(expiredAt) 
+                    ? QrCodeStatus.ACTIVE 
+                    : QrCodeStatus.APPROVED;
 
             QrCode qr = QrCode.builder()
                     .reserver(reserver)
                     .qrToken(token)
                     .qrImageUrl(imageUrl)
-                    .status(QrCodeStatus.APPROVED)
+                    .status(initialStatus)
                     .activatedAt(activatedAt)
                     .expiredAt(expiredAt)
                     .build();
@@ -367,15 +374,15 @@ public class QrCodeServiceImpl implements QrCodeService {
             
             String imageUrl = uploadToStorage(image, token);
             
-            // 티켓 use_start_date와 현재 날짜 비교하여 상태 결정
-            LocalDate today = LocalDate.now();
-            LocalDate ticketUseStartDate = reserver.getReservation().getTicket().getUseStartDate();
-            
-            QrCodeStatus status = today.isBefore(ticketUseStartDate) ? QrCodeStatus.APPROVED : QrCodeStatus.ACTIVE;
-            
             // 티켓 정보를 통해 QR 코드 활성화/만료 시간 계산
             LocalDateTime activatedAt = calculateActivatedAt(reserver);
             LocalDateTime expiredAt = calculateExpiredAt(reserver);
+            
+            // 현재 시간이 티켓 사용 기간 내인지 확인하여 상태 결정
+            LocalDateTime now = LocalDateTime.now();
+            QrCodeStatus status = (now.isAfter(activatedAt) || now.isEqual(activatedAt)) && now.isBefore(expiredAt) 
+                    ? QrCodeStatus.ACTIVE 
+                    : QrCodeStatus.APPROVED;
             
             QrCode qr = QrCode.builder()
                     .reserver(reserver)

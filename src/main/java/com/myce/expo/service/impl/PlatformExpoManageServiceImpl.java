@@ -39,6 +39,7 @@ import com.myce.payment.entity.ReservationPaymentInfo;
 import com.myce.payment.repository.ReservationPaymentInfoRepository;
 import com.myce.expo.entity.Ticket;
 import com.myce.expo.repository.TicketRepository;
+import com.myce.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -80,6 +81,9 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
     private final ReservationRepository reservationRepository;
     private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
     private final TicketRepository ticketRepository;
+    
+    // 알림 서비스
+    private final NotificationService notificationService;
 
     /**
      * 박람회 신청 승인 처리
@@ -120,7 +124,16 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
         expoPaymentInfoRepository.save(paymentInfo);
         
         // 6. 박람회 상태 변경 (Entity 메서드 사용)
+        String oldStatus = expo.getStatus().name();
         expo.approve();
+        String newStatus = expo.getStatus().name();
+        
+        // 7. 상태 변경 알림 전송
+        try {
+            notificationService.sendExpoStatusChangeNotification(expoId, expo.getTitle(), oldStatus, newStatus);
+        } catch (Exception e) {
+            log.warn("박람회 승인 알림 전송 실패 - expoId: {}, 오류: {}", expoId, e.getMessage());
+        }
         
         log.info("박람회 신청 승인 완료 - expoId: {}, totalAmount: {}", expoId, totalAmount);
     }
@@ -150,7 +163,16 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
         rejectInfoRepository.save(rejectInfo);
         
         // 4. 박람회 상태 변경 (Entity 메서드 사용)
+        String oldStatus = expo.getStatus().name();
         expo.reject();
+        String newStatus = expo.getStatus().name();
+        
+        // 5. 상태 변경 알림 전송
+        try {
+            notificationService.sendExpoStatusChangeNotification(expoId, expo.getTitle(), oldStatus, newStatus);
+        } catch (Exception e) {
+            log.warn("박람회 거절 알림 전송 실패 - expoId: {}, 오류: {}", expoId, e.getMessage());
+        }
         
         log.info("박람회 신청 거절 완료 - expoId: {}", expoId);
     }
@@ -190,7 +212,16 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
             processRefundToPortOne(expoId, paymentInfo);
             
             // 박람회 상태 변경
+            String oldStatus = expo.getStatus().name();
             expo.approveCancellation();
+            String newStatus = expo.getStatus().name();
+            
+            // 상태 변경 알림 전송
+            try {
+                notificationService.sendExpoStatusChangeNotification(expoId, expo.getTitle(), oldStatus, newStatus);
+            } catch (Exception e) {
+                log.warn("박람회 취소 승인 알림 전송 실패 - expoId: {}, 오류: {}", expoId, e.getMessage());
+            }
             
             // 결제 정보 상태를 PARTIAL_REFUNDED로 변경 (개별 예약자 환불이 있었으므로)
             paymentInfo.setStatus(PaymentStatus.PARTIAL_REFUNDED);
@@ -203,7 +234,16 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
             processRefundToPortOne(expoId, paymentInfo);
             
             // 박람회 상태 변경 (PENDING_CANCEL -> CANCELLED)
+            String oldStatus = expo.getStatus().name();
             expo.approveCancellation();
+            String newStatus = expo.getStatus().name();
+            
+            // 상태 변경 알림 전송
+            try {
+                notificationService.sendExpoStatusChangeNotification(expoId, expo.getTitle(), oldStatus, newStatus);
+            } catch (Exception e) {
+                log.warn("박람회 취소 승인 알림 전송 실패 - expoId: {}, 오류: {}", expoId, e.getMessage());
+            }
             
             // 결제 정보 상태 변경 (SUCCESS -> REFUNDED)
             paymentInfo.setStatus(PaymentStatus.REFUNDED);

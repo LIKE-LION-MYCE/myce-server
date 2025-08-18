@@ -28,6 +28,8 @@ public class ExpoCancelDetailResponse {
     private Integer usedDays;           // 사용한 일수
     private Integer refundAmount;       // 주최자 환불 금액
     private Integer totalUsageFee;      // 총 이용료
+    private Integer depositRefundAmount;  // 등록금 환불 금액
+    private Integer usageFeeRefundAmount; // 이용료 환불 금액
     
     // 개별 예약자 환불 정보
     private Integer totalReservations;      // 총 예약 건수

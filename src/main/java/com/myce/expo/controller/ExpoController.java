@@ -58,6 +58,7 @@ public class ExpoController {
     public ResponseEntity<List<ExpoCardResponse>> getExpoCards(
         @RequestParam(required=false) String keyword,   // 검색
         @RequestParam(required=false) String category,  // 카테고리
+        @RequestParam(required=false) String status,    // 박람회 상태 (PUBLISHED, PENDING_PUBLISH 등)
         @RequestParam(required=false) Integer period,   // 기간(1,3,6,12개월)
         @RequestParam(required = false)
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,  // 사용자 지정 시작일
@@ -76,7 +77,7 @@ public class ExpoController {
             to   = end;
         }
 
-        List<ExpoCardResponse> expoCards = expoService.getExpoCardsFiltered(memberId, category, from, to, keyword, pageable);
+        List<ExpoCardResponse> expoCards = expoService.getExpoCardsFiltered(memberId, category, status, from, to, keyword, pageable);
         return ResponseEntity.ok(expoCards);
     }
 

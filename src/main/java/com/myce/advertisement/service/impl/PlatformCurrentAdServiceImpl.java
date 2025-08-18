@@ -57,13 +57,7 @@ public class PlatformCurrentAdServiceImpl implements PlatformCurrentAdService {
                 .findByTargetIdAndTargetType(ad.getId(), PaymentTargetType.AD)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
 
-        if(ad.getDisplayEndDate().isBefore(LocalDate.now())){
-            ad.complete();
-        }else if(ad.getDisplayStartDate().isBefore(LocalDate.now())){
-            ad.approve();
-        }else{
-            ad.denyCancel();
-        }
+        ad.denyCancel();
 
         refundRepository.deleteByPayment(payment);
     }
