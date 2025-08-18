@@ -135,6 +135,11 @@ public class Expo {
         this.endTime = dto.getEndTime();
         this.isPremium = dto.getIsPremium();
     }
+
+    // 설명만 업데이트하는 메서드 (PENDING_PUBLISH 상태에서 부분 수정용)
+    public void updateDescription(String description) {
+        this.description = description;
+    }
     
     public void cancel() {
         if (this.status != ExpoStatus.PENDING_APPROVAL && 

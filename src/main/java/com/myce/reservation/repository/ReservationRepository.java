@@ -136,27 +136,33 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     // === 대시보드 통계용 쿼리 메서드들 ===
 
-    // 특정 박람회의 누적 예약 건수 (확정된 예약만)
-    @Query("SELECT COALESCE(COUNT(r), 0) FROM Reservation r WHERE r.expo.id = :expoId AND r.status = 'CONFIRMED'")
+    // 특정 박람회의 누적 판매 개수 (현재 존재하는 티켓의 확정된 예약 수량 총합)
+    @Query("SELECT COALESCE(SUM(r.quantity), 0) FROM Reservation r " +
+           "JOIN r.ticket t " +
+           "WHERE r.expo.id = :expoId AND r.status = 'CONFIRMED' AND t.expo.id = :expoId")
     Long countTotalReservationsByExpoId(@Param("expoId") Long expoId);
 
-    // 특정 박람회의 오늘 예약 건수 (확정된 예약만, 00:00~23:59)
-    @Query("SELECT COALESCE(COUNT(r), 0) FROM Reservation r " +
+    // 특정 박람회의 오늘 판매 개수 (현재 존재하는 티켓의 확정된 예약 수량 총합, 00:00~23:59)
+    @Query("SELECT COALESCE(SUM(r.quantity), 0) FROM Reservation r " +
+            "JOIN r.ticket t " +
             "WHERE r.expo.id = :expoId " +
             "AND r.status = 'CONFIRMED' " +
             "AND r.createdAt >= :startOfDay " +
-            "AND r.createdAt < :startOfNextDay")
+            "AND r.createdAt < :startOfNextDay " +
+            "AND t.expo.id = :expoId")
     Long countTodayReservationsByExpoId(@Param("expoId") Long expoId,
                                         @Param("startOfDay") LocalDateTime startOfDay,
                                         @Param("startOfNextDay") LocalDateTime startOfNextDay);
 
-    // 특정 박람회의 날짜별 예약자 수 (확정된 예약만, 실제 인원수 기준)
+    // 특정 박람회의 날짜별 판매 수 (현재 존재하는 티켓의 확정된 예약만, 실제 수량 기준)
     @Query("SELECT DATE(r.createdAt) as date, COALESCE(SUM(r.quantity), 0) as count " +
             "FROM Reservation r " +
+            "JOIN r.ticket t " +
             "WHERE r.expo.id = :expoId " +
             "AND r.status = 'CONFIRMED' " +
             "AND r.createdAt >= :startDate " +
             "AND r.createdAt <= :endDate " +
+            "AND t.expo.id = :expoId " +
             "GROUP BY DATE(r.createdAt) " +
             "ORDER BY DATE(r.createdAt)")
     List<Object[]> countReservationsByDateRange(@Param("expoId") Long expoId,
@@ -175,16 +181,17 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("SELECT COUNT(r) FROM Reservation r WHERE r.expo.id = :expoId AND r.status = 'CANCELLED'")
     Long countCancelledReservationsByExpoId(@Param("expoId") Long expoId);
 
-    // 특정 박람회의 티켓 종류별 판매 현황 (reservation 테이블 기준)
+    // 특정 박람회의 티켓 종류별 판매 현황 (현재 존재하는 티켓의 확정된 예약만)
     @Query("SELECT t.name as ticketType, " +
-            "SUM(r.quantity) as soldCount, " +
+            "t.totalQuantity as totalQuantity, " +
+            "COALESCE(SUM(r.quantity), 0) as soldCount, " +
+            "t.remainingQuantity as remainingCount, " +
             "t.price as unitPrice, " +
-            "SUM(r.quantity * t.price) as totalRevenue " +
-            "FROM Reservation r " +
-            "JOIN r.ticket t " +
-            "WHERE r.expo.id = :expoId " +
-            "AND r.status = 'CONFIRMED' " +
-            "GROUP BY t.id, t.name, t.price " +
+            "COALESCE(SUM(r.quantity * t.price), 0) as totalRevenue " +
+            "FROM Ticket t " +
+            "LEFT JOIN Reservation r ON r.ticket.id = t.id AND r.status = 'CONFIRMED' AND r.expo.id = :expoId " +
+            "WHERE t.expo.id = :expoId " +
+            "GROUP BY t.id, t.name, t.totalQuantity, t.remainingQuantity, t.price " +
             "ORDER BY totalRevenue DESC")
     List<Object[]> getTicketSalesDetailByExpoId(@Param("expoId") Long expoId);
 

@@ -34,7 +34,7 @@ public class CheckinStatsServiceImpl implements CheckinStatsService {
     public CheckinStats getCheckinStats(Long expoId) {
         // Redis 우선 조회 후 없으면 DB 조회 + 캐시 저장 (실시간성 중요)
         Long reservedTickets = getCachedValueOrCompute(
-            expoId + ":checkin:reserved:v4",
+            expoId + ":checkin:reserved:v6",
             () -> reservationRepository.countTotalReservationsByExpoId(expoId),
             Long.class,
             CACHE_TTL_MINUTES
@@ -68,7 +68,7 @@ public class CheckinStatsServiceImpl implements CheckinStatsService {
         log.info("체크인 통계 캐시 갱신 시작 - ExpoId: {}", expoId);
         
         // 캐시 키 삭제 후 다음 조회 시 자동으로 갱신되도록 함
-        String reservedKey = REDIS_KEY_PREFIX + expoId + ":checkin:reserved:v4";
+        String reservedKey = REDIS_KEY_PREFIX + expoId + ":checkin:reserved:v6";
         String successKey = REDIS_KEY_PREFIX + expoId + ":checkin:success:v4";
         
         redisTemplate.delete(reservedKey);
@@ -82,7 +82,7 @@ public class CheckinStatsServiceImpl implements CheckinStatsService {
         log.info("체크인 통계 캐시 완전 삭제 시작 - ExpoId: {}", expoId);
 
         // 모든 체크인 관련 캐시 키 삭제
-        String reservedKey = REDIS_KEY_PREFIX + expoId + ":checkin:reserved:v4";
+        String reservedKey = REDIS_KEY_PREFIX + expoId + ":checkin:reserved:v6";
         String successKey = REDIS_KEY_PREFIX + expoId + ":checkin:success:v4";
         
         redisTemplate.delete(reservedKey);
