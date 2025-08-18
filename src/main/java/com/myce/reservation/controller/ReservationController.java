@@ -82,9 +82,9 @@ public class ReservationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.savePreReservation(request));
     }
 
-    @GetMapping("/{reservationId}/payment-summary")
-    public ResponseEntity<ReservationPaymentSummaryResponse> getPaymentSummary(@PathVariable Long reservationId){
-        ReservationPaymentSummaryResponse response = reservationService.getPaymentSummary(reservationId);
+    @GetMapping("/payment-summary")
+    public ResponseEntity<ReservationPaymentSummaryResponse> getPaymentSummary(@RequestParam Long preReservationId){
+        ReservationPaymentSummaryResponse response = reservationService.getPaymentSummary(preReservationId);
         return ResponseEntity.ok(response);
     }
 

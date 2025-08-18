@@ -506,19 +506,8 @@ public class PlatformExpoManageServiceImpl implements PlatformExpoManageService 
                     log.error("Payment 정보 없음 - reservationId: {}", reservationId);
                     return new CustomException(CustomErrorCode.PAYMENT_NOT_FOUND);
                 });
-        
-        // 5. Refund 엔티티 생성
-        Refund refund = Refund.builder()
-                .payment(payment)
-                .amount(paymentInfo.getTotalAmount())
-                .reason(INDIVIDUAL_RESERVATION_REFUND_REASON)
-                .status(RefundStatus.PENDING)
-                .isPartial(false)  // 개인 예약자는 전액 환불
-                .build();
-        
-        refundRepository.save(refund);
-        log.debug("Refund 엔티티 생성 완료 - reservationId: {}, amount: {}", 
-                reservationId, paymentInfo.getTotalAmount());
+
+        // 5. refund 생성하지 않아도 됨. 환불 API 호출하면서 생성!
         
         // 6. 포트원 환불 API 호출
         PaymentRefundRequest refundRequest = PaymentRefundRequest.builder()
