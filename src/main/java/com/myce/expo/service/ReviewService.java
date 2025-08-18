@@ -20,4 +20,6 @@ public interface ReviewService {
     boolean hasUserAttendedExpo(Long memberId, Long expoId);
     
     boolean hasUserReviewedExpo(Long memberId, Long expoId);
+    
+    ReviewListResponse getBestReviews(int limit);
 }

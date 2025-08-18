@@ -87,7 +87,8 @@ public class SecurityConfig {
                             "/api/categories", "/api/expos/**", "/api/reservations/**",
                             "/api/reservations/non-member", "/api/expo/fees/active", "/api/ad/fees/active",
                             "/api/members/expos/*/payment", "/api/members/ads/*/payment",
-                            "/api/reviews/expo/*", "/api/reviews/*/")
+                            "/api/reviews/expo/*", "/api/reviews/*/", "/api/reviews/best",
+                            "/api/settings/refund-fee/public")
                         .permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/tickets/quantity",
                             "/api/reservations/**", "/api/platform/ads/*/status",
@@ -101,10 +102,7 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/webjars/**",
                                 "/auth-docs/login",
-                                "/actuator/health",
-                                "/actuator/health/liveness",  // ALB health checks
-                                "/actuator/health/readiness", // Optional readiness checks
-                                "/actuator/info",
+                                "/actuator/**",               // All actuator endpoints for monitoring
                                 "/ws/**", // WebSocket 엔드포인트 허용
                                 "/images/**" // Static 이미지 리소스 허용
                         ).permitAll()

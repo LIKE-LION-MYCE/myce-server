@@ -153,4 +153,12 @@ public class ReviewServiceImpl implements ReviewService {
     public boolean hasUserReviewedExpo(Long memberId, Long expoId) {
         return reviewRepository.findByExpoIdAndMemberId(expoId, memberId) != null;
     }
+    
+    @Override
+    public ReviewListResponse getBestReviews(int limit) {
+        Pageable pageable = Pageable.ofSize(limit);
+        Page<Review> reviews = reviewRepository.findBestReviews(pageable);
+        Page<ReviewResponse> reviewResponses = reviews.map(ReviewResponse::new);
+        return new ReviewListResponse(reviewResponses);
+    }
 }

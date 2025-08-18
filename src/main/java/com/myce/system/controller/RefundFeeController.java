@@ -1,5 +1,6 @@
 package com.myce.system.controller;
 
+import com.myce.system.dto.fee.PublicRefundPolicyListResponse;
 import com.myce.system.dto.fee.RefundFeeListResponse;
 import com.myce.system.service.fee.RefundFeeService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,16 @@ public class RefundFeeController {
     public ResponseEntity<RefundFeeListResponse> getAllSettings(
             @RequestParam(name = "page", defaultValue = "0", required = false) int page) {
         RefundFeeListResponse response = refundFeeService.getAllSettings(page);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/public")
+    public ResponseEntity<PublicRefundPolicyListResponse> getActivePublicRefundPolicy() {
+        PublicRefundPolicyListResponse response = refundFeeService.getActivePublicRefundPolicy();
+        
+        // 디버깅을 위한 로그
+        System.out.println("Public refund policy response: " + response.getPolicies().size() + " policies found");
+        
         return ResponseEntity.ok(response);
     }
 

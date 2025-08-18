@@ -21,16 +21,20 @@ public class TicketSalesMapper {
         
         for (Object[] result : queryResults) {
             String ticketType = (String) result[0];
-            Long soldCount = ((Number) result[1]).longValue();
-            BigDecimal avgPrice = result[2] != null ? 
-                new BigDecimal(result[2].toString()).setScale(0, RoundingMode.HALF_UP) : BigDecimal.ZERO;
-            BigDecimal totalRevenue = result[3] != null ? 
-                new BigDecimal(result[3].toString()) : BigDecimal.ZERO;
+            Long totalQuantity = ((Number) result[1]).longValue();
+            Long soldCount = ((Number) result[2]).longValue();
+            Long remainingCount = ((Number) result[3]).longValue();
+            BigDecimal unitPrice = result[4] != null ? 
+                new BigDecimal(result[4].toString()).setScale(0, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+            BigDecimal totalRevenue = result[5] != null ? 
+                new BigDecimal(result[5].toString()) : BigDecimal.ZERO;
             
             ticketSalesDetail.add(TicketSales.builder()
                     .ticketType(ticketType)
+                    .totalQuantity(totalQuantity)
                     .soldCount(soldCount)
-                    .unitPrice(avgPrice)
+                    .remainingCount(remainingCount)
+                    .unitPrice(unitPrice)
                     .totalRevenue(totalRevenue)
                     .build());
         }
