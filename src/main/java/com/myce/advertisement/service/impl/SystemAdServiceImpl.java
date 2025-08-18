@@ -10,6 +10,7 @@ import com.myce.advertisement.repository.AdRepository;
 import com.myce.advertisement.service.SystemAdService;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.notification.service.NotificationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class SystemAdServiceImpl implements SystemAdService {
     private final AdRepository adRepository;
     private final AdPositionRepository adPositionRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final NotificationService notificationService;
 
     public void checkAvailablePeriod(Long locationId,
                                      LocalDate startedAt, LocalDate endedAt) {
@@ -87,7 +89,16 @@ public class SystemAdServiceImpl implements SystemAdService {
 
         log.info("@@@@@@ find ad: {}", pendingAds.size());
         for (Advertisement ad : pendingAds) {
+            String oldStatus = ad.getStatus().name();
             ad.publish();
+            String newStatus = ad.getStatus().name();
+            
+            // 상태 변경 알림 전송
+            try {
+                notificationService.sendAdvertisementStatusChangeNotification(ad.getId(), ad.getTitle(), oldStatus, newStatus);
+            } catch (Exception e) {
+                log.warn("광고 자동 게시 알림 전송 실패 - adId: {}, 오류: {}", ad.getId(), e.getMessage());
+            }
         }
         if (!pendingAds.isEmpty()) {
             adRepository.saveAll(pendingAds);
@@ -104,7 +115,16 @@ public class SystemAdServiceImpl implements SystemAdService {
                         AdvertisementStatus.PUBLISHED);
 
         for (Advertisement ad : endedAds) {
+            String oldStatus = ad.getStatus().name();
             ad.complete();
+            String newStatus = ad.getStatus().name();
+            
+            // 상태 변경 알림 전송
+            try {
+                notificationService.sendAdvertisementStatusChangeNotification(ad.getId(), ad.getTitle(), oldStatus, newStatus);
+            } catch (Exception e) {
+                log.warn("광고 게시 종료 알림 전송 실패 - adId: {}, 오류: {}", ad.getId(), e.getMessage());
+            }
         }
         if (!endedAds.isEmpty()) {
             adRepository.saveAll(endedAds);

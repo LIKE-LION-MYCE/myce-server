@@ -7,6 +7,7 @@ import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.member.entity.Member;
 import com.myce.member.repository.MemberRepository;
+import com.myce.notification.service.NotificationService;
 import com.myce.settlement.entity.Settlement;
 import com.myce.settlement.repository.SettlementRepository;
 import com.myce.settlement.service.SettlementPlatformAdminService;
@@ -29,6 +30,7 @@ public class SettlementPlatformAdminServiceImpl implements SettlementPlatformAdm
     private final SettlementRepository settlementRepository;
     private final ExpoRepository expoRepository;
     private final MemberRepository memberRepository;
+    private final NotificationService notificationService;
     
     @Override
     @Transactional
@@ -67,8 +69,17 @@ public class SettlementPlatformAdminServiceImpl implements SettlementPlatformAdm
         settlementRepository.save(approvedSettlement);
         
         // 6. Update expo status (SETTLEMENT_REQUESTED → COMPLETED)
+        String oldStatus = expo.getStatus().name();
         expo.approveSettlement();
-        
+        String newStatus = expo.getStatus().name();
+
+        try {
+            notificationService.sendExpoStatusChangeNotification(expoId, expo.getTitle(), oldStatus, newStatus);
+        } catch (Exception e) {
+            log.warn("정산 승인 알림 전송 실패 - expoId: {}, 오류: {}", expoId, e.getMessage());
+        }
+
+
         log.info("Settlement approval completed - expoId: {}, adminMemberId: {}, settlementId: {}", 
                 expoId, adminMember.getId(), settlement.getId());
     }

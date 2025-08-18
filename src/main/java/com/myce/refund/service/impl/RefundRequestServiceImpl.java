@@ -6,6 +6,7 @@ import com.myce.expo.repository.ExpoRepository;
 import com.myce.common.exception.CustomException;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.member.dto.MileageUpdateRequest;
+import com.myce.notification.service.NotificationService;
 import com.myce.payment.entity.Payment;
 import com.myce.payment.entity.Refund;
 import com.myce.payment.entity.ReservationPaymentInfo;
@@ -31,10 +32,12 @@ import com.myce.expo.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -49,6 +52,8 @@ public class RefundRequestServiceImpl implements RefundRequestService {
     private final MemberMileageService memberMileageService;
     private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
     private final TicketRepository ticketRepository;
+    private final NotificationService notificationService;
+
 
     @Override
     public void createRefundRequest(Long memberId, Long expoId, RefundRequestDto requestDto) {
@@ -71,7 +76,14 @@ public class RefundRequestServiceImpl implements RefundRequestService {
         // 5. 현재 엑스포 상태에 따른 환불 타입 결정
         boolean isPartialRefund = determineRefundType(expo.getStatus());
         System.out.println("[환불 신청] 엑스포 ID: " + expoId + ", 현재 상태: " + expo.getStatus() + ", 부분환불 여부: " + isPartialRefund);
-        
+
+        try {
+            String oldStatus = expo.getStatus().name();
+            notificationService.sendExpoStatusChangeNotification(expoId, expo.getTitle(), oldStatus, "PENDING_CANCEL");
+        } catch (Exception e) {
+            log.warn("박람회 환불 신청 알림 전송 실패 - expoId: {}, 오류: {}", expoId, e.getMessage());
+        }
+
         // 6. 엑스포 상태를 PENDING_CANCEL로 변경
         expo.updateStatus(ExpoStatus.PENDING_CANCEL);
         
@@ -85,6 +97,8 @@ public class RefundRequestServiceImpl implements RefundRequestService {
                 .build();
 
         refundRepository.save(refund);
+
+
     }
     
     @Override
