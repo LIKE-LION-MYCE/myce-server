@@ -6,7 +6,16 @@ import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.member.service.MemberAdService;
 import com.myce.member.service.MemberExpoService;
+import com.myce.member.service.MemberMileageService;
+import com.myce.member.service.MemberGradeService;
+import com.myce.member.dto.MileageUpdateRequest;
 import com.myce.notification.service.NotificationService;
+import com.myce.reservation.service.ReservationService;
+import com.myce.reservation.service.ReserverService;
+import com.myce.reservation.dto.ReserverBulkSaveRequest;
+import com.myce.expo.service.TicketService;
+import com.myce.expo.dto.TicketQuantityRequest;
+import com.myce.qrcode.service.QrCodeService;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.UserIdentifier;
@@ -53,6 +62,12 @@ public class PaymentVerificationServiceImpl implements PaymentVerificationServic
     private final MemberExpoService memberExpoService;
     private final MemberAdService memberAdService;
     private final NotificationService notificationService;
+    private final MemberMileageService memberMileageService;
+    private final MemberGradeService memberGradeService;
+    private final ReservationService reservationService;
+    private final ReserverService reserverService;
+    private final TicketService ticketService;
+    private final QrCodeService qrCodeService;
 
     // 카드 결제 검증 및 저장
     @Override

@@ -17,5 +17,7 @@ public class MileageUpdateRequest {
   private Integer savedMileage;
 
   public MileageUpdateRequest(Integer usedMileage, Integer savedMileage) {
+    this.usedMileage = usedMileage;
+    this.savedMileage = savedMileage;
   }
 }

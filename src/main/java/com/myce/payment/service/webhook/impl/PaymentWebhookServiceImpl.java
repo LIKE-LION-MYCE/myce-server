@@ -16,7 +16,13 @@ import com.myce.payment.service.portone.PortOneApiService;
 import com.myce.payment.service.webhook.PaymentWebhookService;
 import com.myce.reservation.entity.Reservation;
 import com.myce.reservation.entity.code.ReservationStatus;
+import com.myce.reservation.entity.code.UserType;
 import com.myce.reservation.repository.ReservationRepository;
+import com.myce.member.dto.MileageUpdateRequest;
+import com.myce.member.service.MemberMileageService;
+import com.myce.member.service.MemberGradeService;
+import com.myce.qrcode.service.QrCodeService;
+import com.myce.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,6 +43,10 @@ public class PaymentWebhookServiceImpl implements PaymentWebhookService {
     private final ExpoPaymentInfoRepository expoPaymentInfoRepository;
     private final ReservationPaymentInfoRepository reservationPaymentInfoRepository;
     private final ReservationRepository reservationRepository;
+    private final MemberMileageService memberMileageService;
+    private final MemberGradeService memberGradeService;
+    private final QrCodeService qrCodeService;
+    private final NotificationService notificationService;
 
     // 가상계좌 입금 처리 웹훅
     @Override
@@ -85,6 +95,58 @@ public class PaymentWebhookServiceImpl implements PaymentWebhookService {
                     .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
 
                 reservation.updateStatus(ReservationStatus.CONFIRMED);
+                
+                // 가상계좌 입금 완료 시 마일리지 및 등급 업데이트 (회원만)
+                if (reservation.getUserType() == UserType.MEMBER) {
+                    try {
+                        // 마일리지 처리
+                        Integer usedMileage = rpi.getUsedMileage() != null ? rpi.getUsedMileage() : 0;
+                        Integer savedMileage = rpi.getSavedMileage() != null ? rpi.getSavedMileage() : 0;
+                        MileageUpdateRequest mileageRequest = new MileageUpdateRequest(usedMileage, savedMileage);
+                        
+                        if (usedMileage > 0 || savedMileage > 0) {
+                            memberMileageService.updateMileageForReservation(reservation.getUserId(), mileageRequest);
+                            log.info("가상계좌 마일리지 처리 완룼 - 회원ID: {}, 사용: {}, 적립: {}", 
+                                    reservation.getUserId(), usedMileage, savedMileage);
+                        }
+                        
+                        // 회원 등급 업데이트
+                        memberGradeService.udpateGrade(reservation.getUserId());
+                        log.info("가상계좌 회원 등급 업데이트 완료 - 회원ID: {}", reservation.getUserId());
+                        
+                    } catch (Exception e) {
+                        log.error("가상계좌 마일리지/등급 업데이트 실패 - 예약 ID: {}, 오류: {}", 
+                                reservation.getId(), e.getMessage());
+                    }
+                }
+                
+                // QR 코드 생성 시도
+                try {
+                    qrCodeService.issueQrForReservation(reservation.getId());
+                    log.info("가상계좌 QR 코드 생성 완료 - reservationId: {}", reservation.getId());
+                } catch (Exception qrError) {
+                    log.warn("가상계좌 QR 코드 생성 실패 (스케줄러에서 재시도) - reservationId: {}, 오류: {}", 
+                            reservation.getId(), qrError.getMessage());
+                }
+                
+                // 결제 완료 알림 발송 (회원만)
+                if (reservation.getUserType() == UserType.MEMBER) {
+                    try {
+                        String expoTitle = reservation.getExpo().getTitle();
+                        String paymentAmount = String.format("%,d원", paidAmount);
+                        notificationService.sendPaymentCompleteNotification(
+                            reservation.getUserId(),
+                            reservation.getId(),
+                            expoTitle,
+                            paymentAmount
+                        );
+                        log.info("가상계좌 결제 완료 알림 발송 - 예약 ID: {}, 회원 ID: {}, 금액: {}", 
+                                reservation.getId(), reservation.getUserId(), paymentAmount);
+                    } catch (Exception e) {
+                        log.error("가상계좌 결제 완료 알림 발송 실패 - 예약 ID: {}, 오류: {}", 
+                                reservation.getId(), e.getMessage());
+                    }
+                }
                 
                 reservationPaymentInfoRepository.save(rpi);
                 break;
