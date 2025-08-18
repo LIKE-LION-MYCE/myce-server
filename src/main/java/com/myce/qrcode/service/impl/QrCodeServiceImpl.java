@@ -295,20 +295,19 @@ public class QrCodeServiceImpl implements QrCodeService {
                 String subject = String.format("[박람회 QR 코드 %s] %s", 
                         isReissue ? "재발급" : "발급", expoTitle);
                 String body = String.format(
-                    "안녕하세요 %s님,\n\n" +
-                    "박람회 '%s'의 QR 코드가 %s되었습니다.\n\n" +
-                    "[예매 정보]\n" +
-                    "- 예약자: %s\n" +
-                    "- 예약번호: %s\n" +
-                    "QR 코드는 박람회 당일 입장 시 필요합니다.\n" +
-                    "예매 상세 조회: https://myce.live/guest-reservation\n\n" +
-                    "감사합니다.",
+                    "안녕하세요 %s님,<br><br>" +
+                        "박람회 '%s'의 QR 코드가 %s되었습니다.<br><br>" +
+                        "[예매 정보]<br>" +
+                        "- 예약자: %s<br>" +
+                        "- 예약번호: %s<br>" +
+                        "QR 코드는 박람회 당일 입장 시 필요합니다.<br>" +
+                        "예매 상세 조회: <a href=\"https://myce.live/guest-reservation\">바로가기</a><br><br>" +
+                        "감사합니다.",
                     reserver.getName(),
                     expoTitle,
                     isReissue ? "재발급" : "발급",
                     reserver.getName(),
-                    reservation.getReservationCode(),
-                    expoTitle
+                    reservation.getReservationCode()
                 );
                 
                 supportEmailService.sendSupportMail(reserver.getEmail(), subject, body);
