@@ -3,9 +3,11 @@ package com.myce.expo.service.impl;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
+import com.myce.common.permission.ExpoAdminAccessValidate;
+import com.myce.common.permission.ExpoAdminPermission;
 import com.myce.expo.dto.ExpoAdminPermissionResponse;
 import com.myce.expo.dto.MyExpoDetailResponse;
-import com.myce.expo.dto.MyExpoUpdateRequest;
+import com.myce.expo.dto.MyExpoDescriptionUpdateRequest;
 import com.myce.expo.entity.AdminCode;
 import com.myce.expo.entity.Category;
 import com.myce.expo.entity.Expo;
@@ -38,6 +40,7 @@ public class MyExpoServiceImpl implements MyExpoService {
     private final AdminPermissionRepository adminPermissionRepository;
     private final MyExpoMapper expoMapper;
     private final ExpoAdminPermissionMapper expoAdminPermissionMapper;
+    private final ExpoAdminAccessValidate expoAdminAccessValidate;
 
     @Override
     public ExpoAdminPermissionResponse getExpoAdminPermission(Long memberId, LoginType loginType) {
@@ -63,59 +66,29 @@ public class MyExpoServiceImpl implements MyExpoService {
     @Override
     @Transactional(readOnly = true)
     public MyExpoDetailResponse getMyExpoDetail(Long expoId, LoginType loginType, Long principalId) {
-        validateMyPermission(expoId, loginType, principalId, false); // 조회 권한은 수정 권한이 아니어도 됨
+        expoAdminAccessValidate.ensureViewable(expoId, principalId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
         List<ExpoCategory> expoCategories = expoCategoryRepository.findByExpoId(expo.getId());
         return expoMapper.toMyExpoDetailResponse(expo, expoCategories);
     }
+
+
+
 
     @Override
-    public MyExpoDetailResponse updateMyExpoDetail(Long expoId, MyExpoUpdateRequest updateRequest, LoginType loginType, Long principalId) {
-        validateMyPermission(expoId, loginType, principalId, true); // 수정 권한 필요
+    public MyExpoDetailResponse updateMyExpoDescription(Long expoId, MyExpoDescriptionUpdateRequest updateRequest, LoginType loginType, Long principalId) {
+        // 권한 검증 (EXPO_DETAIL_UPDATE 권한 필요)
+        expoAdminAccessValidate.ensureViewable(expoId, principalId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
+        
+        // 박람회 조회
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
 
-        expo.updateFromDto(updateRequest);
-        updateExpoCategories(expo, updateRequest.getCategoryIds());
+        // 설명만 업데이트 (상태 제한 없음 - 프론트엔드에서 제어)
+        expo.updateDescription(updateRequest.getDescription());
 
         List<ExpoCategory> expoCategories = expoCategoryRepository.findByExpoId(expo.getId());
         return expoMapper.toMyExpoDetailResponse(expo, expoCategories);
-    }
-
-    private void validateMyPermission(Long expoId, LoginType loginType, Long principalId, boolean requireUpdatePermission) {
-        switch (loginType) {
-            case MEMBER -> {
-                if (!expoRepository.existsByIdAndMemberId(expoId, principalId)) {
-                    throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                }
-            }
-            case ADMIN_CODE -> {
-                AdminCode adminCode = adminCodeRepository.findById(principalId)
-                        .orElseThrow(() -> new CustomException(CustomErrorCode.ADMIN_CODE_NOT_FOUND));
-
-
-                if (requireUpdatePermission) {
-                    if (!adminPermissionRepository.existsByAdminCodeIdAndAdminCodeExpoIdAndIsExpoDetailUpdateTrue(principalId, expoId)) {
-                        throw new CustomException(CustomErrorCode.EXPO_ACCESS_DENIED);
-                    }
-                }
-            }
-            default -> throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
-        }
-    }
-
-    private void updateExpoCategories(Expo expo, List<Long> categoryIds) {
-        expoCategoryRepository.deleteAllByExpo(expo);
-        if (categoryIds != null && !categoryIds.isEmpty()) {
-            List<Category> categories = categoryRepository.findAllById(categoryIds);
-            if (categories.size() != categoryIds.size()) {
-                throw new CustomException(CustomErrorCode.CATEGORY_NOT_EXIST);
-            }
-            List<ExpoCategory> newExpoCategories = categories.stream()
-                    .map(category -> ExpoCategory.builder().expo(expo).category(category).build())
-                    .collect(Collectors.toList());
-            expoCategoryRepository.saveAll(newExpoCategories);
-        }
     }
 }

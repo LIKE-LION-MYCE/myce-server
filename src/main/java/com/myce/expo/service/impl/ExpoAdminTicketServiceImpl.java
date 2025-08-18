@@ -18,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -28,6 +30,7 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
     private final TicketRepository ticketRepository;
     private final ExpoRepository expoRepository;
     private final ExpoAdminTicketMapper mapper;
+    private static final ZoneId APP_ZONE = ZoneId.of("Asia/Seoul");
 
     @Override
     public List<ExpoAdminTicketResponseDto> getMyExpoTickets(Long expoId, Long memberId, LoginType loginType) {
@@ -49,6 +52,8 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
         if(!ticket.getExpo().getId().equals(expoId)){
             throw new CustomException(CustomErrorCode.TICKET_NOT_BELONG_TO_EXPO);
         }
+
+        ensureTicketEditable(ticket);
 
         ticketRepository.delete(ticket);
     }
@@ -76,13 +81,16 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
                                                          Long ticketId,
                                                          ExpoAdminTicketRequestDto dto) {
         expoAdminAccessValidate.ensureEditable(expoId, memberId, loginType, ExpoAdminPermission.EXPO_DETAIL_UPDATE);
-
+        
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(()-> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
 
         if(!ticket.getExpo().getId().equals(expoId)){
             throw new CustomException(CustomErrorCode.TICKET_NOT_BELONG_TO_EXPO);
+
         }
+
+        ensureTicketEditable(ticket);
 
         ticket.updateTicketInfo(
                 dto.getName(),
@@ -103,5 +111,14 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
     private Expo getMyExpo(Long expoId) {
         return expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
+    }
+
+    private void ensureTicketEditable(Ticket ticket) {
+        LocalDate saleStart = ticket.getSaleStartDate();
+
+        LocalDate today = LocalDate.now(APP_ZONE);
+        if (!today.isBefore(saleStart)) {
+            throw new CustomException(CustomErrorCode.TICKET_EDIT_DENIED);
+        }
     }
 }

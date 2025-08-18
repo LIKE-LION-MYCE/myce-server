@@ -10,7 +10,7 @@ import java.util.List;
 public enum ExpoStatus {
   
     PENDING_APPROVAL("승인 대기"),
-    PENDING_PAYMENT("승인 완료"),
+    PENDING_PAYMENT("결제 대기"),
     PENDING_PUBLISH("게시 대기"),
     PENDING_CANCEL("취소 대기"),
     PUBLISHED("게시 중"),
@@ -43,7 +43,6 @@ public enum ExpoStatus {
     //박람회 관리자가 조회 가능한 상태
     public static final List<ExpoStatus> ADMIN_VIEWABLE_STATUSES = List.of(
             PENDING_PUBLISH,
-            PENDING_CANCEL,
             PUBLISHED,
             PUBLISH_ENDED,
             SETTLEMENT_REQUESTED,

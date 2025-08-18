@@ -12,6 +12,7 @@ import com.myce.common.entity.type.TargetType;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.common.repository.BusinessProfileRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -88,5 +89,13 @@ public class PlatformAdServiceImpl implements PlatformAdService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.BUSINESS_NOT_EXIST));
 
         return AdMapper.getSimpleAdvertisement(advertisement, businessProfile);
+    }
+
+    @Override
+    @Transactional
+    public void updateAdStatus(Long adId, AdvertisementStatus advertisementStatus) {
+        Advertisement advertisement = adRepository.findById(adId)
+            .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
+        advertisement.updateStatus(advertisementStatus);
     }
 }

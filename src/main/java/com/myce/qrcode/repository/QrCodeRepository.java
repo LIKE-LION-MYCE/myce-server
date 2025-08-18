@@ -73,4 +73,14 @@ public interface QrCodeRepository extends JpaRepository<QrCode, Long> {
             "GROUP BY HOUR(qr.usedAt) " +
             "ORDER BY HOUR(qr.usedAt)")
     List<Object[]> countHourlyCheckinsByExpoIdAndDate(@Param("expoId") Long expoId, @Param("today") LocalDate today);
+    
+    // 특정 사용자가 특정 박람회에 참석했는지 확인 (QR 코드가 USED 상태)
+    @Query("SELECT COUNT(qr) > 0 FROM QrCode qr " +
+            "JOIN qr.reserver rv " +
+            "JOIN rv.reservation r " +
+            "WHERE r.expo.id = :expoId " +
+            "AND r.userId = :memberId " +
+            "AND r.userType = 'MEMBER' " +
+            "AND qr.status = 'USED'")
+    boolean existsByExpoIdAndMemberIdAndStatusUsed(@Param("expoId") Long expoId, @Param("memberId") Long memberId);
 }

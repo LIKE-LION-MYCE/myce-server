@@ -23,6 +23,7 @@ import com.myce.member.mapper.ad.AdvertisementPaymentDetailMapper;
 import com.myce.member.mapper.ad.AdvertisementRefundReceiptMapper;
 import com.myce.member.mapper.ad.MemberAdvertisementMapper;
 import com.myce.member.service.MemberAdService;
+import com.myce.notification.service.NotificationService;
 import com.myce.payment.entity.AdPaymentInfo;
 import com.myce.payment.entity.Payment;
 import com.myce.payment.entity.Refund;
@@ -60,6 +61,7 @@ public class MemberAdServiceImpl implements MemberAdService {
     private final PaymentRepository paymentRepository;
     private final RefundRepository refundRepository;
     private final RejectInfoRepository rejectInfoRepository;
+    private final NotificationService notificationService;
 
     @Override
     public Page<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId, Pageable pageable) {
@@ -89,6 +91,7 @@ public class MemberAdServiceImpl implements MemberAdService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_NOT_FOUND));
 
         advertisement.cancel();
+
     }
     
     
@@ -105,6 +108,14 @@ public class MemberAdServiceImpl implements MemberAdService {
             case PENDING_APPROVAL:
                 // 승인대기 상태: status만 CANCELLED로 변경 (AdPaymentInfo 없음)
                 advertisement.updateStatus(AdvertisementStatus.CANCELLED);
+
+                try {
+                    notificationService.sendExpoStatusChangeNotification(advertisementId, advertisement.getTitle(), "PENDING_APPROVAL",
+                            "CANCELLED");
+                } catch (Exception e) {
+                    log.warn("박람회 결제 완료 알림 전송 실패 - expoId: {}, 오류: {}", advertisementId, e.getMessage());
+                }
+
                 log.info("승인대기 취소 - 광고 상태만 변경: 광고 ID {}", advertisementId);
                 break;
                 
@@ -117,6 +128,13 @@ public class MemberAdServiceImpl implements MemberAdService {
                     adPaymentInfoRepository.delete(adPaymentInfo);
                     log.info("결제대기 취소 - AdPaymentInfo 삭제됨: 광고 ID {}", advertisementId);
                 }
+                try {
+                    notificationService.sendExpoStatusChangeNotification(advertisementId, advertisement.getTitle(), "PENDING_PAYMENT",
+                            "CANCELLED");
+                } catch (Exception e) {
+                    log.warn("박람회 결제 완료 알림 전송 실패 - expoId: {}, 오류: {}", advertisementId, e.getMessage());
+                }
+
                 break;
                 
             case PENDING_PUBLISH:
@@ -128,6 +146,13 @@ public class MemberAdServiceImpl implements MemberAdService {
                     adPaymentInfoRepository.delete(pendingPublishPaymentInfo);
                     log.info("게시예정 취소 - AdPaymentInfo 삭제됨: 광고 ID {}", advertisementId);
                 }
+                try {
+                    notificationService.sendExpoStatusChangeNotification(advertisementId, advertisement.getTitle(), "PENDING_PUBLISH",
+                            "CANCELLED");
+                } catch (Exception e) {
+                    log.warn("박람회 결제 완료 알림 전송 실패 - expoId: {}, 오류: {}", advertisementId, e.getMessage());
+                }
+
                 break;
                 
             default:
@@ -159,6 +184,8 @@ public class MemberAdServiceImpl implements MemberAdService {
         
         // 광고 상태에 따른 처리
         AdvertisementStatus currentStatus = advertisement.getStatus();
+        String oldStatus = currentStatus.name();
+
         advertisement.requestRefundByStatus();
         
         Integer refundAmount;
@@ -169,6 +196,7 @@ public class MemberAdServiceImpl implements MemberAdService {
                 // 게시 예정 - 전액 환불
                 refundAmount = adPaymentInfo.getTotalAmount();
                 isPartial = false;
+
                 break;
             case PUBLISHED:
                 // 게시 중 - 부분 환불 (남은 일수만큼)
@@ -201,6 +229,13 @@ public class MemberAdServiceImpl implements MemberAdService {
                 .build();
         
         refundRepository.save(refund);
+
+        try {
+            notificationService.sendAdvertisementStatusChangeNotification(
+                    advertisementId, advertisement.getTitle(), oldStatus, "PENDING_CANCEL");
+        } catch (Exception e) {
+            log.warn("광고 환불 신청 알림 전송 실패 - adId: {}, 오류: {}", advertisementId, e.getMessage());
+        }
     }
 
     @Override
@@ -274,6 +309,13 @@ public class MemberAdServiceImpl implements MemberAdService {
                 .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
         paymentInfo.updateStatus(PaymentStatus.SUCCESS);
         adPaymentInfoRepository.save(paymentInfo);
+
+        try {
+            notificationService.sendAdvertisementStatusChangeNotification(
+                    advertisementId, advertisement.getTitle(), "PENDING_PAYMENT", "PENDING_PUBLISH");
+        } catch (Exception e) {
+            log.warn("광고 환불 신청 알림 전송 실패 - adId: {}, 오류: {}", advertisementId, e.getMessage());
+        }
 
         log.info("광고 결제 완료 처리 - 광고 ID: {}, 회원 ID: {}", advertisementId, memberId);
     }

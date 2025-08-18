@@ -5,18 +5,18 @@ import java.util.List;
 import lombok.Getter;
 
 @Getter
-public class MessageTemplatesResponse {
+public class MessageTemplateListResponse {
     int currentPage;
     int totalPage;
-    List<MessageTemplateResponse> templates;
+    List<MessageSummaryResponse> templates;
 
-    public MessageTemplatesResponse(int currentPage, int totalPage) {
+    public MessageTemplateListResponse(int currentPage, int totalPage) {
         this.currentPage = currentPage;
         this.totalPage = totalPage;
         this.templates = new ArrayList<>();
     }
 
-    public void addMessageTemplate(MessageTemplateResponse template) {
+    public void addMessageTemplate(MessageSummaryResponse template) {
         this.templates.add(template);
     }
 }
