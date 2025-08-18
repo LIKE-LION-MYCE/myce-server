@@ -218,4 +218,19 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> findByUserIdAndUserTypeAndStatus(Long userId, UserType userType, ReservationStatus status);
 
     Long countAllByCreatedAtBetween(LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
+
+    @Query("""
+            SELECT r FROM Reservation r 
+            JOIN FETCH r.expo e 
+            JOIN FETCH r.ticket t 
+            LEFT JOIN Guest g ON r.userType = com.myce.reservation.entity.code.UserType.GUEST AND r.userId = g.id 
+            LEFT JOIN Member m ON r.userType = com.myce.reservation.entity.code.UserType.MEMBER AND r.userId = m.id 
+            WHERE r.reservationCode = :reservationCode 
+            AND (
+                (r.userType = com.myce.reservation.entity.code.UserType.GUEST AND g.email = :email) OR 
+                (r.userType = com.myce.reservation.entity.code.UserType.MEMBER AND m.email = :email)
+            )
+            """)
+    Optional<Reservation> findByReservationCodeAndEmail(@Param("reservationCode") String reservationCode, 
+                                                        @Param("email") String email);
 }
