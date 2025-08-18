@@ -101,10 +101,7 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/webjars/**",
                                 "/auth-docs/login",
-                                "/actuator/health",
-                                "/actuator/health/liveness",  // ALB health checks
-                                "/actuator/health/readiness", // Optional readiness checks
-                                "/actuator/info",
+                                "/actuator/**",               // All actuator endpoints for monitoring
                                 "/ws/**", // WebSocket 엔드포인트 허용
                                 "/images/**" // Static 이미지 리소스 허용
                         ).permitAll()
