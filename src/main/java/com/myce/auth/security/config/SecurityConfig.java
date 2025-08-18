@@ -87,7 +87,8 @@ public class SecurityConfig {
                             "/api/categories", "/api/expos/**", "/api/reservations/**",
                             "/api/expo/fees/active", "/api/ad/fees/active",
                             "/api/members/expos/*/payment", "/api/members/ads/*/payment",
-                            "/api/reviews/expo/*", "/api/reviews/*/")
+                            "/api/reviews/expo/*", "/api/reviews/*/", "/api/reviews/best",
+                            "/api/settings/refund-fee/public")
                         .permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/tickets/quantity",
                             "/api/reservations/**", "/api/platform/ads/*/status",

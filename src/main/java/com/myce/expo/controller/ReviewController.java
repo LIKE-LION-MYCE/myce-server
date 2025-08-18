@@ -92,4 +92,12 @@ public class ReviewController {
         boolean hasReviewed = reviewService.hasUserReviewedExpo(userDetails.getMemberId(), expoId);
         return ResponseEntity.ok(hasReviewed);
     }
+    
+    @GetMapping("/best")
+    public ResponseEntity<ReviewListResponse> getBestReviews(
+            @RequestParam(defaultValue = "6") int limit) {
+        
+        ReviewListResponse response = reviewService.getBestReviews(limit);
+        return ResponseEntity.ok(response);
+    }
 }
