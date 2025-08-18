@@ -45,11 +45,13 @@ public class PaymentMapper {
     public PaymentVerifyResponse toPaymentVerifyResponse(Payment payment, Object paymentInfo) {
         String status = null;
         Integer amount = null;
+        Long reservationId = null;
 
         if (paymentInfo instanceof ReservationPaymentInfo) {
             ReservationPaymentInfo info = (ReservationPaymentInfo) paymentInfo;
             status = info.getStatus().name();
             amount = info.getTotalAmount();
+            reservationId = info.getReservation().getId(); // 실제 reservation ID
         } else if (paymentInfo instanceof AdPaymentInfo) {
             AdPaymentInfo info = (AdPaymentInfo) paymentInfo;
             status = info.getStatus().name();
@@ -65,6 +67,7 @@ public class PaymentMapper {
                 .merchantUid(payment.getMerchantUid())
                 .status(status)
                 .amount(amount)
+                .reservationId(reservationId)
                 .build();
     }
 

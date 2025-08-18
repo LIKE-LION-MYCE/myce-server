@@ -16,4 +16,5 @@ public class PaymentVerifyResponse {
   private String merchantUid;
   private String status;
   private Integer amount;
+  private Long reservationId; // 실제 DB에 저장된 reservation ID
 }
