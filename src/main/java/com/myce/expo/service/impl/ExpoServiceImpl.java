@@ -227,10 +227,10 @@ public class ExpoServiceImpl implements ExpoService {
                 .map(expoCategory -> expoCategory.getCategory().getName())
                 .collect(Collectors.toList());
 
-        // 현재 예약자 수 계산
+        // 현재 예약자 수 계산 (총 발행 수량 - 남은 티켓 수)
         List<Ticket> tickets = ticketRepository.findByExpoIdOrderByCreatedAtAsc(expoId);
         int currentReservationCount = tickets.stream()
-                .mapToInt(Ticket::getRemainingQuantity)
+                .mapToInt(ticket -> ticket.getTotalQuantity() - ticket.getRemainingQuantity())
                 .sum();
 
         // 주최자 상세 정보 빌드
@@ -402,7 +402,7 @@ public class ExpoServiceImpl implements ExpoService {
             throw new CustomException(CustomErrorCode.EXPO_NOT_PUBLISHED);
         }
 
-        List<Booth> booths = boothRepository.findAllByExpoId(expoId);
+                List<Booth> booths = boothRepository.findByExpoIdSorted(expoId);
 
         return booths.stream()
                 .map(boothMapper::toResponse)

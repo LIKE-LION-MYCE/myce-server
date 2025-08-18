@@ -19,7 +19,7 @@ public class TicketServiceImpl implements TicketService {
 
   @Override
   public List<TicketSummaryResponse> getTickets(Long expoId) {
-    List<Ticket> tickets = ticketRepository.findByExpoId(expoId);
+            List<Ticket> tickets = ticketRepository.findByExpoIdOrderByTypeAscSaleStartDateAsc(expoId);
 
     return tickets.stream()
         .map(t -> TicketSummaryResponse.builder()
