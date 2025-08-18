@@ -10,5 +10,7 @@ import java.util.List;
 public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findAllByExpoId(Long expoId);
 
+    List<Event> findAllByExpoIdOrderByEventDateAscStartTimeAsc(Long expoId);
+
     List<Event> findByEventDateAndStartTimeBetween(LocalDate eventDate, LocalTime startTime, LocalTime endTime);
 }
