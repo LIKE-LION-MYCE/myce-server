@@ -96,7 +96,7 @@ public class ReservationController {
     }
 
     // 비회원 예매 조회 (이메일 + 예매번호)
-    @GetMapping("/non-member")
+    @GetMapping("/guest")
     public ResponseEntity<ReservationDetailResponse> getNonMemberReservation(
             @RequestParam String email,
             @RequestParam String reservationCode) {

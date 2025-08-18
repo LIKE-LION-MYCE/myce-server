@@ -7,7 +7,9 @@ import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.PaymentRefundRequest;
 import com.myce.payment.dto.PortOneWebhookRequest;
 import com.myce.payment.dto.AdRefundRequest;
+import com.myce.payment.dto.ReservationPaymentVerifyRequest;
 import com.myce.payment.service.PaymentService;
+import com.myce.payment.service.ReservationPaymentService;
 import com.myce.payment.service.refund.PaymentRefundService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,7 @@ import java.util.Map;
 public class PaymentController {
   private final PaymentService paymentService;
   private final PaymentRefundService paymentRefundService;
+  private final ReservationPaymentService reservationPaymentService;
 
   // 결제 검증 API (POST 방식)
   @PostMapping("/verify")
@@ -78,6 +81,24 @@ public class PaymentController {
   public ResponseEntity<Map<String, Object>> processAdRefund(
       @RequestBody AdRefundRequest request) {
     Map<String, Object> response = paymentRefundService.processAdRefund(request);
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+  
+  // 박람회 통합 결제 검증 API - 결제 검증 + 예약 처리 + 마일리지 + 등급 업데이트를 한번에 처리
+  @PostMapping("/reservation/verify")
+  public ResponseEntity<PaymentVerifyResponse> verifyReservationPayment(
+      @RequestBody ReservationPaymentVerifyRequest request) {
+    log.info("박람회 통합 결제 검증 시작 - reservationId: {}", request.getTargetId());
+    PaymentVerifyResponse response = reservationPaymentService.verifyAndCompleteReservationPayment(request);
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+  
+  // 박람회 가상계좌 통합 결제 검증 API
+  @PostMapping("/reservation/verify-vbank")
+  public ResponseEntity<PaymentVerifyResponse> verifyReservationVbankPayment(
+      @RequestBody ReservationPaymentVerifyRequest request) {
+    log.info("박람회 가상계좌 통합 결제 검증 시작 - reservationId: {}", request.getTargetId());
+    PaymentVerifyResponse response = reservationPaymentService.verifyAndCompleteVbankReservationPayment(request);
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 }

@@ -17,7 +17,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -85,7 +84,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/**",
                             "/api/categories", "/api/expos/**", "/api/reservations/**",
-                            "/api/reservations/non-member", "/api/expo/fees/active", "/api/ad/fees/active",
+                            "/api/reservations/guest", "/api/expo/fees/active", "/api/ad/fees/active",
                             "/api/members/expos/*/payment", "/api/members/ads/*/payment",
                             "/api/reviews/expo/*", "/api/reviews/*/", "/api/reviews/best",
                             "/api/settings/refund-fee/public")
