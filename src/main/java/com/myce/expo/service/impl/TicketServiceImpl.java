@@ -44,4 +44,13 @@ public class TicketServiceImpl implements TicketService {
 
     ticket.updateRemainingQuantity(ticket.getRemainingQuantity() - request.getQuantity());
   }
+  
+  @Transactional
+  @Override
+  public void restoreTicketQuantity(Long ticketId, Integer quantity) {
+    Ticket ticket = ticketRepository.findById(ticketId)
+        .orElseThrow(() -> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
+
+    ticket.updateRemainingQuantity(ticket.getRemainingQuantity() + quantity);
+  }
 }

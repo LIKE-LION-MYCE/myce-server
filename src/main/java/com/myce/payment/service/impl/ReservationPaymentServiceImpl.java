@@ -32,6 +32,7 @@ import com.myce.reservation.repository.PreReservationRepository;
 import com.myce.reservation.repository.ReservationRepository;
 import com.myce.reservation.service.ReservationService;
 import com.myce.reservation.service.ReserverService;
+import com.myce.reservation.service.GuestReservationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -59,6 +60,7 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
     private final MemberGradeService memberGradeService;
     private final QrCodeService qrCodeService;
     private final NotificationService notificationService;
+    private final GuestReservationService guestReservationService;
 
     @Override
     @Transactional
@@ -72,12 +74,22 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
         
         // 2. Redis에서 결제 세션 검증 및 DB 저장
         
-        // Redis에서 결제 세션 검증 (임시 ID 0으로 확인)
-        PreReservationCacheDto cachedDto = preReservationRepository.findById(0L);
-        if (cachedDto == null) {
-            log.error("결제 세션 만료 또는 유효하지 않음");
+        // Redis에서 결제 세션 검증 (세션 ID 필수)
+        if (request.getSessionId() == null) {
+            log.error("세션 ID가 제공되지 않음");
             throw new CustomException(CustomErrorCode.PAYMENT_SESSION_EXPIRED);
         }
+        
+        com.myce.reservation.repository.impl.PreReservationRepositoryImpl repoImpl = 
+            (com.myce.reservation.repository.impl.PreReservationRepositoryImpl) preReservationRepository;
+        PreReservationCacheDto cachedDto = repoImpl.findBySessionId(request.getSessionId());
+        
+        if (cachedDto == null) {
+            log.error("결제 세션 만료 또는 유효하지 않음 - 세션 ID: {}", request.getSessionId());
+            throw new CustomException(CustomErrorCode.PAYMENT_SESSION_EXPIRED);
+        }
+        
+        log.info("세션 ID로 Redis 조회 성공: {} - userType: {}", request.getSessionId(), cachedDto.getUserType());
         
         // Redis DTO에서 엔티티 재조회하여 DB에 저장
         Expo expo = expoRepository.findById(cachedDto.getExpoId())
@@ -124,9 +136,30 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
             // 6. 예약 상태를 CONFIRMED로 변경
             reservationService.updateStatusToConfirm(reservation.getId());
             
-            // 7. 예약자 정보 저장
+            // 7. 예약자 정보 저장 및 비회원 Guest ID 생성
             if (request.getReserverInfos() != null && !request.getReserverInfos().isEmpty()) {
                 reserverService.saveReservers(reservation.getId(), request.getReserverInfos());
+                
+                // 비회원인 경우 Guest 엔티티 생성 및 reservation의 userId 업데이트
+                if (reservation.getUserType() == UserType.GUEST) {
+                    com.myce.reservation.dto.GuestReservationRequest guestRequest = 
+                        new com.myce.reservation.dto.GuestReservationRequest();
+                    guestRequest.setReservationId(reservation.getId());
+                    guestRequest.setReserverInfos(request.getReserverInfos().stream()
+                        .map(info -> {
+                            com.myce.reservation.dto.ReserverInfo reserverInfo = 
+                                new com.myce.reservation.dto.ReserverInfo();
+                            reserverInfo.setName(info.getName());
+                            reserverInfo.setEmail(info.getEmail());
+                            reserverInfo.setPhone(info.getPhone());
+                            reserverInfo.setBirth(info.getBirth());
+                            reserverInfo.setGender(info.getGender());
+                            return reserverInfo;
+                        }).collect(java.util.stream.Collectors.toList()));
+                    
+                    guestReservationService.updateGuestId(guestRequest);
+                    log.info("비회원 Guest ID 생성 및 업데이트 완료 - reservationId: {}", reservation.getId());
+                }
             }
             
             // 8. 티켓 수량 감소
@@ -184,10 +217,12 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
             
             // 13. Redis에서 결제 세션 정리
             try {
-                preReservationRepository.delete(0L);
-                log.info("결제 완료 후 Redis 세션 정리 완료 - reservationId: {}", reservation.getId());
+                repoImpl.deleteBySessionId(request.getSessionId());
+                log.info("결제 완료 후 Redis 세션 정리 완료 - 세션 ID: {}, reservationId: {}", 
+                        request.getSessionId(), reservation.getId());
             } catch (Exception e) {
-                log.warn("Redis 세션 정리 실패 - reservationId: {}, 오류: {}", reservation.getId(), e.getMessage());
+                log.warn("Redis 세션 정리 실패 - reservationId: {}, 세션 ID: {}, 오류: {}", 
+                        reservation.getId(), request.getSessionId(), e.getMessage());
             }
             
             log.info("박람회 결제 통합 처리 완료 - reservationId: {}", reservation.getId());
@@ -209,9 +244,43 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
         Map<String, Object> portOnePayment = portOneApiService.getPaymentInfo(request.getImpUid(), accessToken);
         Integer paidAmount = verifyVbankDetails(request, portOnePayment);
         
-        // 2. 예약 정보 조회
-        Reservation reservation = reservationRepository.findById(request.getTargetId())
-                .orElseThrow(() -> new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND));
+        // 2. Redis에서 결제 세션 검증 및 DB 저장
+        
+        // Redis에서 결제 세션 검증 (세션 ID 필수)
+        if (request.getSessionId() == null) {
+            log.error("가상계좌 - 세션 ID가 제공되지 않음");
+            throw new CustomException(CustomErrorCode.PAYMENT_SESSION_EXPIRED);
+        }
+        
+        com.myce.reservation.repository.impl.PreReservationRepositoryImpl repoImpl = 
+            (com.myce.reservation.repository.impl.PreReservationRepositoryImpl) preReservationRepository;
+        PreReservationCacheDto cachedDto = repoImpl.findBySessionId(request.getSessionId());
+        
+        if (cachedDto == null) {
+            log.error("가상계좌 결제 세션 만료 또는 유효하지 않음 - 세션 ID: {}", request.getSessionId());
+            throw new CustomException(CustomErrorCode.PAYMENT_SESSION_EXPIRED);
+        }
+        
+        log.info("가상계좌 - 세션 ID로 Redis 조회 성공: {} - userType: {}", request.getSessionId(), cachedDto.getUserType());
+        
+        // Redis DTO에서 엔티티 재조회하여 DB에 저장
+        Expo expo = expoRepository.findById(cachedDto.getExpoId())
+                .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
+        Ticket ticket = ticketRepository.findById(cachedDto.getTicketId())
+                .orElseThrow(() -> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
+        
+        Reservation newReservation = Reservation.builder()
+                .expo(expo)
+                .ticket(ticket)
+                .reservationCode(cachedDto.getReservationCode())
+                .userType(cachedDto.getUserType())
+                .userId(cachedDto.getUserId())
+                .quantity(cachedDto.getQuantity())
+                .status(ReservationStatus.CONFIRMED_PENDING)
+                .build();
+        
+        Reservation reservation = reservationRepository.save(newReservation);
+        log.info("Redis 세션에서 DB 저장 완료 - reservationId: {}", reservation.getId());
         
         // 3. 비회원 적립금 지급 방지
         if (reservation.getUserType() == UserType.GUEST) {
@@ -221,17 +290,39 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
         
         try {
             // 4. Payment 엔티티 저장 (PENDING 상태)
-            Payment payment = paymentMapper.toEntity(convertToPaymentVerifyRequest(request), portOnePayment);
+            PaymentVerifyRequest paymentRequest = convertToPaymentVerifyRequest(request, reservation.getId());
+            Payment payment = paymentMapper.toEntity(paymentRequest, portOnePayment);
             paymentRepository.save(payment);
             
             // 5. ReservationPaymentInfo 저장 (PENDING 상태)
             ReservationPaymentInfo paymentInfo = paymentMapper.toReservationPaymentInfo(
-                    convertToPaymentVerifyRequest(request), reservation, paidAmount, PaymentStatus.PENDING);
+                    paymentRequest, reservation, paidAmount, PaymentStatus.PENDING);
             reservationPaymentInfoRepository.save(paymentInfo);
             
-            // 6. 예약자 정보 저장
+            // 6. 예약자 정보 저장 및 비회원 Guest ID 생성
             if (request.getReserverInfos() != null && !request.getReserverInfos().isEmpty()) {
-                reserverService.saveReservers(request.getTargetId(), request.getReserverInfos());
+                reserverService.saveReservers(reservation.getId(), request.getReserverInfos());
+                
+                // 비회원인 경우 Guest 엔티티 생성 및 reservation의 userId 업데이트
+                if (reservation.getUserType() == UserType.GUEST) {
+                    com.myce.reservation.dto.GuestReservationRequest guestRequest = 
+                        new com.myce.reservation.dto.GuestReservationRequest();
+                    guestRequest.setReservationId(reservation.getId());
+                    guestRequest.setReserverInfos(request.getReserverInfos().stream()
+                        .map(info -> {
+                            com.myce.reservation.dto.ReserverInfo reserverInfo = 
+                                new com.myce.reservation.dto.ReserverInfo();
+                            reserverInfo.setName(info.getName());
+                            reserverInfo.setEmail(info.getEmail());
+                            reserverInfo.setPhone(info.getPhone());
+                            reserverInfo.setBirth(info.getBirth());
+                            reserverInfo.setGender(info.getGender());
+                            return reserverInfo;
+                        }).collect(java.util.stream.Collectors.toList()));
+                    
+                    guestReservationService.updateGuestId(guestRequest);
+                    log.info("비회원 Guest ID 생성 및 업데이트 완료 (가상계좌) - reservationId: {}", reservation.getId());
+                }
             }
             
             // 7. 티켓 수량 감소
@@ -243,13 +334,23 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
                 ticketService.updateRemainingQuantity(ticketRequest);
             }
             
+            // 8. Redis에서 결제 세션 정리
+            try {
+                repoImpl.deleteBySessionId(request.getSessionId());
+                log.info("가상계좌 결제 완료 후 Redis 세션 정리 완료 - 세션 ID: {}, reservationId: {}", 
+                        request.getSessionId(), reservation.getId());
+            } catch (Exception e) {
+                log.warn("가상계좌 Redis 세션 정리 실패 - reservationId: {}, 세션 ID: {}, 오류: {}", 
+                        reservation.getId(), request.getSessionId(), e.getMessage());
+            }
+            
             // 가상계좌는 입금 완료 시 웹훅에서 나머지 처리 (마일리지, 등급, QR 등)
             
-            log.info("박람회 가상계좌 결제 처리 완료 - reservationId: {}", request.getTargetId());
+            log.info("박람회 가상계좌 결제 처리 완료 - reservationId: {}", reservation.getId());
             return paymentMapper.toPaymentVerifyResponse(payment, paymentInfo);
             
         } catch (Exception e) {
-            log.error("박람회 가상계좌 결제 처리 실패 - reservationId: {}, 오류: {}", request.getTargetId(), e.getMessage(), e);
+            log.error("박람회 가상계좌 결제 처리 실패 - reservationId: {}, 오류: {}", reservation.getId(), e.getMessage(), e);
             throw new CustomException(CustomErrorCode.PAYMENT_NOT_READY_OR_PAID);
         }
     }

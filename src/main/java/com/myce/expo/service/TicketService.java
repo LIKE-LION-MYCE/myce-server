@@ -10,4 +10,7 @@ public interface TicketService {
 
   // 티켓 수량 빼기
   void updateRemainingQuantity(TicketQuantityRequest request);
+  
+  // 티켓 수량 복구 (가상계좌 만료 시)
+  void restoreTicketQuantity(Long ticketId, Integer quantity);
 }

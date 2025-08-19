@@ -83,8 +83,19 @@ public class ReservationController {
     }
 
     @GetMapping("/payment-summary")
-    public ResponseEntity<ReservationPaymentSummaryResponse> getPaymentSummary(@RequestParam Long preReservationId){
-        ReservationPaymentSummaryResponse response = reservationService.getPaymentSummary(preReservationId);
+    public ResponseEntity<ReservationPaymentSummaryResponse> getPaymentSummary(
+            @RequestParam Long preReservationId,
+            @RequestParam(required = false) String sessionId){
+        
+        ReservationPaymentSummaryResponse response;
+        
+        // 세션 ID가 제공되면 세션 기반 조회, 아니면 기존 방식
+        if (sessionId != null && !sessionId.trim().isEmpty()) {
+            response = reservationService.getPaymentSummaryBySessionId(sessionId);
+        } else {
+            response = reservationService.getPaymentSummary(preReservationId);
+        }
+        
         return ResponseEntity.ok(response);
     }
 

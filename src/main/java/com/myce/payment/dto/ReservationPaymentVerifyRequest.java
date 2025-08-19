@@ -24,4 +24,5 @@ public class ReservationPaymentVerifyRequest {
     private List<ReserverBulkSaveRequest.ReserverSaveInfo> reserverInfos;
     private Long ticketId;
     private Integer quantity;
+    private String sessionId; // Redis 세션 ID 추가
 }

@@ -201,34 +201,42 @@ public class ReservationServiceImpl implements ReservationService {
                 .status(ReservationStatus.CONFIRMED_PENDING)
                 .build();
 
-        // DB에는 저장하지 않고 Redis에만 10분 TTL로 저장 (임시 ID = 0)
+        // DB에는 저장하지 않고 Redis에만 10분 TTL로 저장 (모든 예매가 고유한 세션 ID 사용)
         try {
-            preReservationRepository.save(cacheDto, 10);
-            log.info("결제 세션 Redis 저장 완료 (DB 저장 안함) - reservationCode: {}", reservationCode);
+            // PreReservationRepositoryImpl을 직접 캐스팅하여 새로운 메서드 사용
+            com.myce.reservation.repository.impl.PreReservationRepositoryImpl repoImpl = 
+                (com.myce.reservation.repository.impl.PreReservationRepositoryImpl) preReservationRepository;
+            String sessionId = repoImpl.saveWithUniqueKey(cacheDto, 10);
+            
+            String userTypeInfo = request.getUserType() == UserType.MEMBER ? "회원" : "비회원";
+            log.info("결제 세션 Redis 저장 완료 ({}) - 세션 ID: {}, reservationCode: {}", 
+                    userTypeInfo, sessionId, reservationCode);
             
             // 저장 직후 바로 조회해서 검증
-            PreReservationCacheDto testRead = preReservationRepository.findById(0L);
+            PreReservationCacheDto testRead = repoImpl.findBySessionId(sessionId);
             if (testRead != null) {
-                log.info("Redis 저장 검증 성공 - 조회된 reservationCode: {}", testRead.getReservationCode());
+                log.info("Redis 저장 검증 성공 ({}) - 세션 ID: {}, reservationCode: {}", 
+                        userTypeInfo, sessionId, testRead.getReservationCode());
             } else {
-                log.error("Redis 저장 검증 실패 - 바로 조회했는데 null 반환");
+                log.error("Redis 저장 검증 실패 ({}) - 세션 ID: {}", userTypeInfo, sessionId);
             }
+            
+            // 세션 ID와 함께 반환 (reservationId는 0)
+            return new PreReservationResponse(0L, sessionId);
         } catch (Exception e) {
             log.error("결제 세션 Redis 저장 실패 - reservationCode: {}, 오류: {}", reservationCode, e.getMessage());
             throw new CustomException(CustomErrorCode.RESERVATION_CODE_GENERATION_FAILED);
         }
-
-        // 임시 ID 0 반환
-        return new PreReservationResponse(0L);
     }
 
     @Override
     public ReservationPaymentSummaryResponse getPaymentSummary(Long reservationId) {
         log.info("getPaymentSummary 호출 - reservationId: {}", reservationId);
         
-        // reservationId가 0이면 Redis에서 조회
+        // reservationId가 0이면 Redis에서 조회 (하지만 이제는 세션 ID가 필요)
         if (reservationId == 0L) {
-            log.info("Redis에서 캐시 데이터 조회 시도");
+            log.info("Redis에서 캐시 데이터 조회 시도 - reservationId: 0 (세션 ID 필요)");
+            // 세션 ID가 없으면 기존 방식으로 폴백
             PreReservationCacheDto cachedDto = preReservationRepository.findById(0L);
             
             if (cachedDto == null) {
@@ -261,6 +269,39 @@ public class ReservationServiceImpl implements ReservationService {
         String ticketName = "[" + ticketType + "] " + ticket.getName();
 
         return reservationMapper.toPaymentSummary(ticket, ticketName, reservation.getQuantity());
+    }
+
+    @Override
+    public ReservationPaymentSummaryResponse getPaymentSummaryBySessionId(String sessionId) {
+        log.info("getPaymentSummaryBySessionId 호출 - sessionId: {}", sessionId);
+        
+        if (sessionId == null) {
+            log.error("세션 ID가 제공되지 않음");
+            throw new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND);
+        }
+        
+        // Redis에서 세션 ID로 조회
+        com.myce.reservation.repository.impl.PreReservationRepositoryImpl repoImpl = 
+            (com.myce.reservation.repository.impl.PreReservationRepositoryImpl) preReservationRepository;
+        PreReservationCacheDto cachedDto = repoImpl.findBySessionId(sessionId);
+        
+        if (cachedDto == null) {
+            log.error("Redis에서 캐시 데이터를 찾을 수 없음 - 세션 ID: {}, TTL 만료 가능성", sessionId);
+            throw new CustomException(CustomErrorCode.RESERVATION_NOT_FOUND);
+        }
+        
+        log.info("Redis에서 캐시 데이터 조회 성공 - 세션 ID: {}, reservationCode: {}", 
+                sessionId, cachedDto.getReservationCode());
+        
+        Ticket ticket = ticketRepository.findById(cachedDto.getTicketId())
+            .orElseThrow(() -> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
+        
+        // 티켓 타입
+        String ticketType = ticket.getType().toString();
+        // 티켓 이름
+        String ticketName = "[" + ticketType + "] " + ticket.getName();
+        
+        return reservationMapper.toPaymentSummary(ticket, ticketName, cachedDto.getQuantity());
     }
 
     @Transactional
