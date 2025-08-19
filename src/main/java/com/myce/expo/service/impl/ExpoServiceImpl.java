@@ -185,7 +185,7 @@ public class ExpoServiceImpl implements ExpoService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<ExpoCardResponse> getExpoCardsFiltered(Long memberId,
+    public Page<ExpoCardResponse> getExpoCardsFiltered(Long memberId,
         String categoryName,
         String status,
         LocalDate from,
@@ -224,13 +224,14 @@ public class ExpoServiceImpl implements ExpoService {
             pageable
         );
 
-        List<Long> bookmarkedExpoIds = new ArrayList<>();
+        final List<Long> finalBookmarkedExpoIds; // Declare as final
         if (memberId != null) {
-            bookmarkedExpoIds = favoriteRepository.findExpoIdsByMemberId(memberId);
+            finalBookmarkedExpoIds = favoriteRepository.findExpoIdsByMemberId(memberId);
+        } else {
+            finalBookmarkedExpoIds = new ArrayList<>(); // Initialize if memberId is null
         }
 
-        List<ExpoCardResponse> expoCards = new ArrayList<>(exposPage.getContent().size());
-        for(Expo expo : exposPage.getContent()) {
+        return exposPage.map(expo -> {
             // 남은 티켓 수 합산
             List<Ticket> tickets = ticketRepository.findByExpoId(expo.getId());
             int remainingTickets = 0;
@@ -239,10 +240,9 @@ public class ExpoServiceImpl implements ExpoService {
             }
 
             // 북마크된 엑스포 중에 있는지 확인
-            boolean isBookmark = bookmarkedExpoIds.contains(expo.getId());
-            expoCards.add(ExpoMapper.toCards(expo, remainingTickets, isBookmark));
-        }
-        return expoCards;
+            boolean isBookmark = finalBookmarkedExpoIds.contains(expo.getId());
+            return ExpoMapper.toCards(expo, remainingTickets, isBookmark);
+        });
     }
 
     @Override
