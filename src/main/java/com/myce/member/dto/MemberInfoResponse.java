@@ -23,6 +23,8 @@ public class MemberInfoResponse {
     private String email;
     private Gender gender;
     private LocalDateTime createdAt;
+    private String role;
+    private boolean isDelete;
     private String gradeDescription;
     private String gradeImageUrl;
     private Integer mileage;

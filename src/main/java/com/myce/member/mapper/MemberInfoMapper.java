@@ -4,11 +4,11 @@ import com.myce.common.dto.PageResponse;
 import com.myce.member.dto.MemberInfoListResponse;
 import com.myce.member.dto.MemberInfoResponse;
 import com.myce.member.dto.MemberInfoWithMileageResponse;
-import com.myce.member.dto.platform.MemberInfoDetailResponse;
 import com.myce.member.entity.Member;
 import org.springframework.data.domain.Page;
-import java.math.BigDecimal;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
 
 @Component
 public class MemberInfoMapper {
@@ -23,6 +23,8 @@ public class MemberInfoMapper {
                 .email(member.getEmail())
                 .gender(member.getGender())
                 .createdAt(member.getCreatedAt())
+                .role(member.getRole().name())
+                .isDelete(member.isDeleted())
                 .gradeDescription(member.getMemberGrade().getDescription())
                 .gradeImageUrl(member.getMemberGrade().getGradeImageUrl())
                 .mileage(member.getMileage())

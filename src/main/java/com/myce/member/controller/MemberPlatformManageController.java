@@ -23,7 +23,7 @@ public class MemberPlatformManageController {
         return memberService.getMemberList(page, PAGE_SIZE, recentFirst);
     }
 
-    @GetMapping
+    @GetMapping("/filter")
     public PageResponse<MemberInfoResponse> filterMemberInfos(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) String keyword,
