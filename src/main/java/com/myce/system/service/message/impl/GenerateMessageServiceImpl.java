@@ -52,10 +52,11 @@ public class GenerateMessageServiceImpl implements GenerateMessageService {
                 .findByCodeAndChannelType(MessageTemplateCode.RESET_PASSWORD, ChannelType.EMAIL)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_MESSAGE_TEMPLATE));
 
-        String content = messageTemplate.getContent();
-        content = content.replace("TEMP_PASSWORD", password);
+        Context context = new Context();
+        context.setVariable("tempPassword", password);
 
-        return new MessageTemplate(messageTemplate.getSubject(), content);
+        String message = getFullMessage(messageTemplate, context);
+        return new MessageTemplate(messageTemplate.getSubject(), message);
     }
 
     public String getFullMessage(MessageTemplateSetting messageTemplate, Context context) {
@@ -65,8 +66,16 @@ public class GenerateMessageServiceImpl implements GenerateMessageService {
             context.setVariable(entry.getKey(), entry.getValue());
         }
 
-        String target = messageTemplate.isUseImage() ? "mail/mail-image" : "mail/mail-code";
+        String target = getTargetFile(messageTemplate.getCode(), messageTemplate.isUseImage());
         return templateEngine.process(target,context);
+    }
+
+    private String getTargetFile(MessageTemplateCode code, boolean isUseImage) {
+        if(code.equals(MessageTemplateCode.RESET_PASSWORD)) {
+            return "mail/mail-password";
+        }
+
+        return isUseImage ? "mail/mail-image" : "mail/mail-code";
     }
 
     private Map<String, String> parseJsonContent(String jsonContent) {
