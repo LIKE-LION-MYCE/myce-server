@@ -129,7 +129,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean isPermitAll(String method, String path) {
-        if(!isExist(SecurityConfig.ECT_PERMIT_ALL, path)) return true;
+        if(isExist(SecurityConfig.ECT_PERMIT_ALL, path)) return true;
 
         if(HttpMethod.GET.name().equals(method)) {
             return isExist(SecurityConfig.GET_PERMIT_ALL, path);
