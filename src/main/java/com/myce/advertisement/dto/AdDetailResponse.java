@@ -16,11 +16,24 @@ public class AdDetailResponse {
     private LocalDate startAt;
     private LocalDate endAt;
     private String description;
+    private ApplicantInfo applicant;
     private String businessCompany;
     private String representName;
     private String businessEmail;
     private String businessPhone;
     private String address;
     private String businessNumber;
+
+    @Builder
+    @Getter
+    public static class ApplicantInfo {
+        private Long memberId;
+        private String loginId;
+        private String name;
+        private String email;
+        private String phone;
+        private String gender;
+        private LocalDate birth;
+    }
 
 }
