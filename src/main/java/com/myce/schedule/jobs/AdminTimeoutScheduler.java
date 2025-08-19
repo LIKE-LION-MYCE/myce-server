@@ -5,6 +5,7 @@ import com.myce.chat.document.ChatRoom;
 import com.myce.chat.dto.WebSocketMessage;
 import com.myce.chat.repository.ChatMessageRepository;
 import com.myce.chat.repository.ChatRoomRepository;
+import com.myce.chat.service.ChatCacheService;
 import com.myce.chat.type.MessageSenderType;
 import com.myce.chat.type.WebSocketMessageType;
 import com.myce.schedule.TaskScheduler;
@@ -36,6 +37,7 @@ public class AdminTimeoutScheduler implements TaskScheduler {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ChatCacheService chatCacheService;
     
     // 하이브리드 백업 시스템: 10분간 비활성시 자동 처리
     private static final int TIMEOUT_MINUTES = 10;
@@ -88,11 +90,15 @@ public class AdminTimeoutScheduler implements TaskScheduler {
             }
         }
         
-        // Expo rooms: 기존 로직 (단순 해제) + 배치 알림
+        // Expo rooms: 기존 로직 (단순 해제) + 배치 알림 + Redis 캐시 동기화
         if (!expoRoomsToUpdate.isEmpty()) {
-            chatRoomRepository.saveAll(expoRoomsToUpdate);
+            List<ChatRoom> savedRooms = chatRoomRepository.saveAll(expoRoomsToUpdate);
+            // Redis 캐시 동기화 (Super/AdminCode 구분 로직 보존)
+            for (ChatRoom savedRoom : savedRooms) {
+                chatCacheService.cacheChatRoom(savedRoom.getRoomCode(), savedRoom);
+            }
             sendBatchReleaseNotifications(expoRoomsToUpdate); // 추가: 배치 알림 전송
-            log.info("Expo 담당자 타임아웃 처리: {}건 해제됨 (배치 알림 포함)", expoRoomsToUpdate.size());
+            log.info("Expo 담당자 타임아웃 처리: {}건 해제됨 (배치 알림 + 캐시 동기화 포함)", expoRoomsToUpdate.size());
         }
         
         // Platform rooms: AI 전환 로직

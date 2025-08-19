@@ -7,6 +7,7 @@ import com.myce.member.entity.type.Role;
 import com.myce.chat.repository.ChatRoomRepository;
 import com.myce.chat.repository.ChatMessageRepository;
 import com.myce.chat.service.ChatRoomService;
+import com.myce.chat.service.ChatRoomAccessCacheService;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.expo.entity.Expo;
@@ -17,6 +18,8 @@ import com.myce.expo.repository.AdminCodeRepository;
 import com.myce.member.entity.Member;
 import com.myce.member.repository.MemberRepository;
 import com.myce.ai.service.AIChatService;
+import com.myce.chat.service.ChatCacheService;
+import com.myce.chat.service.ChatUnreadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -54,8 +57,17 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     // WebSocket 메시징
     private final SimpMessagingTemplate messagingTemplate;
     
+    // Cache 서비스
+    private final ChatCacheService chatCacheService;
+    
     // AI 채팅 서비스
     private final AIChatService aiChatService;
+    
+    // 채팅방 접근 권한 캐시 서비스
+    private final ChatRoomAccessCacheService accessCacheService;
+    
+    // 통합 읽음 상태 계산 서비스
+    private final ChatUnreadService chatUnreadService;
 
     /**
      * 현재 로그인한 사용자의 채팅방 목록 조회
@@ -281,6 +293,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     @Override
     @Transactional
     public void markAsRead(String roomCode, String lastReadMessageId, Long memberId, String memberRole) {
+        log.info("🔧 markAsRead 호출 - roomCode: {}, memberId: {}, memberRole: {}", roomCode, memberId, memberRole);
         
         // 1. 채팅방 조회 및 존재 여부 확인
         ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
@@ -292,25 +305,46 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         // 2. 사용자 권한 검증 (새로운 통합 권한 검증 로직 사용)
         validateChatRoomAccess(roomCode, memberId, memberRole);
         
+        // 2-1. Redis에서 미읽음 카운트 리셋 (사용자 읽음 처리)
+        chatCacheService.resetUnreadCount(roomCode, memberId);
+        chatCacheService.recalculateBadgeCount(memberId);
+        log.debug("Redis unread count reset for user: {} in room: {}", memberId, roomCode);
+        
         // 3. 마지막 메시지 ID를 가져와서 읽음 처리 (가장 최근 메시지까지 읽음 처리)
         List<ChatMessage> recentMessages = chatMessageRepository.findTop50ByRoomCodeOrderBySentAtDesc(roomCode);
         if (!recentMessages.isEmpty()) {
             String latestMessageId = recentMessages.get(0).getId();
             
-            // 4. readStatusJson 업데이트
+            // 4. 채팅방에서의 실제 역할 판단 (EXPO_ADMIN이면서 USER일 수 있음)
+            String actualRole = determineActualRoleInChatRoom(roomCode, memberId, memberRole);
+            log.info("🎯 채팅방 실제 역할 판단 - roomCode: {}, memberId: {}, memberRole: {}, actualRole: {}", 
+                    roomCode, memberId, memberRole, actualRole);
+            
             String currentReadStatus = chatRoom.getReadStatusJson();
-            String updatedReadStatus = updateReadStatusForUser(currentReadStatus, latestMessageId);
+            String updatedReadStatus;
+            
+            // 실제 역할에 따라 적절한 읽음 상태 업데이트
+            if (Role.USER.name().equals(actualRole)) {
+                // 일반 사용자 → USER 읽음 상태 업데이트
+                updatedReadStatus = updateReadStatusForUser(currentReadStatus, latestMessageId);
+            } else {
+                // 관리자 (박람회 소유자, AdminCode, 플랫폼 관리자) → ADMIN 읽음 상태 업데이트
+                updatedReadStatus = updateReadStatusForAdmin(currentReadStatus, latestMessageId);
+            }
+            
             chatRoom.updateReadStatus(updatedReadStatus);
         }
         
         // 5. 채팅방 저장
         chatRoomRepository.save(chatRoom);
         
-        // 6. WebSocket을 통해 관리자에게 읽음 상태 변경 알림
+        // 6. WebSocket을 통해 상대방에게 읽음 상태 변경 알림
         try {
+            String actualRole = determineActualRoleInChatRoom(roomCode, memberId, memberRole);
+            String readerType = Role.USER.name().equals(actualRole) ? "USER" : "ADMIN";
             Map<String, Object> readStatusPayload = Map.of(
                 "roomCode", roomCode,
-                "readerType", "USER",
+                "readerType", readerType,
                 "unreadCount", 0
             );
             
@@ -319,7 +353,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 "payload", readStatusPayload
             );
             
-            log.info("🔔 USER 읽음 상태 WebSocket 알림 전송 - roomCode: {}, topic: /topic/chat/{}", roomCode, roomCode);
+            log.info("🔔 {} 읽음 상태 WebSocket 알림 전송 - roomCode: {}, topic: /topic/chat/{}", readerType, roomCode, roomCode);
             messagingTemplate.convertAndSend(
                 "/topic/chat/" + roomCode,
                 broadcastMessage
@@ -351,10 +385,78 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     }
     
     /**
-     * 채팅방 접근 권한 검증 (메시지 조회, 읽음 처리 등에 사용)
+     * 채팅방 접근 권한 검증 (Redis 캐싱으로 최적화, Graceful Fallback)
      */
     @Override
     public void validateChatRoomAccess(String roomCode, Long memberId, String memberRole) {
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            Role role = Role.valueOf(memberRole);
+            ChatRoomAccessCacheService.ChatRoomAccessInfo accessInfo = null;
+            boolean cacheHit = false;
+            
+            // 1. Redis 캐시에서 권한 정보 조회 시도 (5-10ms)
+            try {
+                accessInfo = accessCacheService.getCachedAccessInfo(roomCode, memberId, role);
+                if (accessInfo != null) {
+                    cacheHit = true;
+                    long cacheTime = System.currentTimeMillis() - startTime;
+                    log.debug("🚀 권한 검증 캐시 히트 - roomCode: {}, userId: {}, 시간: {}ms, hasAccess: {}", 
+                             roomCode, memberId, cacheTime, accessInfo.hasAccess());
+                }
+            } catch (Exception cacheException) {
+                log.warn("⚠️ 권한 캐시 조회 실패 - DB 조회로 fallback - roomCode: {}, userId: {}, error: {}", 
+                        roomCode, memberId, cacheException.getMessage());
+            }
+            
+            // 2. 캐시 미스 또는 캐시 실패 시 기존 권한 검증 로직 실행
+            if (accessInfo == null) {
+                log.debug("🔍 권한 검증 캐시 미스 - roomCode: {}, userId: {}, DB 조회 시작", roomCode, memberId);
+                accessInfo = performFullAccessValidation(roomCode, memberId, role);
+                
+                // 3. 검증 결과를 Redis에 캐싱 (실패해도 무시)
+                try {
+                    accessCacheService.cacheAccessInfo(roomCode, memberId, role, accessInfo);
+                } catch (Exception cacheException) {
+                    log.warn("⚠️ 권한 캐시 저장 실패 - 무시하고 계속 진행 - roomCode: {}, userId: {}, error: {}", 
+                            roomCode, memberId, cacheException.getMessage());
+                }
+                
+                long totalTime = System.currentTimeMillis() - startTime;
+                log.debug("✅ 권한 검증 완료 (DB 조회) - roomCode: {}, userId: {}, 시간: {}ms, hasAccess: {}", 
+                         roomCode, memberId, totalTime, accessInfo.hasAccess());
+            }
+            
+            // 4. 권한 검증 결과 확인
+            if (accessInfo == null || !accessInfo.hasAccess()) {
+                log.warn("❌ 채팅방 접근 권한 없음 - roomCode: {}, userId: {}, role: {}, cacheHit: {}", 
+                        roomCode, memberId, role, cacheHit);
+                throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+            }
+            
+            log.debug("✅ 채팅방 접근 허용 - roomCode: {}, userId: {}, accessLevel: {}", 
+                     roomCode, memberId, accessInfo.getAccessLevel());
+            
+        } catch (IllegalArgumentException e) {
+            log.error("잘못된 역할 타입 - memberRole: {}", memberRole);
+            throw new CustomException(CustomErrorCode.INVALID_LOGIN_TYPE);
+        } catch (CustomException e) {
+            // CustomException은 그대로 재전파
+            throw e;
+        } catch (Exception e) {
+            log.error("권한 검증 중 예상치 못한 오류 - roomCode: {}, userId: {}, error: {}", 
+                     roomCode, memberId, e.getMessage(), e);
+            throw new CustomException(CustomErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * 전체 권한 검증 로직 (캐시 미스 시 실행)
+     */
+    private ChatRoomAccessCacheService.ChatRoomAccessInfo performFullAccessValidation(String roomCode, Long memberId, Role role) {
+        log.debug("🔍 [권한검증] 시작 - roomCode: {}, memberId: {}, role: {}", roomCode, memberId, role);
+        
         // 1. 채팅방 조회
         ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
                 .orElseThrow(() -> {
@@ -362,66 +464,139 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     return new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
                 });
         
+        log.debug("🔍 [권한검증] ChatRoom 정보 - roomCode: {}, memberId: {}, expoId: {}", 
+                 chatRoom.getRoomCode(), chatRoom.getMemberId(), chatRoom.getExpoId());
+        
         // 2. 플랫폼 채팅방인 경우
         if (chatRoom.getExpoId() == null) {
+            log.debug("🔍 [권한검증] 플랫폼 채팅방 검증 시작");
+            
             // 플랫폼 관리자는 모든 플랫폼 채팅방 접근 가능
-            if (Role.PLATFORM_ADMIN.name().equals(memberRole)) {
+            if (Role.PLATFORM_ADMIN.equals(role)) {
                 log.info("✅ 플랫폼 관리자가 플랫폼 채팅방 접근 - roomCode: {}, adminId: {}", roomCode, memberId);
-                return;
+                return ChatRoomAccessCacheService.ChatRoomAccessInfo.builder()
+                    .hasAccess(true)
+                    .accessLevel("PLATFORM_ADMIN")
+                    .expoId(null)
+                    .adminCode("PLATFORM_ADMIN")
+                    .build();
             }
+            
             // 일반 사용자는 본인 채팅방만 접근 가능
+            log.debug("🔍 [권한검증] 플랫폼 채팅방 본인 확인 - chatRoom.memberId: {}, 요청자memberId: {}", 
+                     chatRoom.getMemberId(), memberId);
+            
             if (chatRoom.getMemberId().equals(memberId)) {
                 log.info("✅ 사용자가 본인 플랫폼 채팅방 접근 - roomCode: {}, userId: {}", roomCode, memberId);
-                return;
+                return ChatRoomAccessCacheService.ChatRoomAccessInfo.builder()
+                    .hasAccess(true)
+                    .accessLevel("USER")
+                    .expoId(null)
+                    .adminCode(null)
+                    .build();
+            } else {
+                log.warn("❌ [권한검증] 플랫폼 채팅방 본인 확인 실패 - chatRoom.memberId: {} != 요청자memberId: {}", 
+                        chatRoom.getMemberId(), memberId);
             }
         }
         
         // 3. 박람회 채팅방인 경우
         if (chatRoom.getExpoId() != null) {
+            log.debug("🔍 [권한검증] 박람회 채팅방 검증 시작 - expoId: {}", chatRoom.getExpoId());
+            
             // 3-1. 박람회 관리자 권한 확인 (AdminCode 또는 Owner)
-            if (Role.EXPO_ADMIN.name().equals(memberRole)) {
+            if (Role.EXPO_ADMIN.equals(role)) {
+                log.debug("🔍 [권한검증] EXPO_ADMIN 역할 - AdminCode 권한 확인 시작");
+                
                 // AdminCode 권한 확인
                 try {
                     Optional<AdminCode> adminCodeOpt = adminCodeRepository.findById(memberId);
+                    log.debug("🔍 [권한검증] AdminCode 조회 결과 - memberId: {}, 존재여부: {}", 
+                             memberId, adminCodeOpt.isPresent());
+                    
                     if (adminCodeOpt.isPresent()) {
                         AdminCode adminCode = adminCodeOpt.get();
+                        log.debug("🔍 [권한검증] AdminCode 상세 - adminCodeId: {}, code: {}, adminCode.expoId: {}, chatRoom.expoId: {}", 
+                                 memberId, adminCode.getCode(), adminCode.getExpoId(), chatRoom.getExpoId());
+                        
                         if (adminCode.getExpoId().equals(chatRoom.getExpoId())) {
                             log.info("✅ AdminCode 권한으로 박람회 채팅방 접근 - roomCode: {}, adminCodeId: {}, expoId: {}", 
                                     roomCode, memberId, chatRoom.getExpoId());
-                            return;
+                            return ChatRoomAccessCacheService.ChatRoomAccessInfo.builder()
+                                .hasAccess(true)
+                                .accessLevel("EXPO_ADMIN")
+                                .expoId(chatRoom.getExpoId())
+                                .adminCode(adminCode.getCode())
+                                .build();
+                        } else {
+                            log.debug("🔍 [권한검증] AdminCode expoId 불일치 - adminCode.expoId: {} != chatRoom.expoId: {}", 
+                                     adminCode.getExpoId(), chatRoom.getExpoId());
                         }
                     }
                 } catch (Exception e) {
-                    log.debug("AdminCode 권한 확인 실패, Member 권한으로 시도 - adminId: {}", memberId);
+                    log.debug("🔍 [권한검증] AdminCode 권한 확인 실패, Member 권한으로 시도 - adminId: {}, error: {}", 
+                             memberId, e.getMessage());
                 }
                 
                 // Owner 권한 확인
+                log.debug("🔍 [권한검증] Member Owner 권한 확인 시작");
                 try {
                     Expo expo = expoRepository.findById(chatRoom.getExpoId())
                             .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
+                    
+                    log.debug("🔍 [권한검증] Expo Owner 확인 - expo.memberId: {}, 요청자memberId: {}", 
+                             expo.getMember().getId(), memberId);
+                    
                     if (expo.getMember().getId().equals(memberId)) {
                         log.info("✅ Member 권한으로 박람회 채팅방 접근 - roomCode: {}, memberId: {}, expoId: {}", 
                                 roomCode, memberId, chatRoom.getExpoId());
-                        return;
+                        return ChatRoomAccessCacheService.ChatRoomAccessInfo.builder()
+                            .hasAccess(true)
+                            .accessLevel("EXPO_OWNER")
+                            .expoId(chatRoom.getExpoId())
+                            .adminCode("OWNER")
+                            .build();
+                    } else {
+                        log.debug("🔍 [권한검증] Member Owner 권한 실패 - expo.memberId: {} != 요청자memberId: {}", 
+                                 expo.getMember().getId(), memberId);
                     }
                 } catch (Exception e) {
-                    log.error("박람회 정보 조회 실패 - expoId: {}", chatRoom.getExpoId(), e);
+                    log.error("🔍 [권한검증] 박람회 정보 조회 실패 - expoId: {}, error: {}", chatRoom.getExpoId(), e.getMessage());
                 }
             }
             
             // 3-2. 일반 사용자와 EXPO_ADMIN(유저로서)은 본인이 참여한 채팅방만 접근 가능
-            if ((Role.USER.name().equals(memberRole) || Role.EXPO_ADMIN.name().equals(memberRole)) 
+            log.debug("🔍 [권한검증] 일반 사용자 권한 확인 - role: {}, chatRoom.memberId: {}, 요청자memberId: {}", 
+                     role, chatRoom.getMemberId(), memberId);
+            
+            if ((Role.USER.equals(role) || Role.EXPO_ADMIN.equals(role)) 
                 && chatRoom.getMemberId().equals(memberId)) {
                 log.info("✅ 사용자가 본인 박람회 채팅방 접근 - roomCode: {}, userId: {}, role: {}", 
-                        roomCode, memberId, memberRole);
-                return;
+                        roomCode, memberId, role);
+                return ChatRoomAccessCacheService.ChatRoomAccessInfo.builder()
+                    .hasAccess(true)
+                    .accessLevel("USER")
+                    .expoId(chatRoom.getExpoId())
+                    .adminCode(null)
+                    .build();
+            } else {
+                log.warn("❌ [권한검증] 일반 사용자 권한 실패 - role: {}, chatRoom.memberId: {} != 요청자memberId: {}", 
+                        role, chatRoom.getMemberId(), memberId);
             }
         }
         
         // 4. 모든 권한 검증 실패
-        log.error("⚠️ 권한 없는 사용자가 채팅방 접근 시도 - roomCode: {}, userId: {}, role: {}, expoId: {}", 
-                roomCode, memberId, memberRole, chatRoom.getExpoId());
-        throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+        log.error("⚠️ [권한검증] 모든 권한 검증 실패 - roomCode: {}, userId: {}, role: {}, expoId: {}", 
+                roomCode, memberId, role, chatRoom.getExpoId());
+        log.error("⚠️ [권한검증] 실패 요약 - chatRoom.memberId: {}, chatRoom.expoId: {}, 요청자role: {}", 
+                chatRoom.getMemberId(), chatRoom.getExpoId(), role);
+        
+        return ChatRoomAccessCacheService.ChatRoomAccessInfo.builder()
+            .hasAccess(false)
+            .accessLevel("NONE")
+            .expoId(chatRoom.getExpoId())
+            .adminCode(null)
+            .build();
     }
     
     /**
@@ -438,6 +613,23 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         } else {
             return currentReadStatus.substring(0, currentReadStatus.length() - 1) + 
                    ",\"USER\":\"" + lastReadMessageId + "\"}";
+        }
+    }
+    
+    /**
+     * 관리자 읽음 상태 업데이트
+     */
+    private String updateReadStatusForAdmin(String currentReadStatus, String lastReadMessageId) {
+        if (currentReadStatus == null || currentReadStatus.isEmpty() || currentReadStatus.equals("{}")) {
+            return "{\"ADMIN\":\"" + lastReadMessageId + "\"}";
+        }
+        
+        // 기존 ADMIN 정보가 있으면 업데이트, 없으면 추가
+        if (currentReadStatus.contains("\"ADMIN\"")) {
+            return currentReadStatus.replaceAll("\"ADMIN\":\"[^\"]*\"", "\"ADMIN\":\"" + lastReadMessageId + "\"");
+        } else {
+            return currentReadStatus.substring(0, currentReadStatus.length() - 1) + 
+                   ",\"ADMIN\":\"" + lastReadMessageId + "\"}";
         }
     }
     
@@ -507,25 +699,8 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         validateChatRoomAccess(roomCode, memberId, memberRole);
         
         try {
-            // 3. 역할에 따른 unread count 계산
-            if (Role.PLATFORM_ADMIN.name().equals(memberRole)) {
-                // 플랫폼 관리자 입장: 사용자가 보낸 메시지 중 읽지 않은 것만 계산
-                return calculateUnreadCountForAdmin(chatRoom);
-            } else if (Role.EXPO_ADMIN.name().equals(memberRole)) {
-                // EXPO_ADMIN의 경우 박람회 소유자인지 확인
-                if (chatRoom.getExpoId() != null) {
-                    boolean isExpoOwner = expoRepository.existsByIdAndMemberId(chatRoom.getExpoId(), memberId);
-                    if (isExpoOwner) {
-                        // 박람회 소유자인 경우 관리자 관점
-                        return calculateUnreadCountForAdmin(chatRoom);
-                    }
-                }
-                // 박람회 소유자가 아니거나 플랫폼 채팅방인 경우 일반 사용자 관점
-                return calculateUnreadCountForUser(chatRoom);
-            } else {
-                // 일반 사용자 입장: 관리자/AI가 보낸 메시지 중 읽지 않은 것만 계산  
-                return calculateUnreadCountForUser(chatRoom);
-            }
+            // 3. 통합 읽음 상태 계산 서비스 사용
+            return chatUnreadService.getUnreadCountForViewer(roomCode, memberId, memberRole);
             
         } catch (Exception e) {
             log.error("읽지 않은 메시지 수 조회 실패 - roomCode: {}, memberId: {}", roomCode, memberId, e);
@@ -533,77 +708,45 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         }
     }
     
-    /**
-     * 관리자 입장에서 읽지 않은 메시지 수 계산 (사용자 메시지만)
-     */
-    private Long calculateUnreadCountForAdmin(ChatRoom chatRoom) {
-        String roomCode = chatRoom.getRoomCode();
-        String readStatusJson = chatRoom.getReadStatusJson();
-        
-        // readStatusJson에서 ADMIN의 마지막 읽은 메시지 ID 추출
-        String lastReadMessageId = extractLastReadMessageId(readStatusJson, "ADMIN");
-        
-        if (lastReadMessageId == null || lastReadMessageId.isEmpty()) {
-            // 관리자가 아직 아무것도 읽지 않았다면 전체 USER 메시지 개수
-            return chatMessageRepository.countByRoomCodeAndSenderType(roomCode, "USER");
-        } else {
-            // 마지막 읽은 메시지 ID 이후의 USER 메시지 개수
-            return chatMessageRepository.countByRoomCodeAndSenderTypeAndIdGreaterThan(
-                roomCode, "USER", lastReadMessageId);
-        }
-    }
+    // 중복 메서드들 제거됨 - ChatUnreadService로 통합
     
     /**
-     * 사용자 입장에서 읽지 않은 메시지 수 계산 (관리자/AI 메시지만)
+     * 채팅방에서의 실제 역할 판단
+     * EXPO_ADMIN이면서 USER일 수 있는 경우를 처리
+     * 
+     * @param roomCode 채팅방 코드
+     * @param memberId 사용자 ID
+     * @param memberRole 사용자의 시스템 역할
+     * @return 채팅방에서의 실제 역할 ("USER" or "ADMIN")
      */
-    private Long calculateUnreadCountForUser(ChatRoom chatRoom) {
-        String roomCode = chatRoom.getRoomCode();
-        String readStatusJson = chatRoom.getReadStatusJson();
-        
-        // readStatusJson에서 USER의 마지막 읽은 메시지 ID 추출
-        String lastReadMessageId = extractLastReadMessageId(readStatusJson, "USER");
-        
-        if (lastReadMessageId == null || lastReadMessageId.isEmpty()) {
-            // 사용자가 아직 아무것도 읽지 않았다면 전체 ADMIN/AI 메시지 개수
-            Long adminCount = chatMessageRepository.countByRoomCodeAndSenderType(roomCode, "ADMIN");
-            Long aiCount = chatMessageRepository.countByRoomCodeAndSenderType(roomCode, "AI");
-            return adminCount + aiCount;
-        } else {
-            // 마지막 읽은 메시지 ID 이후의 ADMIN/AI 메시지 개수
-            Long adminCount = chatMessageRepository.countByRoomCodeAndSenderTypeAndIdGreaterThan(
-                roomCode, "ADMIN", lastReadMessageId);
-            Long aiCount = chatMessageRepository.countByRoomCodeAndSenderTypeAndIdGreaterThan(
-                roomCode, "AI", lastReadMessageId);
-            return adminCount + aiCount;
+    private String determineActualRoleInChatRoom(String roomCode, Long memberId, String memberRole) {
+        // 플랫폼 채팅방인 경우
+        if (roomCode.startsWith("platform-")) {
+            // 플랫폼 관리자면 ADMIN, 아니면 USER
+            return Role.PLATFORM_ADMIN.name().equals(memberRole) ? "ADMIN" : "USER";
         }
-    }
-    
-    /**
-     * readStatusJson에서 특정 타입의 마지막 읽은 메시지 ID 추출
-     */
-    private String extractLastReadMessageId(String readStatusJson, String userType) {
-        try {
-            if (readStatusJson == null || readStatusJson.isEmpty() || readStatusJson.equals("{}")) {
-                return null;
+        
+        // 박람회 채팅방인 경우 (admin-{expoId}-{userId} 형식)
+        if (roomCode.startsWith("admin-")) {
+            try {
+                String[] parts = roomCode.split("-");
+                if (parts.length >= 3) {
+                    Long roomUserId = Long.parseLong(parts[2]);
+                    
+                    // 채팅방의 사용자 ID와 현재 사용자 ID가 같으면 USER 역할
+                    if (memberId.equals(roomUserId)) {
+                        return Role.USER.name();
+                    } else {
+                        // 다르면 관리자 역할
+                        return "ADMIN";
+                    }
+                }
+            } catch (NumberFormatException e) {
+                log.warn("Invalid room code format for role determination: {}", roomCode);
             }
-            
-            // 간단한 JSON 파싱 (Jackson 라이브러리 사용하지 않고)
-            String searchKey = "\"" + userType + "\":\"";
-            int startIndex = readStatusJson.indexOf(searchKey);
-            if (startIndex == -1) {
-                return null;
-            }
-            
-            startIndex += searchKey.length();
-            int endIndex = readStatusJson.indexOf("\"", startIndex);
-            if (endIndex == -1) {
-                return null;
-            }
-            
-            return readStatusJson.substring(startIndex, endIndex);
-        } catch (Exception e) {
-            log.warn("readStatusJson 파싱 실패: {}", readStatusJson, e);
-            return null;
         }
+        
+        // 기본값: 시스템 역할 그대로 사용
+        return memberRole;
     }
 }

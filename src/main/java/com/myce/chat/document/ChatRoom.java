@@ -153,7 +153,13 @@ public class ChatRoom {
         this.updatedAt = LocalDateTime.now();
         this.readStatusJson = "{}";  // 빈 JSON 객체로 초기화
         this.waitingForAdmin = false;  // 기본값: 대기 상태 아님
-        this.currentState = ChatRoomState.AI_ACTIVE;  // 기본값: AI 활성 상태
+        
+        // roomCode 기반 초기 상태 분기 처리
+        if (roomCode != null && roomCode.startsWith("platform-")) {
+            this.currentState = ChatRoomState.AI_ACTIVE;  // 플랫폼: AI로 시작
+        } else {
+            this.currentState = null;  // 박람회: legacy fallback 사용 (담당자 배정 로직)
+        }
     }
 
     /**
@@ -315,7 +321,7 @@ public class ChatRoom {
     
     /**
      * 현재 채팅방 상태 확인 (modular state storage with legacy fallback)
-     * Note: 10분 비활성 관리자는 스케줄러에서 자동으로 해제되어 AI_ACTIVE로 전환됨
+     * Note: 10분 비활성 관리자는 스케줄러에서 자동으로 해제됨
      */
     public ChatRoomState getCurrentState() {
         // Use stored state if available (new modular approach)
@@ -329,7 +335,14 @@ public class ChatRoom {
         } else if (hasAssignedAdmin()) {
             return ChatRoomState.ADMIN_ACTIVE;
         } else {
-            return ChatRoomState.AI_ACTIVE;
+            // roomCode 기반 분기: 박람회 vs 플랫폼
+            if (roomCode != null && roomCode.startsWith("admin-")) {
+                // 박람회 채팅방: 담당자 미배정시 대기 상태
+                return ChatRoomState.WAITING_FOR_ADMIN;
+            } else {
+                // 플랫폼 채팅방: AI 활성 상태 (기존 로직)
+                return ChatRoomState.AI_ACTIVE;
+            }
         }
     }
     

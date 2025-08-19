@@ -1,6 +1,7 @@
 package com.myce.chat.document;
 
 import lombok.*;
+import org.bson.types.ObjectId;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
@@ -77,10 +78,13 @@ public class ChatMessage {
 
     /**
      * 메시지 생성 시 기본값 설정
+     * MongoDB ObjectId를 미리 생성하여 ID 일관성 보장
      */
     @Builder
     public ChatMessage(String roomCode, String senderType, Long senderId, String senderName,
                       String content, Boolean isSystemMessage, String messageType, String fileInfoJson) {
+        // MongoDB ObjectId를 Java에서 미리 생성 (MongoDB 접속 없이 로컬 생성)
+        this.id = new ObjectId().toString();
         this.roomCode = roomCode;
         this.senderType = senderType;
         this.senderId = senderId;

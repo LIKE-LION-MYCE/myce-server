@@ -29,6 +29,12 @@ export MAIL_HOST=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/s
 export MAIL_USERNAME=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/ses-smtp-username" --with-decryption --query "Parameter.Value" --output text)
 export MAIL_PASSWORD=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/ses-smtp-password" --with-decryption --query "Parameter.Value" --output text)
 
+# OAuth2 configuration (Google and Kakao SNS login)
+export GOOGLE_CLIENT_ID=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/GOOGLE_CLIENT_ID" --query "Parameter.Value" --output text)
+export GOOGLE_CLIENT_SECRET=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/GOOGLE_CLIENT_SECRET" --with-decryption --query "Parameter.Value" --output text)
+export KAKAO_CLIENT_ID=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/KAKAO_CLIENT_ID" --query "Parameter.Value" --output text)
+export KAKAO_CLIENT_SECRET=$(aws ssm get-parameter --region ap-northeast-2 --name "/myce/KAKAO_CLIENT_SECRET" --with-decryption --query "Parameter.Value" --output text)
+
 # Note: AWS credentials (ACCESS_KEY_ID, SECRET_ACCESS_KEY) are NOT set
 # AwsConfig will automatically detect and use the EC2 IAM role for authentication
 
