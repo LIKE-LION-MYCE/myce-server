@@ -7,7 +7,6 @@ import com.myce.common.util.DateUtil;
 import com.myce.member.entity.Member;
 import com.myce.member.entity.MemberGrade;
 import com.myce.member.entity.type.Gender;
-import com.myce.member.entity.type.ProviderType;
 import com.myce.member.entity.type.Role;
 import org.springframework.stereotype.Component;
 
@@ -21,10 +20,9 @@ public class AuthMapper {
                 .password(password)
                 .email(signupRequest.getEmail())
                 .birth(DateUtil.toDate(signupRequest.getBirth()))
+                .phone(signupRequest.getPhone())
                 .role(Role.USER)
                 .gender(Gender.fromString(signupRequest.getGender()))
-                .providerType(ProviderType.LOCAL)
-                .providerId(ProviderType.LOCAL.name())
                 .build();
     }
 

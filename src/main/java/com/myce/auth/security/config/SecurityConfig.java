@@ -5,6 +5,8 @@ import com.myce.auth.repository.TokenBlackListRepository;
 import com.myce.auth.security.filter.CustomLogoutFilter;
 import com.myce.auth.security.filter.JwtAuthenticationFilter;
 import com.myce.auth.security.filter.LoginFilter;
+import com.myce.auth.security.filter.OAuth2LoginFailureHandler;
+import com.myce.auth.security.filter.OAuth2LoginSuccessHandler;
 import com.myce.auth.security.provider.AdminAuthenticationProvider;
 import com.myce.auth.security.provider.MemberAuthenticationProvider;
 import com.myce.auth.security.provider.TokenCookieProvider;
@@ -42,6 +44,8 @@ public class SecurityConfig {
     private final AdminAuthenticationProvider adminAuthenticationProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final TokenBlackListRepository tokenBlackListRepository;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 
     @Bean
     public AuthenticationManager authenticationManager() throws Exception {
@@ -77,6 +81,14 @@ public class SecurityConfig {
                 .addFilterAfter(jwtFilter, LogoutFilter.class)
                 .addFilterAt(loginFilter, UsernamePasswordAuthenticationFilter.class);
 
+        http.oauth2Login(oauth2 -> oauth2
+                .authorizationEndpoint(authorization -> authorization
+                        .baseUri("/api/oauth2/authorization"))
+                .redirectionEndpoint(redirect -> redirect
+                        .baseUri("/api/login/oauth2/code/*"))
+                .successHandler(oAuth2LoginSuccessHandler)
+                .failureHandler(oAuth2LoginFailureHandler));
+
         http.authorizeHttpRequests(auth ->
                 auth.requestMatchers(HttpMethod.POST, "/api/auth/**", "/api/payment/**",
                         "/api/payment/**", "/api/reservations/**", "/api/reservers",
@@ -103,7 +115,9 @@ public class SecurityConfig {
                                 "/auth-docs/login",
                                 "/actuator/**",               // All actuator endpoints for monitoring
                                 "/ws/**", // WebSocket 엔드포인트 허용
-                                "/images/**" // Static 이미지 리소스 허용
+                                "/images/**", // Static 이미지 리소스 허용
+                                "/api/login/oauth2/code/**",      // OAuth2 callback endpoints
+                                "/api/oauth2/**"              // Custom OAuth2 endpoints
                         ).permitAll()
                         .anyRequest()
                         .authenticated());
