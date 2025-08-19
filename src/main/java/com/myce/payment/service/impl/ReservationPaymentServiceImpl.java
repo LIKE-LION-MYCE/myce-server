@@ -32,6 +32,7 @@ import com.myce.reservation.repository.PreReservationRepository;
 import com.myce.reservation.repository.ReservationRepository;
 import com.myce.reservation.service.ReservationService;
 import com.myce.reservation.service.ReserverService;
+import com.myce.reservation.service.GuestReservationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -59,6 +60,7 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
     private final MemberGradeService memberGradeService;
     private final QrCodeService qrCodeService;
     private final NotificationService notificationService;
+    private final GuestReservationService guestReservationService;
 
     @Override
     @Transactional
@@ -124,9 +126,30 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
             // 6. 예약 상태를 CONFIRMED로 변경
             reservationService.updateStatusToConfirm(reservation.getId());
             
-            // 7. 예약자 정보 저장
+            // 7. 예약자 정보 저장 및 비회원 Guest ID 생성
             if (request.getReserverInfos() != null && !request.getReserverInfos().isEmpty()) {
                 reserverService.saveReservers(reservation.getId(), request.getReserverInfos());
+                
+                // 비회원인 경우 Guest 엔티티 생성 및 reservation의 userId 업데이트
+                if (reservation.getUserType() == UserType.GUEST) {
+                    com.myce.reservation.dto.GuestReservationRequest guestRequest = 
+                        new com.myce.reservation.dto.GuestReservationRequest();
+                    guestRequest.setReservationId(reservation.getId());
+                    guestRequest.setReserverInfos(request.getReserverInfos().stream()
+                        .map(info -> {
+                            com.myce.reservation.dto.ReserverInfo reserverInfo = 
+                                new com.myce.reservation.dto.ReserverInfo();
+                            reserverInfo.setName(info.getName());
+                            reserverInfo.setEmail(info.getEmail());
+                            reserverInfo.setPhone(info.getPhone());
+                            reserverInfo.setBirth(info.getBirth());
+                            reserverInfo.setGender(info.getGender());
+                            return reserverInfo;
+                        }).collect(java.util.stream.Collectors.toList()));
+                    
+                    guestReservationService.updateGuestId(guestRequest);
+                    log.info("비회원 Guest ID 생성 및 업데이트 완료 - reservationId: {}", reservation.getId());
+                }
             }
             
             // 8. 티켓 수량 감소
@@ -254,9 +277,30 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
                     paymentRequest, reservation, paidAmount, PaymentStatus.PENDING);
             reservationPaymentInfoRepository.save(paymentInfo);
             
-            // 6. 예약자 정보 저장
+            // 6. 예약자 정보 저장 및 비회원 Guest ID 생성
             if (request.getReserverInfos() != null && !request.getReserverInfos().isEmpty()) {
                 reserverService.saveReservers(reservation.getId(), request.getReserverInfos());
+                
+                // 비회원인 경우 Guest 엔티티 생성 및 reservation의 userId 업데이트
+                if (reservation.getUserType() == UserType.GUEST) {
+                    com.myce.reservation.dto.GuestReservationRequest guestRequest = 
+                        new com.myce.reservation.dto.GuestReservationRequest();
+                    guestRequest.setReservationId(reservation.getId());
+                    guestRequest.setReserverInfos(request.getReserverInfos().stream()
+                        .map(info -> {
+                            com.myce.reservation.dto.ReserverInfo reserverInfo = 
+                                new com.myce.reservation.dto.ReserverInfo();
+                            reserverInfo.setName(info.getName());
+                            reserverInfo.setEmail(info.getEmail());
+                            reserverInfo.setPhone(info.getPhone());
+                            reserverInfo.setBirth(info.getBirth());
+                            reserverInfo.setGender(info.getGender());
+                            return reserverInfo;
+                        }).collect(java.util.stream.Collectors.toList()));
+                    
+                    guestReservationService.updateGuestId(guestRequest);
+                    log.info("비회원 Guest ID 생성 및 업데이트 완료 (가상계좌) - reservationId: {}", reservation.getId());
+                }
             }
             
             // 7. 티켓 수량 감소
