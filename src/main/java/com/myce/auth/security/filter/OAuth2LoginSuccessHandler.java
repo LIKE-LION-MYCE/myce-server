@@ -132,28 +132,13 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         MemberGrade defaultGrade = memberGradeRepository.findByGradeCode(GradeCode.BRONZE)
                 .orElseThrow(() -> new RuntimeException("기본 회원 등급을 찾을 수 없습니다."));
 
-        Member newMember;
-        if(userInfo.getProviderType().equals(ProviderType.KAKAO)) {
-            KakaoUserDetails kakaoUserDetails = (KakaoUserDetails) userInfo;
-            newMember = Member.builder()
-                    .memberGrade(defaultGrade)
-                    .loginId(loginId)
-                    .name(userInfo.getName())
-                    .email(userInfo.getEmail())
-                    .role(Role.USER)
-                    .gender(kakaoUserDetails.getGender())
-                    .phone(kakaoUserDetails.getPhone())
-                    .birth(kakaoUserDetails.getBirth())
-                    .build();
-        } else {
-            newMember = Member.builder()
+        Member newMember = Member.builder()
                     .memberGrade(defaultGrade)
                     .loginId(loginId)
                     .name(userInfo.getName())
                     .email(userInfo.getEmail())
                     .role(Role.USER)
                     .build();
-        }
 
         log.info("[OAuth2Login] 새 소셜 로그인 회원 생성: {}, Provider: {}",
                 userInfo.getEmail(), userInfo.getProviderType());

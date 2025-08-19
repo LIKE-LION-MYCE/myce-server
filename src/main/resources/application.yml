@@ -38,11 +38,7 @@ spring:
             redirect-uri: "{baseUrl}/api/login/oauth2/code/kakao"
             scope:
               - profile_nickname
-              - name
-              - gender
-              - birthday
-              - birthyear
-              - phone_number
+              - account_email
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
         provider:
