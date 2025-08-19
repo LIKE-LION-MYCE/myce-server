@@ -6,6 +6,7 @@ import com.myce.chat.document.ChatRoom;
 import com.myce.chat.dto.MessageResponse;
 import com.myce.chat.repository.ChatMessageRepository;
 import com.myce.chat.repository.ChatRoomRepository;
+import com.myce.chat.service.ChatCacheService;
 import com.myce.chat.service.mapper.ChatMessageMapper;
 import com.myce.chat.type.MessageSenderType;
 import com.myce.member.entity.Member;
@@ -64,6 +65,7 @@ public class AIChatServiceImpl implements AIChatService {
     private final ChatClient chatClient;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatCacheService chatCacheService;
     private final MemberRepository memberRepository;
     private final ExpoRepository expoRepository;
     private final SimpMessagingTemplate messagingTemplate;
@@ -134,6 +136,9 @@ public class AIChatServiceImpl implements AIChatService {
                 .build();
             
             ChatMessage savedMessage = chatMessageRepository.save(aiMessage);
+            
+            // AI 메시지를 Redis 캐시에도 추가 (새로고침 후에도 보이도록)
+            chatCacheService.addMessageToCache(roomCode, savedMessage);
             
             // 채팅방 마지막 메시지 정보 업데이트
             updateChatRoomLastMessage(roomCode, savedMessage.getId(), aiResponse);
