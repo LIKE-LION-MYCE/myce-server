@@ -74,12 +74,22 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
         
         // 2. Redis에서 결제 세션 검증 및 DB 저장
         
-        // Redis에서 결제 세션 검증 (임시 ID 0으로 확인)
-        PreReservationCacheDto cachedDto = preReservationRepository.findById(0L);
-        if (cachedDto == null) {
-            log.error("결제 세션 만료 또는 유효하지 않음");
+        // Redis에서 결제 세션 검증 (세션 ID 필수)
+        if (request.getSessionId() == null) {
+            log.error("세션 ID가 제공되지 않음");
             throw new CustomException(CustomErrorCode.PAYMENT_SESSION_EXPIRED);
         }
+        
+        com.myce.reservation.repository.impl.PreReservationRepositoryImpl repoImpl = 
+            (com.myce.reservation.repository.impl.PreReservationRepositoryImpl) preReservationRepository;
+        PreReservationCacheDto cachedDto = repoImpl.findBySessionId(request.getSessionId());
+        
+        if (cachedDto == null) {
+            log.error("결제 세션 만료 또는 유효하지 않음 - 세션 ID: {}", request.getSessionId());
+            throw new CustomException(CustomErrorCode.PAYMENT_SESSION_EXPIRED);
+        }
+        
+        log.info("세션 ID로 Redis 조회 성공: {} - userType: {}", request.getSessionId(), cachedDto.getUserType());
         
         // Redis DTO에서 엔티티 재조회하여 DB에 저장
         Expo expo = expoRepository.findById(cachedDto.getExpoId())
@@ -207,10 +217,12 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
             
             // 13. Redis에서 결제 세션 정리
             try {
-                preReservationRepository.delete(0L);
-                log.info("결제 완료 후 Redis 세션 정리 완료 - reservationId: {}", reservation.getId());
+                repoImpl.deleteBySessionId(request.getSessionId());
+                log.info("결제 완료 후 Redis 세션 정리 완료 - 세션 ID: {}, reservationId: {}", 
+                        request.getSessionId(), reservation.getId());
             } catch (Exception e) {
-                log.warn("Redis 세션 정리 실패 - reservationId: {}, 오류: {}", reservation.getId(), e.getMessage());
+                log.warn("Redis 세션 정리 실패 - reservationId: {}, 세션 ID: {}, 오류: {}", 
+                        reservation.getId(), request.getSessionId(), e.getMessage());
             }
             
             log.info("박람회 결제 통합 처리 완료 - reservationId: {}", reservation.getId());
@@ -234,12 +246,22 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
         
         // 2. Redis에서 결제 세션 검증 및 DB 저장
         
-        // Redis에서 결제 세션 검증 (임시 ID 0으로 확인)
-        PreReservationCacheDto cachedDto = preReservationRepository.findById(0L);
-        if (cachedDto == null) {
-            log.error("결제 세션 만료 또는 유효하지 않음");
+        // Redis에서 결제 세션 검증 (세션 ID 필수)
+        if (request.getSessionId() == null) {
+            log.error("가상계좌 - 세션 ID가 제공되지 않음");
             throw new CustomException(CustomErrorCode.PAYMENT_SESSION_EXPIRED);
         }
+        
+        com.myce.reservation.repository.impl.PreReservationRepositoryImpl repoImpl = 
+            (com.myce.reservation.repository.impl.PreReservationRepositoryImpl) preReservationRepository;
+        PreReservationCacheDto cachedDto = repoImpl.findBySessionId(request.getSessionId());
+        
+        if (cachedDto == null) {
+            log.error("가상계좌 결제 세션 만료 또는 유효하지 않음 - 세션 ID: {}", request.getSessionId());
+            throw new CustomException(CustomErrorCode.PAYMENT_SESSION_EXPIRED);
+        }
+        
+        log.info("가상계좌 - 세션 ID로 Redis 조회 성공: {} - userType: {}", request.getSessionId(), cachedDto.getUserType());
         
         // Redis DTO에서 엔티티 재조회하여 DB에 저장
         Expo expo = expoRepository.findById(cachedDto.getExpoId())
@@ -314,10 +336,12 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
             
             // 8. Redis에서 결제 세션 정리
             try {
-                preReservationRepository.delete(0L);
-                log.info("가상계좌 결제 완료 후 Redis 세션 정리 완료 - reservationId: {}", reservation.getId());
+                repoImpl.deleteBySessionId(request.getSessionId());
+                log.info("가상계좌 결제 완료 후 Redis 세션 정리 완료 - 세션 ID: {}, reservationId: {}", 
+                        request.getSessionId(), reservation.getId());
             } catch (Exception e) {
-                log.warn("Redis 세션 정리 실패 - reservationId: {}, 오류: {}", reservation.getId(), e.getMessage());
+                log.warn("가상계좌 Redis 세션 정리 실패 - reservationId: {}, 세션 ID: {}, 오류: {}", 
+                        reservation.getId(), request.getSessionId(), e.getMessage());
             }
             
             // 가상계좌는 입금 완료 시 웹훅에서 나머지 처리 (마일리지, 등급, QR 등)
