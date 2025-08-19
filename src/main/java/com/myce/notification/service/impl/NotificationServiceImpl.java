@@ -200,33 +200,31 @@ public class NotificationServiceImpl implements NotificationService {
                     .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_MESSAGE_TEMPLATE));
 
             // 해당 박람회 예약자들 조회
-            List<Reservation> reservations = reservationRepository.findByExpoIdWithDistinctMemberId(expoId);
+            List<Long> userIds = reservationRepository.findDistinctUserIdsByExpoId(expoId);
             
-            if (reservations.isEmpty()) {
+            if (userIds.isEmpty()) {
                 log.info("알림 전송 대상이 없습니다 - 박람회 ID: {}", expoId);
                 return;
             }
 
-            // 박람회 제목 가져오기 (첫 번째 예약에서)
-            String expoTitle = reservations.get(0).getExpo().getTitle();
+            // 박람회 정보 조회
+            Expo expo = expoRepository.findById(expoId)
+                    .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_FOUND));
+            String expoTitle = expo.getTitle();
             String content = template.getContent().replace("{expoTitle}", expoTitle);
 
             // 각 예약자에게 알림 전송
-            int notificationCount = 0;
-            for (Reservation reservation : reservations) {
-                // 회원 예약만 알림 발송
-                if (reservation.getUserType() == UserType.MEMBER) {
-                    saveNotification(
-                        reservation.getUserId(), 
-                        expoId, 
-                        template.getSubject(), 
-                        content,
-                        NotificationType.EXPO_REMINDER,
-                        NotificationTargetType.EXPO
-                    );
-                    notificationCount++;
-                }
+            for (Long userId : userIds) {
+                saveNotification(
+                    userId, 
+                    expoId, 
+                    template.getSubject(), 
+                    content,
+                    NotificationType.EXPO_REMINDER,
+                    NotificationTargetType.EXPO
+                );
             }
+            int notificationCount = userIds.size();
             
             log.info("박람회 시작 알림 처리 완료 - 박람회 ID: {}, 알림 수: {} 개", 
                     expoId, notificationCount);
@@ -246,9 +244,9 @@ public class NotificationServiceImpl implements NotificationService {
                     .orElseThrow(() -> new CustomException(CustomErrorCode.NOT_EXIST_MESSAGE_TEMPLATE));
 
             // 해당 박람회 예약자들 조회
-            List<Reservation> reservations = reservationRepository.findByExpoIdWithDistinctMemberId(expoId);
+            List<Long> userIds = reservationRepository.findDistinctUserIdsByExpoId(expoId);
             
-            if (reservations.isEmpty()) {
+            if (userIds.isEmpty()) {
                 log.info("1시간 전 알림 전송 대상이 없습니다 - 박람회 ID: {}", expoId);
                 return;
             }
@@ -262,21 +260,17 @@ public class NotificationServiceImpl implements NotificationService {
                     .replace("{startTime}", startTime);
 
             // 각 예약자에게 알림 전송
-            int notificationCount = 0;
-            for (Reservation reservation : reservations) {
-                // 회원 예약만 알림 발송
-                if (reservation.getUserType() == UserType.MEMBER) {
-                    saveNotification(
-                        reservation.getUserId(), 
-                        expoId, 
-                        template.getSubject(), 
-                        content,
-                        NotificationType.EVENT_REMINDER,
-                        NotificationTargetType.EXPO
-                    );
-                    notificationCount++;
-                }
+            for (Long userId : userIds) {
+                saveNotification(
+                    userId, 
+                    expoId, 
+                    template.getSubject(), 
+                    content,
+                    NotificationType.EVENT_REMINDER,
+                    NotificationTargetType.EXPO
+                );
             }
+            int notificationCount = userIds.size();
             
             log.info("행사 1시간 전 알림 처리 완료 - 박람회 ID: {}, 알림 수: {} 개", 
                     expoId, notificationCount);
