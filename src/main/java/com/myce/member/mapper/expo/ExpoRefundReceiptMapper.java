@@ -44,7 +44,7 @@ public class ExpoRefundReceiptMapper {
         
         // 등록금 계산 (프리미엄 여부에 따라)
         int depositAmount = expo.getIsPremium() ? 
-            expoPaymentInfo.getPremiumDeposit() : 
+            expoPaymentInfo.getPremiumDeposit() + expoPaymentInfo.getDeposit() :
             expoPaymentInfo.getDeposit();
         
         // 총 이용료 계산
