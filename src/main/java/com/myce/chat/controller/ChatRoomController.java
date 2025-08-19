@@ -77,6 +77,8 @@ public class ChatRoomController {
             @RequestParam(value = "size", defaultValue = "50") int size,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         
+        log.info("🔍 DEBUG: 메시지 조회 API 호출 - roomCode: {}, userId: {}, page: {}, size: {}", 
+                roomCode, customUserDetails.getMemberId(), page, size);
 
         // 페이징 설정 (최대 1000개로 제한)
         int pageSize = Math.min(size, 1000);
@@ -87,6 +89,14 @@ public class ChatRoomController {
 
         PageResponse<MessageResponse> response = chatMessageService.getMessages(roomCode, pageable);
         
+        log.info("🔍 DEBUG: 메시지 조회 완료 - roomCode: {}, 조회된 메시지 수: {}, 전체 메시지 수: {}", 
+                roomCode, response.content().size(), response.totalElements());
+        
+        // AI 메시지만 필터링해서 개수 확인
+        long aiMessageCount = response.content().stream()
+            .filter(msg -> "AI".equals(msg.getSenderType()))
+            .count();
+        log.info("🤖 DEBUG: AI 메시지 개수 - roomCode: {}, AI 메시지: {}개", roomCode, aiMessageCount);
 
         return ResponseEntity.ok(response);
     }

@@ -6,6 +6,7 @@ import com.myce.chat.document.ChatRoom;
 import com.myce.chat.dto.MessageResponse;
 import com.myce.chat.repository.ChatMessageRepository;
 import com.myce.chat.repository.ChatRoomRepository;
+import com.myce.chat.service.ChatCacheService;
 import com.myce.chat.service.ChatMessageService;
 import com.myce.chat.service.ChatWebSocketService;
 import com.myce.chat.service.mapper.ChatMessageMapper;
@@ -19,11 +20,13 @@ import com.myce.member.entity.type.Role;
 import com.myce.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 채팅 WebSocket 서비스
@@ -44,6 +47,7 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatMessageService chatMessageService;
+    private final ChatCacheService chatCacheService;
 
     @Override
     public Long authenticateUser(String token) {
@@ -139,7 +143,7 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
     @Override
     @Transactional
     public MessageResponse sendMessage(Long userId, String roomId, String content, String token) {
-        log.warn("🎭 SENDMESSAGE 시작 - userId: {}, roomId: {}, content: '{}'", userId, roomId, content);
+        log.error("🚨 SENDMESSAGE 시작 - userId: {}, roomId: {}, content: '{}'", userId, roomId, content);
         String senderRole;
         String senderName;
         
@@ -210,10 +214,97 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
             roomId, senderRole, userId, senderName, content
         );
         
-        ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
-        updateChatRoomLastMessage(roomId, savedMessage.getId(), content);
+        // 1. Redis에 즉시 메시지 추가 (비동기)
+        chatCacheService.addMessageToCache(roomId, chatMessage);
         
-        return ChatMessageMapper.toSendResponse(savedMessage, roomId);
+        // 2. 미읽음 카운트 증가 (수신자 찾기)
+        Long receiverId = getReceiverId(roomId, userId, senderRole);
+        if (receiverId != null) {
+            chatCacheService.incrementUnreadCount(roomId, receiverId);
+            chatCacheService.incrementBadgeCount(receiverId);
+            log.debug("Updated unread count for receiver: {} in room: {}", receiverId, roomId);
+        }
+        
+        // 3. 사용자 활성 채팅방에 추가
+        chatCacheService.addUserActiveRoom(userId, roomId);
+        if (receiverId != null) {
+            chatCacheService.addUserActiveRoom(receiverId, roomId);
+        }
+        
+        // 4. MongoDB 저장 및 채팅방 업데이트 (동기 - 임시)
+        try {
+            log.warn("🔧 Starting MongoDB save - messageId: {}, roomId: {}", chatMessage.getId(), roomId);
+            ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
+            log.warn("🔧 ChatMessage saved to MongoDB - messageId: {}, roomId: {}", savedMessage.getId(), roomId);
+            updateChatRoomLastMessage(roomId, savedMessage.getId(), content);
+            log.warn("✅ MongoDB 저장 성공 - messageId: {}, roomId: {}", savedMessage.getId(), roomId);
+        } catch (Exception e) {
+            log.error("❌ MongoDB 저장 실패 - roomId: {}, messageId: {}, error: {}", 
+                     roomId, chatMessage.getId(), e.getMessage(), e);
+        }
+        
+        return ChatMessageMapper.toSendResponse(chatMessage, roomId);
+    }
+
+    /**
+     * 수신자 ID 찾기
+     * 채팅방 타입에 따라 수신자 결정
+     */
+    private Long getReceiverId(String roomId, Long senderId, String senderRole) {
+        try {
+            if (roomId.startsWith(PLATFORM_ROOM_PREFIX)) {
+                // 플랫폼 채팅: platform-{userId}
+                String[] parts = roomId.split(ROOM_DELIMITER);
+                Long roomUserId = Long.parseLong(parts[1]);
+                
+                if ("PLATFORM_ADMIN".equals(senderRole)) {
+                    // 플랫폼 관리자가 보낸 경우 → 사용자가 수신자
+                    return roomUserId;
+                } else {
+                    // 사용자가 보낸 경우 → 플랫폼 관리자가 수신자 (특정 플랫폼 관리자 ID 없으므로 null)
+                    return null;
+                }
+            } else if (roomId.startsWith(ADMIN_ROOM_PREFIX)) {
+                // 박람회 채팅: admin-{expoId}-{userId}
+                String[] parts = roomId.split(ROOM_DELIMITER);
+                Long expoId = Long.parseLong(parts[1]);
+                Long participantId = Long.parseLong(parts[2]);
+                
+                if ("ADMIN".equals(senderRole)) {
+                    // 관리자가 보낸 경우 → 참가자가 수신자
+                    return participantId;
+                } else {
+                    // 사용자가 보낸 경우 → 현재 배정된 관리자가 수신자
+                    // ChatRoom에서 현재 배정된 관리자 정보 확인
+                    try {
+                        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomId).orElse(null);
+                        if (chatRoom != null && chatRoom.hasAssignedAdmin()) {
+                            // 관리자가 배정된 경우, 해당 관리자의 ID를 찾아서 반환
+                            String adminCode = chatRoom.getCurrentAdminCode();
+                            if ("SUPER_ADMIN".equals(adminCode)) {
+                                // Super Admin의 경우 박람회 소유자 ID 반환
+                                return expoRepository.findById(expoId)
+                                    .map(expo -> expo.getMember().getId())
+                                    .orElse(null);
+                            } else {
+                                // AdminCode의 경우 해당 AdminCode ID 반환
+                                return adminCodeRepository.findByCode(adminCode)
+                                    .map(admin -> admin.getId())
+                                    .orElse(null);
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to find assigned admin for room: {}", roomId, e);
+                    }
+                    return null;
+                }
+            }
+            
+            return null;
+        } catch (Exception e) {
+            log.error("Error finding receiver ID for room: {}, sender: {}", roomId, senderId, e);
+            return null;
+        }
     }
 
     /**
@@ -324,27 +415,58 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
         log.info("🔧 assignAdminIfNeeded called - room: {}, adminCode: {}, currentState: {}, hasAssignedAdmin: {}", 
                 chatRoom.getRoomCode(), adminCode, chatRoom.getCurrentState(), chatRoom.hasAssignedAdmin());
         
-        if (!chatRoom.hasAssignedAdmin()) {
-            log.info("🔧 No admin assigned, attempting to assign: {}", adminCode);
-            // Atomic assignment with collision protection
-            boolean assigned = chatRoom.assignAdmin(adminCode);
-            if (assigned) {
-                chatRoom.setAdminDisplayName(getAdminDisplayName(adminCode));
-                log.info("✅ Admin assigned successfully: {} to room {} - NEW STATE: {}", 
-                        adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentState());
-            } else {
-                log.warn("❌ Admin assignment failed (collision): {} for room {}", adminCode, chatRoom.getRoomCode());
+        try {
+            boolean needsUpdate = false;
+            
+            if (!chatRoom.hasAssignedAdmin()) {
+                log.info("🔧 No admin assigned, attempting to assign: {}", adminCode);
+                try {
+                    // Atomic assignment with collision protection
+                    boolean assigned = chatRoom.assignAdmin(adminCode);
+                    log.info("🔧 assignAdmin result: {}", assigned);
+                    if (assigned) {
+                        String displayName = getAdminDisplayName(adminCode);
+                        log.info("🔧 Generated displayName: {}", displayName);
+                        chatRoom.setAdminDisplayName(displayName);
+                        needsUpdate = true;
+                        log.info("✅ Admin assigned successfully: {} to room {} - NEW STATE: {}", 
+                                adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentState());
+                    } else {
+                        log.warn("❌ Admin assignment failed (collision): {} for room {}", adminCode, chatRoom.getRoomCode());
+                        throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+                    }
+                } catch (Exception e) {
+                    log.error("🚨 Exception during admin assignment: {}", e.getMessage(), e);
+                    throw e;
+                }
+            } else if (!chatRoom.getCurrentAdminCode().equals(adminCode)) {
+                log.warn("❌ Admin permission denied: {} attempted access to room {} (owned by {})", 
+                         adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentAdminCode());
                 throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
+            } else {
+                // Same admin updating activity
+                chatRoom.updateAdminActivity();
+                needsUpdate = true;
+                log.debug("🔧 Admin activity updated: {} for room {} - STATE: {}", 
+                         adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentState());
             }
-        } else if (!chatRoom.getCurrentAdminCode().equals(adminCode)) {
-            log.warn("❌ Admin permission denied: {} attempted access to room {} (owned by {})", 
-                     adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentAdminCode());
-            throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
-        } else {
-            // Same admin updating activity
-            chatRoom.updateAdminActivity();
-            log.debug("🔧 Admin activity updated: {} for room {} - STATE: {}", 
-                     adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentState());
+            
+            // Save to MongoDB and update Redis cache when changes occur
+            log.info("🔧 needsUpdate check - needsUpdate: {}, room: {}, adminCode: {}", 
+                    needsUpdate, chatRoom.getRoomCode(), adminCode);
+            if (needsUpdate) {
+                ChatRoom savedRoom = chatRoomRepository.save(chatRoom);
+                chatCacheService.cacheChatRoom(chatRoom.getRoomCode(), savedRoom);
+                log.info("🔧 ChatRoom saved and cached - room: {}, adminCode: {}", 
+                        chatRoom.getRoomCode(), adminCode);
+            } else {
+                log.warn("🚨 needsUpdate is false - ChatRoom NOT saved! room: {}, adminCode: {}", 
+                        chatRoom.getRoomCode(), adminCode);
+            }
+        } catch (Exception e) {
+            log.error("🚨 CRITICAL ERROR in assignAdminIfNeeded - room: {}, adminCode: {}, error: {}", 
+                     chatRoom.getRoomCode(), adminCode, e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -353,12 +475,25 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
      */
     @Override
     public String determineAdminCode(Long memberId, String loginType) {
-        if ("ADMIN_CODE".equals(loginType)) {
-            AdminCode adminCode = adminCodeRepository.findById(memberId)
-                    .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
-            return adminCode.getCode();
-        } else {
-            return "SUPER_ADMIN";
+        log.info("🔍 determineAdminCode called - memberId: {}, loginType: {}", memberId, loginType);
+        try {
+            if ("ADMIN_CODE".equals(loginType)) {
+                // ADMIN_CODE 로그인의 경우 memberId는 AdminCode.id
+                AdminCode adminCode = adminCodeRepository.findById(memberId)
+                    .orElseThrow(() -> {
+                        log.error("🚨 AdminCode를 찾을 수 없습니다 - id: {}", memberId);
+                        return new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
+                    });
+                
+                log.info("✅ AdminCode 결정 완료 - id: {}, code: {}", memberId, adminCode.getCode());
+                return adminCode.getCode();
+            } else {
+                log.info("✅ Super Admin 코드 설정 - memberId: {}", memberId);
+                return "SUPER_ADMIN";
+            }
+        } catch (Exception e) {
+            log.error("🚨 determineAdminCode 실패 - memberId: {}, loginType: {}, error: {}", memberId, loginType, e.getMessage());
+            throw e;
         }
     }
 
