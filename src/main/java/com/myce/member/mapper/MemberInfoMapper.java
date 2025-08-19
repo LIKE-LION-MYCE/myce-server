@@ -1,8 +1,10 @@
 package com.myce.member.mapper;
 
+import com.myce.common.dto.PageResponse;
 import com.myce.member.dto.MemberInfoListResponse;
 import com.myce.member.dto.MemberInfoResponse;
 import com.myce.member.dto.MemberInfoWithMileageResponse;
+import com.myce.member.dto.platform.MemberInfoDetailResponse;
 import com.myce.member.entity.Member;
 import org.springframework.data.domain.Page;
 import java.math.BigDecimal;
@@ -36,6 +38,10 @@ public class MemberInfoMapper {
             memberInfoListResponse.addMemberInfo(response);
         });
         return memberInfoListResponse;
+    }
+
+    public PageResponse<MemberInfoResponse> toResponsePage(Page<Member> members) {
+        return PageResponse.from(members.map(this::toResponseDto));
     }
 
     public MemberInfoWithMileageResponse toResponseDtoWithMileage(Member member, BigDecimal mileageRate) {
