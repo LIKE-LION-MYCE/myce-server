@@ -1,5 +1,6 @@
 package com.myce.dashboard.service.platform.impl;
 
+import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.dashboard.dto.platform.DashboardChartData;
 import com.myce.dashboard.dto.platform.DashboardSummary;
 import com.myce.dashboard.dto.platform.RevenueDashboardResponse;
@@ -8,12 +9,15 @@ import com.myce.dashboard.record.CheckDivideZero;
 import com.myce.dashboard.service.platform.RevenueService;
 import com.myce.dashboard.service.platform.mapper.PlatformDashboardMapper;
 import com.myce.dashboard.util.ChartUtil;
-import com.myce.payment.entity.type.PaymentStatus;
+import com.myce.expo.entity.type.ExpoStatus;
+import com.myce.payment.entity.type.PaymentTargetType;
 import com.myce.payment.repository.AdPaymentInfoRepository;
 import com.myce.payment.repository.ExpoPaymentInfoRepository;
+import com.myce.payment.repository.RefundRepository;
 import com.myce.settlement.entity.code.SettlementStatus;
 import com.myce.settlement.repository.SettlementRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,10 +29,12 @@ import static com.myce.dashboard.util.ComparisonUtil.getCheckDivideZero;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RevenueServiceImpl implements RevenueService {
     private final SettlementRepository settlementRepository;
     private final ExpoPaymentInfoRepository expoPaymentInfoRepository;
     private final AdPaymentInfoRepository adPaymentInfoRepository;
+    private final RefundRepository refundRepository;
 
     public RevenueDashboardResponse getSettlementDashboard(PeriodType period, Long size) {
         Long periodTime = PeriodType.getNumberOfDays(period);
@@ -44,9 +50,11 @@ public class RevenueServiceImpl implements RevenueService {
 
     public List<DashboardSummary> gatherSummary(Long periodTime) {
         return List.of(
-                getTotalSettlement(periodTime),
                 getExpoBenefit(periodTime),
                 getAdBenefit(periodTime),
+                getTotalExpoRefund(periodTime),
+                getTotalAdRefund(periodTime),
+                getTotalSettlement(periodTime),
                 getTotalBenefit(periodTime)
         );
     }
@@ -54,7 +62,7 @@ public class RevenueServiceImpl implements RevenueService {
     public DashboardSummary getTotalSettlement(Long period) {
         LocalDateTime endDate = LocalDateTime.now();
         LocalDateTime startDate = endDate.minusDays(period);
-
+        log.info("getTotalSettlement: startDate: {}, endDate: {}", startDate, endDate);
         Long currentResult = settlementRepository
                 .countSettlementBySettlementAtBetweenAndSettlementStatus(startDate, endDate,
                         SettlementStatus.APPROVED);
@@ -77,7 +85,7 @@ public class RevenueServiceImpl implements RevenueService {
 
         CheckDivideZero comparisonInfo = getCheckDivideZero(pastResult, currentResult);
 
-        return PlatformDashboardMapper.toSummary("박람회 순수익", currentResult,
+        return PlatformDashboardMapper.toSummary("박람회 수익", currentResult,
                 comparisonInfo.compareRatio(), comparisonInfo.isTrending());
     }
 
@@ -92,6 +100,30 @@ public class RevenueServiceImpl implements RevenueService {
 
         return PlatformDashboardMapper.toSummary("광고 수익", currentResult,
                 comparisonInfo.compareRatio(), comparisonInfo.isTrending());
+    }
+
+    public DashboardSummary getTotalExpoRefund(Long period) {
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = endDate.minusDays(period);
+
+        long currentResult = getTotalExpoRefundInPeriod(startDate, endDate);
+        long pastResult = getTotalExpoRefundInPeriod(startDate.minusDays(1), endDate.minusDays(1));
+
+        CheckDivideZero comparisonInfo = getCheckDivideZero(pastResult, currentResult);
+
+        return PlatformDashboardMapper.toSummary("박람회 환불", currentResult, comparisonInfo.compareRatio(), comparisonInfo.isTrending());
+    }
+
+    public DashboardSummary getTotalAdRefund(Long period) {
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = endDate.minusDays(period);
+
+        long currentResult = getTotalAdRefundInPeriod(startDate, endDate);
+        long pastResult = getTotalAdRefundInPeriod(startDate.minusDays(1), endDate.minusDays(1));
+
+        CheckDivideZero comparisonInfo = getCheckDivideZero(pastResult,currentResult);
+
+        return PlatformDashboardMapper.toSummary("광고 환불", currentResult, comparisonInfo.compareRatio(), comparisonInfo.isTrending());
     }
 
     public DashboardSummary getTotalBenefit(Long period) {
@@ -120,27 +152,43 @@ public class RevenueServiceImpl implements RevenueService {
         return ChartUtil.getDashboardChartData(period, size, data);
     }
 
+    private long getTotalExpoRefundInPeriod(LocalDateTime startDate, LocalDateTime endDate) {
+        return Optional.ofNullable(refundRepository.sumRefundAmountByTypeAndRefundedAtBetween(PaymentTargetType.EXPO, startDate, endDate))
+                .orElse(0L);
+    }
+
+    private long getTotalAdRefundInPeriod(LocalDateTime startDate, LocalDateTime endDate) {
+        return Optional.ofNullable(refundRepository.sumRefundAmountByTypeAndRefundedAtBetween(PaymentTargetType.AD, startDate, endDate))
+                .orElse(0L);
+    }
+
     private long getTotalBenefitInPeriod(LocalDateTime startDate, LocalDateTime endDate) {
         long expoBenefit = getTotalExpoBenefitInPeriod(startDate, endDate);
         long adBenefit = getTotalAdBenefitInPeriod(startDate, endDate);
-        return expoBenefit + adBenefit;
+        long expoRefund = getTotalExpoRefundInPeriod(startDate, endDate);
+        long adRefund = getTotalAdRefundInPeriod(startDate, endDate);
+        return expoBenefit + adBenefit - expoRefund - adRefund;
     }
 
     private long getTotalExpoBenefitInPeriod(LocalDateTime startDate, LocalDateTime endDate) {
         Long ticketBenefit = Optional.ofNullable(settlementRepository
-                        .sumRevenueByStatusAndUpdatedAtBetween(SettlementStatus.APPROVED, startDate, endDate))
+                        .sumRevenueByStatusAndUpdatedAtBetween(ExpoStatus.COMPLETED, startDate, endDate))
                 .orElse(0L);
-
         Long applyDeposit = Optional.ofNullable(expoPaymentInfoRepository
-                        .sumTotalAmountByStatusesAndUpdatedAtBetween(PaymentStatus.getPaidStatusList(), startDate, endDate))
+                        .sumTotalAmountByStatusesAndUpdatedAtBetween(ExpoStatus.COMPLETED_STATUSES, startDate, endDate))
                 .orElse(0L);
 
         return ticketBenefit + applyDeposit;
     }
 
     private long getTotalAdBenefitInPeriod(LocalDateTime startDate, LocalDateTime endDate) {
-        return Optional.ofNullable(adPaymentInfoRepository
-                        .sumTotalAmountByStatusAndUpdatedAtBetween(PaymentStatus.getPaidStatusList(), startDate, endDate))
+        Long adBenefit = Optional.ofNullable(adPaymentInfoRepository
+                        .sumTotalAmountByStatusAndUpdatedAtBetween(AdvertisementStatus.COMPLETED_STATUSES, startDate, endDate))
                 .orElse(0L);
+        Long refundDeposit = Optional.ofNullable(refundRepository
+                .sumRefundAmountByTypeAndRefundedAtBetween(PaymentTargetType.AD, startDate, endDate))
+                .orElse(0L);
+
+        return adBenefit;
     }
 }

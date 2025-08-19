@@ -56,4 +56,14 @@ public enum ExpoStatus {
             PUBLISH_ENDED,
             SETTLEMENT_REQUESTED
     );
+
+    public static final List<ExpoStatus> COMPLETED_STATUSES = List.of(
+            COMPLETED,
+            CANCELLED
+    );
+
+    public static final List<ExpoStatus> EXPIRED_STATUSES = List.of(
+            REJECTED,
+            CANCELLED
+    );
 }

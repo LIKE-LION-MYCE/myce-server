@@ -1,5 +1,6 @@
 package com.myce.dashboard.service.platform.impl;
 
+import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.advertisement.repository.AdRepository;
 import com.myce.dashboard.dto.platform.DashboardChartData;
 import com.myce.dashboard.dto.platform.DashboardSummary;
@@ -10,13 +11,17 @@ import com.myce.dashboard.service.platform.UsageService;
 import com.myce.dashboard.service.platform.mapper.PlatformDashboardMapper;
 import com.myce.dashboard.util.ChartUtil;
 import com.myce.dashboard.util.ComparisonUtil;
+import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
 import com.myce.reservation.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -50,8 +55,8 @@ public class UsageServiceImpl implements UsageService {
         LocalDateTime endDate = LocalDateTime.now();
         LocalDateTime startDate = endDate.minusDays(periodTime);
 
-        long currentCount = expoRepository.countAllByCreatedAtBetween(startDate, endDate);
-        long pastCount = expoRepository.countAllByCreatedAtBetween(startDate.minusDays(periodTime)
+        long currentCount = expoRepository.countAllByStatusesNotInAndCreatedAtBetween(ExpoStatus.EXPIRED_STATUSES, startDate, endDate);
+        long pastCount = expoRepository.countAllByStatusesNotInAndCreatedAtBetween(ExpoStatus.EXPIRED_STATUSES, startDate.minusDays(periodTime)
                 , endDate.minusDays(periodTime));
 
         CheckDivideZero comparisonInfo = ComparisonUtil.getCheckDivideZero(pastCount, currentCount);
@@ -78,8 +83,8 @@ public class UsageServiceImpl implements UsageService {
         LocalDateTime endDate = LocalDateTime.now();
         LocalDateTime startDate = endDate.minusDays(period);
 
-        long currentCount = adRepository.countAllByCreatedAtBetween(startDate, endDate);
-        long pastCount = adRepository.countAllByCreatedAtBetween(startDate.minusDays(period)
+        long currentCount = adRepository.countAllByCreatedAtBetween(AdvertisementStatus.EXPIRED_STATUSES, startDate, endDate);
+        long pastCount = adRepository.countAllByCreatedAtBetween(AdvertisementStatus.EXPIRED_STATUSES, startDate.minusDays(period)
                 , endDate.minusDays(period));
 
         CheckDivideZero comparisonInfo = ComparisonUtil.getCheckDivideZero(pastCount, currentCount);
@@ -107,7 +112,7 @@ public class UsageServiceImpl implements UsageService {
         for (int i = 0; i < size; i++) {
             LocalDateTime startDate = endDate.minusDays(periodTime);
 
-            long count = expoRepository.countAllByCreatedAtBetween(startDate, endDate);
+            long count = expoRepository.countAllByStatusesNotInAndCreatedAtBetween(ExpoStatus.EXPIRED_STATUSES, startDate, endDate);
             data.add(count);
 
             endDate = startDate;
@@ -139,7 +144,7 @@ public class UsageServiceImpl implements UsageService {
         for(int i = 0; i < size; i++){
             LocalDateTime startDate = endDate.minusDays(periodTime);
 
-            long count = adRepository.countAllByCreatedAtBetween(startDate, endDate);
+            long count = adRepository.countAllByCreatedAtBetween(AdvertisementStatus.EXPIRED_STATUSES, startDate, endDate);
             data.add(count);
 
             endDate = startDate;

@@ -217,6 +217,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     List<Reservation> findByUserIdAndUserTypeAndStatus(Long userId, UserType userType, ReservationStatus status);
 
+    @Query("SELECT COUNT(r) FROM Reservation r WHERE r.status = 'CONFIRMED' " +
+            "AND r.createdAt BETWEEN :createdAtAfter AND :createdAtBefore")
     Long countAllByCreatedAtBetween(LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
 
     @Query("""
