@@ -233,4 +233,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             """)
     Optional<Reservation> findByReservationCodeAndEmail(@Param("reservationCode") String reservationCode, 
                                                         @Param("email") String email);
+    
+    // 가상계좌 만료 처리용
+    List<Reservation> findByStatusAndCreatedAtBefore(ReservationStatus status, LocalDateTime createdAt);
 }
