@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -55,7 +56,7 @@ public class ExpoController {
 
     // 박람회 카드 리스트 조회
     @GetMapping()
-    public ResponseEntity<List<ExpoCardResponse>> getExpoCards(
+    public ResponseEntity<Page<ExpoCardResponse>> getExpoCards(
         @RequestParam(required=false) String keyword,   // 검색
         @RequestParam(required=false) String category,  // 카테고리
         @RequestParam(required=false) String status,    // 박람회 상태 (PUBLISHED, PENDING_PUBLISH 등)
@@ -77,8 +78,8 @@ public class ExpoController {
             to   = end;
         }
 
-        List<ExpoCardResponse> expoCards = expoService.getExpoCardsFiltered(memberId, category, status, from, to, keyword, pageable);
-        return ResponseEntity.ok(expoCards);
+        Page<ExpoCardResponse> expoCardsPage = expoService.getExpoCardsFiltered(memberId, category, status, from, to, keyword, pageable);
+        return ResponseEntity.ok(expoCardsPage);
     }
 
     // 박람회 기본 정보 조회

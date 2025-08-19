@@ -12,6 +12,7 @@ import com.myce.member.dto.MileageUpdateRequest;
 import com.myce.member.service.MemberGradeService;
 import com.myce.member.service.MemberMileageService;
 import com.myce.notification.service.NotificationService;
+import com.myce.notification.service.EmailSendService;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.ReservationPaymentVerifyRequest;
@@ -60,6 +61,7 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
     private final MemberGradeService memberGradeService;
     private final QrCodeService qrCodeService;
     private final NotificationService notificationService;
+    private final EmailSendService emailSendService;
     private final GuestReservationService guestReservationService;
 
     @Override
@@ -196,11 +198,13 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
                         reservation.getId(), qrError.getMessage());
             }
             
-            // 12. 결제 완료 알림 발송 (회원만)
+            // 12. 결제 완료 알림 발송
+            String expoTitle = reservation.getExpo().getTitle();
+            String paymentAmount = String.format("%,d원", paidAmount);
+            
+            // 회원: 기존 사이트 내 알림도 유지
             if (reservation.getUserType() == UserType.MEMBER) {
                 try {
-                    String expoTitle = reservation.getExpo().getTitle();
-                    String paymentAmount = String.format("%,d원", paidAmount);
                     notificationService.sendPaymentCompleteNotification(
                         reservation.getUserId(),
                         reservation.getId(),
@@ -213,6 +217,53 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
                     log.error("결제 완료 알림 발송 실패 - 예약 ID: {}, 오류: {}", 
                             reservation.getId(), e.getMessage());
                 }
+            }
+            
+            // 12. 회원/비회원 공통: 이메일 알림 (첫 번째 예약자에게만 발송)
+            try {
+                if (request.getReserverInfos() != null && !request.getReserverInfos().isEmpty()) {
+                    var reserverInfo = request.getReserverInfos().get(0);
+                    String subject = String.format("[예매 완료] %s", expoTitle);
+                    
+                    // 예매 상세 조회 링크를 회원/비회원에 따라 다르게 설정
+                    String detailLink;
+                    String detailGuide;
+                    if (reservation.getUserType() == UserType.MEMBER) {
+                        detailLink = "https://www.myce.live";
+                        detailGuide = "홈페이지 로그인 후 마이페이지에서 예매 상세를 확인하실 수 있습니다.<br>" +
+                                     "MYCE: <a href=\"" + detailLink + "\">바로가기</a>";
+                    } else {
+                        detailLink = "https://www.myce.live/guest-reservation";
+                        detailGuide = "예매 상세 조회: <a href=\"" + detailLink + "\">바로가기</a>";
+                    }
+                    
+                    String body = String.format(
+                        "안녕하세요 %s님,<br><br>" +
+                            "'%s' 예매가 완료되었습니다.<br><br>" +
+                            "[예매 정보]<br>" +
+                            "- 예약자: %s<br>" +
+                            "- 예약번호: %s<br>" +
+                            "- 예매 티켓 수: %s<br>" +
+                            "- 결제 금액: %s<br><br>" +
+                            "QR 코드는 박람회 시작 2일 전부터 상세 조회에서 확인하실 수 있습니다.<br>" +
+                            "%s<br><br>" +
+                            "감사합니다.",
+                        reserverInfo.getName(),
+                        expoTitle,
+                        reserverInfo.getName(),
+                        reservation.getReservationCode(),
+                        reservation.getQuantity(),
+                        paymentAmount,
+                        detailGuide
+                    );
+                    
+                    emailSendService.sendMail(reserverInfo.getEmail(), subject, body);
+                    log.info("예매 완료 이메일 전송 완료 - 예약 ID: {}, 사용자 유형: {}, 이메일: {}", 
+                            reservation.getId(), reservation.getUserType(), reserverInfo.getEmail());
+                }
+            } catch (Exception e) {
+                log.error("예매 완료 이메일 전송 실패 - 예약 ID: {}, 오류: {}", 
+                        reservation.getId(), e.getMessage());
             }
             
             // 13. Redis에서 결제 세션 정리

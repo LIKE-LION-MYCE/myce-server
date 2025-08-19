@@ -7,6 +7,7 @@ import com.myce.expo.dto.CongestionResponse;
 import com.myce.expo.dto.ExpoCardResponse;
 import com.myce.expo.dto.ExpoRegistrationRequest;
 import java.time.LocalDate;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface ExpoService {
@@ -27,7 +28,7 @@ public interface ExpoService {
     List<BoothResponse> getExpoBooths(Long expoId);
 
     // 박람회 카드 리스트 조회
-    List<ExpoCardResponse> getExpoCardsFiltered(
+    Page<ExpoCardResponse> getExpoCardsFiltered(
             Long memberId, String categoryName, String status, LocalDate from, LocalDate to, String keyword, Pageable pageable);
 }
 
