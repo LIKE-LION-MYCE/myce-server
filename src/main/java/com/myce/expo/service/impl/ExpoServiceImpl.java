@@ -30,7 +30,13 @@ import com.myce.member.entity.Member;
 import com.myce.member.repository.FavoriteRepository;
 import com.myce.member.repository.MemberRepository;
 import com.myce.qrcode.repository.QrCodeRepository;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -110,7 +116,7 @@ public class ExpoServiceImpl implements ExpoService {
                 expoId, oneHourAgo);
         
         // 시간당 수용 인원 계산
-        int hourlyCapacity = calculateHourlyCapacity(expo);
+        int hourlyCapacity = calculateHourlyCapacityByTicketsToday(expo.getId());
         
         log.info("박람회 혼잡도 - 박람회: {}, 현재 1시간 입장자: {}, 시간당 수용인원: {}", 
                 expo.getTitle(), hourlyVisitors, hourlyCapacity);
@@ -123,24 +129,59 @@ public class ExpoServiceImpl implements ExpoService {
      * 시간당 수용 인원 계산
      * = 총 수용인원 / 박람회 기간(일) / 하루 운영시간
      */
-    private int calculateHourlyCapacity(Expo expo) {
-        // 박람회 기간 계산 (일수)
-        long expoDays = expo.getStartDate().until(expo.getEndDate()).getDays() + 1;
-        
-        // 하루 운영 시간 계산
-        long dailyHours = expo.getStartTime().until(expo.getEndTime(), java.time.temporal.ChronoUnit.HOURS);
-        
-        // 시간당 수용 인원 = 총 수용인원 / 총 운영시간
-        long totalOperatingHours = expoDays * dailyHours;
-        
-        int hourlyCapacity = totalOperatingHours > 0 ? 
-            (int) (expo.getMaxReserverCount() / totalOperatingHours) : expo.getMaxReserverCount();
-            
-        log.debug("시간당 수용인원 계산 - 박람회기간: {}일, 일일운영시간: {}시간, 총운영시간: {}시간, 시간당수용인원: {}", 
-                expoDays, dailyHours, totalOperatingHours, hourlyCapacity);
-                
-        return hourlyCapacity;
+    public int calculateHourlyCapacityByTicketsToday(Long expoId) {
+        LocalDate today = LocalDate.now();
+
+        Expo expo = expoRepository.findById( expoId )
+                .orElseThrow( () -> new CustomException( CustomErrorCode.EXPO_NOT_FOUND ) );
+
+        // 오늘이 엑스포 개최기간 밖이면 0
+        if (today.isBefore( expo.getStartDate() ) || today.isAfter( expo.getEndDate() )) {
+            log.debug( "오늘({})은 엑스포 개최기간 밖 - 0 반환", today );
+            return 0;
+        }
+
+        // ── (헬퍼 없이) 운영시간 계산 시작 ─────────────────────────────
+        LocalTime start = expo.getStartTime();
+        LocalTime end = expo.getEndTime();
+        long operatingHours = ChronoUnit.HOURS.between( start, end );
+        if (operatingHours <= 0) {
+            operatingHours = ChronoUnit.HOURS.between( start, end.plusHours( 24 ) );
+        }
+        if (operatingHours <= 0) operatingHours = 1; // 안전장치
+
+        // today가 사용기간에 포함되는 티켓 조회 (양끝 포함)
+        // 예: between inclusive
+        var tickets = ticketRepository.findAllByExpoIdAndDateContains( expoId, today );
+
+        BigDecimal dailyTotal = BigDecimal.ZERO;
+
+        for (Ticket t : tickets) {
+            LocalDate s = t.getUseStartDate();
+            LocalDate e = t.getUseEndDate();
+            if (s == null || e == null) continue;
+
+            long days = ChronoUnit.DAYS.between( s, e ) + 1; // +1: 양끝 포함
+            if (days <= 0) continue;
+
+            long total = Math.max( 0, t.getTotalQuantity() ); // 음수 방어
+            if (total == 0) continue;
+
+            // 티켓별 1일 인원 = total / days (소수 유지)
+            BigDecimal perDay = BigDecimal.valueOf( total ).divide( BigDecimal.valueOf( days ), 8, RoundingMode.HALF_UP );
+
+            dailyTotal = dailyTotal.add( perDay );
+        }
+
+        BigDecimal hourly = dailyTotal.divide( BigDecimal.valueOf( operatingHours ), 8, RoundingMode.HALF_UP );
+        int hourlyCapacity = hourly.setScale( 0, RoundingMode.CEILING ).intValue();
+
+        log.debug( "시간당 적정인원(티켓 total 기반) - today:{}, 티켓수:{}, 1일합계:{}, 운영시간:{}h, 결과:{}", today, tickets.size(), dailyTotal, operatingHours, hourlyCapacity );
+
+        return Math.max( hourlyCapacity, 0 );
     }
+
+
 
     @Transactional(readOnly = true)
     @Override
