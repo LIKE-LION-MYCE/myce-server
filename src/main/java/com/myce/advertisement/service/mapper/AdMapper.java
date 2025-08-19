@@ -28,6 +28,7 @@ public class AdMapper {
     public static AdDetailResponse getDetailAdvertisement(
             Advertisement advertisement, BusinessProfile businessProfile) {
         AdPosition adPosition = advertisement.getAdPosition();
+        Member member = advertisement.getMember();
 
         return AdDetailResponse.builder()
                 .id(advertisement.getId())
@@ -38,6 +39,14 @@ public class AdMapper {
                 .startAt(advertisement.getDisplayStartDate())
                 .endAt(advertisement.getDisplayEndDate())
                 .description(advertisement.getDescription())
+                .applicant(AdDetailResponse.ApplicantInfo.builder()
+                        .name(member.getName())
+                        .birth(member.getBirth())
+                        .email(member.getEmail())
+                        .gender(member.getGender().name())
+                        .phone(member.getPhone())
+                        .loginId(member.getLoginId())
+                        .build())
                 .businessCompany(businessProfile.getCompanyName())
                 .representName(businessProfile.getCeoName())
                 .businessEmail(businessProfile.getContactEmail())
