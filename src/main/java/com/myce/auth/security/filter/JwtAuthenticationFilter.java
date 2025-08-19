@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.auth.repository.TokenBlackListRepository;
+import com.myce.auth.security.config.SecurityConfig;
 import com.myce.auth.security.util.JwtUtil;
 import com.myce.auth.service.AdminCodeDetailService;
 import com.myce.auth.service.impl.UserDetailsServiceImpl;
@@ -12,11 +13,14 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -26,7 +30,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final String REISSUE_URI = "/api/auth/reissue";
     private static final String INVALID_TOKEN_CODE = "INVALID_TOKEN";
     private static final String EXPIRED_TOKEN_CODE = "EXPIRED_TOKEN";
 
@@ -34,16 +37,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final UserDetailsServiceImpl userDetailsService;
     private final AdminCodeDetailService adminCodeDetailService;
     private final TokenBlackListRepository tokenBlackListRepository;
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
             HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String token = request.getHeader(JwtUtil.AUTHORIZATION_HEADER);
         String uri = request.getRequestURI();
-        log.debug("[JwtAuthenticationFilter] Input uri={}", uri);
+        String method = request.getMethod();
+        log.debug("[JwtAuthenticationFilter] Input uri={}, method={}", uri, method);
 
         // jwt 존재 여부 및 유효성 검사
-        if (uri.equals(REISSUE_URI) || token == null || token.isEmpty()) {
+        if (token == null || token.isEmpty() || isPermitAll(method, uri)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -112,6 +118,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return false;
     }
 
+
     private void setErrorResponse(HttpServletResponse response, String code) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json;charset=UTF-8");
@@ -119,5 +126,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         Map<String, String> body = Map.of("code", code);
         log.info("[JwtAuthenticationFilter] Set error response: {}", body);
         new ObjectMapper().writeValue(response.getWriter(), body);
+    }
+
+    private boolean isPermitAll(String method, String path) {
+        if(!isExist(SecurityConfig.ECT_PERMIT_ALL, path)) return true;
+
+        if(HttpMethod.GET.name().equals(method)) {
+            return isExist(SecurityConfig.GET_PERMIT_ALL, path);
+        }
+        if(HttpMethod.POST.name().equals(method)) {
+            return isExist(SecurityConfig.POST_PERMIT_ALL, path);
+        }
+        if(HttpMethod.PATCH.name().equals(method)) {
+            return isExist(SecurityConfig.PATCH_PERMIT_ALL, path);
+        }
+        if(HttpMethod.DELETE.name().equals(method)) {
+            return isExist(SecurityConfig.DELETE_PERMIT_ALL, path);
+        }
+
+        return false;
+    }
+
+    private boolean isExist(String[] patterns, String path) {
+        return Arrays.stream(patterns).anyMatch(p -> pathMatcher.match(p, path));
     }
 }

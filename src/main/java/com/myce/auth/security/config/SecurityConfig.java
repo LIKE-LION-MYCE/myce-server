@@ -13,6 +13,7 @@ import com.myce.auth.security.provider.TokenCookieProvider;
 import com.myce.auth.security.util.JwtUtil;
 import com.myce.auth.service.AdminCodeDetailService;
 import com.myce.auth.service.impl.UserDetailsServiceImpl;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +35,45 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @RequiredArgsConstructor
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
+
+    public static final String[] POST_PERMIT_ALL = {
+            "/api/auth/**", "/api/payment/**",
+            "/api/payment/**", "/api/reservations/**",
+            "/api/reservers", "/api/payment/imp-uid"
+    };
+
+    public static final String[] GET_PERMIT_ALL = {
+            "/api/ads", "/api/auth/**",
+            "/api/categories", "/api/expos/**", "/api/reservations/**",
+            "/api/reservations/guest", "/api/expo/fees/active", "/api/ad/fees/active",
+            "/api/members/expos/*/payment", "/api/members/ads/*/payment",
+            "/api/reviews/expo/*", "/api/reviews/*/", "/api/reviews/best",
+            "/api/settings/refund-fee/public", "/api/ad-position/dropdown",
+            "/api/settings/ad-fee/active", "/api/settings/expo-fee/active"
+    };
+
+    public static final String[] PATCH_PERMIT_ALL = {
+            "/api/tickets/quantity",
+            "/api/reservations/**", "/api/platform/ads/*/status",
+            "/api/payment/*/status"
+    };
+
+    public static final String[] DELETE_PERMIT_ALL = {
+            "/api/**", "/api/reservations/**"
+    };
+
+    public static final String[] ECT_PERMIT_ALL = {
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/swagger-resources/**",
+            "/webjars/**",
+            "/auth-docs/login",
+            "/actuator/**",               // All actuator endpoints for monitoring
+            "/ws/**", // WebSocket 엔드포인트 허용
+            "/images/**", // Static 이미지 리소스 허용
+            "/api/login/oauth2/code/**",      // OAuth2 callback endpoints
+            "/api/oauth2/**"              // Custom OAuth2 endpoints
+    };
 
     private final JwtUtil jwtUtil;
     private final TokenCookieProvider tokenCookieProvider;
@@ -73,6 +113,11 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable) // CSRF 공격 방지 기능 비활성화
                 .formLogin(AbstractHttpConfigurer::disable) // 기본 로그인 폼 비활성화
                 .httpBasic(AbstractHttpConfigurer::disable) // HTTP Basic 인증
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.getWriter().write("Unauthorized");
+                        }))
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
@@ -90,35 +135,15 @@ public class SecurityConfig {
                 .failureHandler(oAuth2LoginFailureHandler));
 
         http.authorizeHttpRequests(auth ->
-                auth.requestMatchers(HttpMethod.POST, "/api/auth/**", "/api/payment/**",
-                        "/api/payment/**", "/api/reservations/**", "/api/reservers",
-                        "/api/payment/imp-uid")
+                auth.requestMatchers(HttpMethod.POST, POST_PERMIT_ALL)
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/ads", "/api/auth/**",
-                            "/api/categories", "/api/expos/**", "/api/reservations/**",
-                            "/api/reservations/guest", "/api/expo/fees/active", "/api/ad/fees/active",
-                            "/api/members/expos/*/payment", "/api/members/ads/*/payment",
-                            "/api/reviews/expo/*", "/api/reviews/*/", "/api/reviews/best",
-                            "/api/settings/refund-fee/public")
+                        .requestMatchers(HttpMethod.GET, GET_PERMIT_ALL)
                         .permitAll()
-                        .requestMatchers(HttpMethod.PATCH, "/api/tickets/quantity",
-                            "/api/reservations/**", "/api/platform/ads/*/status",
-                            "/api/payment/*/status")
+                        .requestMatchers(HttpMethod.PATCH, PATCH_PERMIT_ALL)
                         .permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/api/**", "/api/reservations/**")
+                        .requestMatchers(HttpMethod.DELETE, DELETE_PERMIT_ALL)
                         .permitAll()
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/webjars/**",
-                                "/auth-docs/login",
-                                "/actuator/**",               // All actuator endpoints for monitoring
-                                "/ws/**", // WebSocket 엔드포인트 허용
-                                "/images/**", // Static 이미지 리소스 허용
-                                "/api/login/oauth2/code/**",      // OAuth2 callback endpoints
-                                "/api/oauth2/**"              // Custom OAuth2 endpoints
-                        ).permitAll()
+                        .requestMatchers(ECT_PERMIT_ALL).permitAll()
                         .anyRequest()
                         .authenticated());
         return http.build();
