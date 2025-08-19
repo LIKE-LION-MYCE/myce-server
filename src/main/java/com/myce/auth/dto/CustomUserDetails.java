@@ -18,7 +18,6 @@ public class CustomUserDetails implements UserDetails {
     private final Long memberId;
     private final String name;
     private final String loginId;
-    private final ProviderType providerType;
     private final String password;
     private final String role;
 
@@ -27,7 +26,6 @@ public class CustomUserDetails implements UserDetails {
             String password, ProviderType providerType, String role) {
         this.loginType = loginType;
         this.memberId = memberId;
-        this.providerType = providerType;
         this.loginId = loginId;
         this.password = password;
         this.name = name;

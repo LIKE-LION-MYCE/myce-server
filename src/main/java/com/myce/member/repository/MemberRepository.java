@@ -12,15 +12,17 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface MemberRepository extends JpaRepository<Member, Long> {
 
-    Optional<Member> findByProviderTypeAndLoginId(ProviderType providerType, String loginId);
-
     Optional<Member> findByNameAndEmail(String name, String email);
+
+    Optional<Member> findByEmail(String email);
 
     Optional<Member> findByNameAndEmailAndLoginId(String name, String email, String loginId);
 
     Page<Member> findByRole(Role role, Pageable pageable);
 
     boolean existsByLoginId(String loginId);
+
+    Optional<Member> findByLoginId(String loginId);
 
     boolean existsByEmail(String email);
 

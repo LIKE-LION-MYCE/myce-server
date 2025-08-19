@@ -31,19 +31,19 @@ public class Member {
     @Column(name = "name", length = 10, nullable = false)
     private String name;
 
-    @Column(name = "login_id", length = 20, unique = true, nullable = false)
+    @Column(name = "login_id", length = 100, unique = true, nullable = false)
     private String loginId;
 
-    @Column(name = "password", length = 200, nullable = false)
+    @Column(name = "password", length = 200)
     private String password;
 
     @Column(name = "email", length = 100, unique = true, nullable = false)
     private String email;
 
-    @Column(name = "phone", length = 13, nullable = false)
+    @Column(name = "phone", length = 13)
     private String phone;
 
-    @Column(name = "birth", nullable = false)
+    @Column(name = "birth")
     private LocalDate birth;
 
     @Enumerated(EnumType.STRING)
@@ -51,15 +51,8 @@ public class Member {
     private Role role;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "gender", nullable = false, columnDefinition = "VARCHAR(6)")
+    @Column(name = "gender", columnDefinition = "VARCHAR(6)")
     private Gender gender;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "provider", nullable = false, columnDefinition = "VARCHAR(20)")
-    private ProviderType providerType;
-
-    @Column(name = "provider_id", length = 100, nullable = false)
-    private String providerId;
 
     @Column(name = "mileage", nullable = false)
     private Integer mileage;
@@ -77,7 +70,7 @@ public class Member {
 
     @Builder
     public Member(MemberGrade memberGrade, String name, String loginId, String password, String email,
-        LocalDate birth, String phone, Role role, Gender gender, ProviderType providerType, String providerId) {
+        LocalDate birth, String phone, Role role, Gender gender) {
         this.memberGrade = memberGrade;
         this.name = name;
         this.loginId = loginId;
@@ -87,8 +80,6 @@ public class Member {
         this.birth = birth;
         this.role = role;
         this.gender = gender;
-        this.providerType = providerType;
-        this.providerId = providerId;
         this.mileage = 0;
         this.isDeleted = false;
     }
