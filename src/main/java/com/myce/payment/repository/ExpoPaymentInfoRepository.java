@@ -1,5 +1,6 @@
 package com.myce.payment.repository;
 
+import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.payment.entity.ExpoPaymentInfo;
 import com.myce.payment.entity.type.PaymentStatus;
 import io.lettuce.core.dynamic.annotation.Param;
@@ -16,16 +17,10 @@ public interface ExpoPaymentInfoRepository extends JpaRepository<ExpoPaymentInfo
     
     Optional<ExpoPaymentInfo> findByExpoId(Long expoId);
 
-    @Query("SELECT SUM(e.totalAmount) FROM ExpoPaymentInfo e " +
-            "WHERE e.status IN :statuses AND e.updatedAt > :timestamp")
-    Long sumTotalAmountByStatusesAndUpdatedAtAfter(
-            @Param("statuses") List<PaymentStatus> statuses,
-            @Param("timestamp") LocalDateTime timestamp
-    );
-    @Query("SELECT SUM(a.totalAmount) FROM AdPaymentInfo a " +
-            "WHERE a.status IN :statuses AND a.updatedAt BETWEEN :updatedAtAfter AND :updatedAtBefore")
+    @Query("SELECT SUM(a.totalAmount) FROM ExpoPaymentInfo a " +
+            "WHERE a.expo.status IN :statuses AND a.updatedAt BETWEEN :updatedAtAfter AND :updatedAtBefore")
     Long sumTotalAmountByStatusesAndUpdatedAtBetween(
-            @Param("statuses") List<PaymentStatus> statuses,
+            @Param("statuses") List<ExpoStatus> statuses,
             @Param("updatedAtAfter") LocalDateTime updatedAtAfter,
             @Param("updatedAtBefore") LocalDateTime updatedAtBefore
     );

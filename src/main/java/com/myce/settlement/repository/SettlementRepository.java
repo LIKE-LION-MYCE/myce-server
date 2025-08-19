@@ -1,5 +1,6 @@
 package com.myce.settlement.repository;
 
+import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.settlement.entity.Settlement;
 import com.myce.settlement.entity.code.SettlementStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,11 +19,11 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
              LocalDateTime settlementAtBefore, SettlementStatus settlementStatus);
 
     // Refactored to use 'Between' query with a custom JPQL
-    @Query("SELECT SUM(s.totalAmount - s.supplyAmount) " +
+    @Query("SELECT SUM(s.supplyAmount) " +
             "FROM Settlement s " +
-            "WHERE s.settlementStatus = :status AND s.updatedAt BETWEEN :updatedAtAfter AND :updatedAtBefore")
+            "WHERE s.expo.status IN :status AND s.updatedAt BETWEEN :updatedAtAfter AND :updatedAtBefore")
     Long sumRevenueByStatusAndUpdatedAtBetween(
-            @Param("status") SettlementStatus status,
+            @Param("status") ExpoStatus status,
             @Param("updatedAtAfter") LocalDateTime updatedAtAfter,
             @Param("updatedAtBefore") LocalDateTime updatedAtBefore
     );

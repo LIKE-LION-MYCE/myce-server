@@ -2,17 +2,17 @@ package com.myce.advertisement.repository;
 
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 public interface AdRepository extends JpaRepository<Advertisement, Long> {
 
@@ -59,10 +59,9 @@ public interface AdRepository extends JpaRepository<Advertisement, Long> {
 
     Optional<Advertisement> findByIdAndMemberId(Long advertisementId, Long memberId);
 
-    @Query("SELECT COUNT(a) FROM Advertisement a " +
-            "WHERE a.displayEndDate >= :date " +
-            "and a.displayEndDate <= CURRENT_DATE")
-    long countAllByDateAfter(LocalDate date);
 
-    long countAllByCreatedAtBetween(LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
+    @Query("SELECT COUNT(a) FROM Advertisement a " +
+            "WHERE a.status NOT IN :statuses " +
+            "AND a.createdAt BETWEEN :createdAtAfter AND :createdAtBefore")
+    long countAllByCreatedAtBetween(List<AdvertisementStatus> statuses, LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
 }

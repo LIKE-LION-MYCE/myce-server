@@ -31,11 +31,4 @@ public enum PaymentStatus {
         }
         throw new CustomException(CustomErrorCode.PAYMENT_STATUS_INVALID);
     }
-
-
-    public static List<PaymentStatus> getPaidStatusList(){
-        return List.of(PaymentStatus.PARTIAL_REFUNDED,
-                PaymentStatus.REFUNDED,
-                PaymentStatus.SUCCESS);
-    }
 }

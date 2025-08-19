@@ -124,5 +124,7 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
     // AI 상담용 - 최신 박람회 5개 조회
     List<Expo> findTop5ByOrderByCreatedAtDesc();
 
-    Long countAllByCreatedAtBetween(LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
+    @Query("SELECT COUNT(e) FROM Expo e WHERE e.status NOT IN :statuses " +
+            "AND e.createdAt BETWEEN :createdAtAfter AND :createdAtBefore")
+    Long countAllByStatusesNotInAndCreatedAtBetween(List<ExpoStatus> statuses, LocalDateTime createdAtAfter, LocalDateTime createdAtBefore);
 }

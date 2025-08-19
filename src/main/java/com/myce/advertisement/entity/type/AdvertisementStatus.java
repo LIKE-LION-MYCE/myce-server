@@ -1,6 +1,6 @@
 package com.myce.advertisement.entity.type;
 
-import com.myce.expo.entity.type.TicketType;
+import java.util.List;
 
 public enum AdvertisementStatus {
     PENDING_APPROVAL,
@@ -18,4 +18,12 @@ public enum AdvertisementStatus {
         }
         return null;
     }
+
+    public static final List<AdvertisementStatus> COMPLETED_STATUSES = List.of(
+            COMPLETED, CANCELLED
+    );
+
+    public static final List<AdvertisementStatus> EXPIRED_STATUSES = List.of(
+            REJECTED, CANCELLED
+    );
 }
