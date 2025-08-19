@@ -134,10 +134,9 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     List<Reservation> findByExpoId(Long expoId);
 
-    @Query("SELECT r FROM Reservation r " +
-            "WHERE r.expo.id = :expoId AND r.userType = 'MEMBER' " +
-            "GROUP BY r.userId")
-    List<Reservation> findByExpoIdWithDistinctMemberId(Long expoId);
+    @Query("SELECT DISTINCT r.userId FROM Reservation r " +
+            "WHERE r.expo.id = :expoId AND r.userType = 'MEMBER'")
+    List<Long> findDistinctUserIdsByExpoId(Long expoId);
 
     // === 대시보드 통계용 쿼리 메서드들 ===
 
