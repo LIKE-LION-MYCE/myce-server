@@ -72,7 +72,7 @@ public class SecurityConfig {
     };
 
     public static final String[] DELETE_PERMIT_ALL = {
-            "/api/**", "/api/reservations/**",
+            "/api/reservations/**",
             "/api/reservations/*",                   // 예매 삭제 (결제 실패/취소 시)
     };
 
