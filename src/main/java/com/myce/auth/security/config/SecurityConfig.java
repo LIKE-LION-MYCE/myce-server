@@ -38,7 +38,8 @@ public class SecurityConfig {
 
     public static final String[] POST_PERMIT_ALL = {
             "/api/auth/**", "/api/payment/**", "/api/reservations/**",
-            "/api/reservers", "/api/payment/imp-uid"
+            "/api/reservers", "/api/payment/imp-uid",
+            "/api/reservations/pre-reservation",     // 사전 예매 생성
     };
 
     public static final String[] GET_PERMIT_ALL = {
@@ -52,7 +53,10 @@ public class SecurityConfig {
             "/api/expos/*/reviews",                 // 박람회 리뷰 정보 조회 (비회원 접근 가능)
             "/api/expos/*/location",                // 박람회 위치 정보 조회
             "/api/expos/*/booths/public",           // 박람회 부스 정보 조회 (공개용)
-            "/api/reservations/**",
+            "/api/reservations/*/success",           // 예매 성공 정보 조회
+            "/api/reservations/*/pending",           // 예매 대기 정보 조회 (가상계좌)
+            "/api/reservations/payment-summary",     // 결제 요약 정보 조회
+            "/api/reservations/guest",               // 비회원 예매 조회 (이메일 + 예매번호)
             "/api/reservations/guest", "/api/expo/fees/active", "/api/ad/fees/active",
             "/api/reviews/expo/*", "/api/reviews/*/", "/api/reviews/best",
             "/api/settings/refund-fee/public", "/api/ad-position/dropdown",
@@ -62,11 +66,14 @@ public class SecurityConfig {
     public static final String[] PATCH_PERMIT_ALL = {
             "/api/tickets/quantity",
             "/api/reservations/**", "/api/platform/ads/*/status",
-            "/api/payment/*/status"
+            "/api/payment/*/status",
+            "/api/reservations/guestId",             // 비회원 ID 업데이트
+            "/api/reservations/*/confirm",           // 예매 상태 확인으로 변경
     };
 
     public static final String[] DELETE_PERMIT_ALL = {
-            "/api/**", "/api/reservations/**"
+            "/api/**", "/api/reservations/**",
+            "/api/reservations/*",                   // 예매 삭제 (결제 실패/취소 시)
     };
 
     public static final String[] ECT_PERMIT_ALL = {
