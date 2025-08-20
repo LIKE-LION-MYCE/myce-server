@@ -92,7 +92,15 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             chatRooms = chatRoomRepository.findByExpoIdIsNullAndIsActiveTrueOrderByLastMessageAtDesc();
             
             // 🆕 플랫폼 채팅방들 상태 동기화 (관리자가 목록을 볼 때 올바른 상태 표시)
-            chatRooms.forEach(this::syncPlatformChatState);
+            chatRooms.forEach(room -> {
+                syncPlatformChatState(room);
+                // 🆕 상태 동기화 후 최신 정보로 캐시 업데이트
+                if (room.getRoomCode() != null && room.getRoomCode().startsWith("platform-")) {
+                    chatCacheService.cacheChatRoom(room.getRoomCode(), room);
+                    log.debug("✅ 플랫폼 채팅방 최신 상태로 캐시 업데이트 - roomCode: {}, state: {}", 
+                             room.getRoomCode(), room.getCurrentState());
+                }
+            });
         } else {
             // 일반 사용자와 EXPO_ADMIN 모두 동일하게 처리: 본인이 참여한 채팅방만 조회
             // EXPO_ADMIN의 관리자 채팅은 /admin/inquiry 페이지에서 별도 처리
@@ -107,7 +115,13 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             // 🆕 사용자의 플랫폼 채팅방 상태 동기화
             chatRooms.stream()
                 .filter(room -> room.getRoomCode() != null && room.getRoomCode().startsWith("platform-"))
-                .forEach(this::syncPlatformChatState);
+                .forEach(room -> {
+                    syncPlatformChatState(room);
+                    // 🆕 상태 동기화 후 최신 정보로 캐시 업데이트
+                    chatCacheService.cacheChatRoom(room.getRoomCode(), room);
+                    log.debug("✅ 플랫폼 채팅방 최신 상태로 캐시 업데이트 - roomCode: {}, state: {}", 
+                             room.getRoomCode(), room.getCurrentState());
+                });
         }
 
         // 4. MongoDB Document를 DTO로 변환 (복수형 네이밍 적용)
@@ -345,35 +359,36 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             }
             
             chatRoom.updateReadStatus(updatedReadStatus);
+            
+            // 6. WebSocket을 통해 상대방에게 읽음 상태 변경 알림
+            try {
+                String readerType = "PLATFORM_ADMIN".equals(actualRole) ? "ADMIN" : 
+                                   Role.USER.name().equals(actualRole) ? "USER" : "ADMIN";
+                
+                // 🆕 WebSocket 메시지 구조를 ChatWebSocketController와 통일 (표준 구조)
+                Map<String, Object> readStatusUpdate = Map.of(
+                    "type", "read_status_update",
+                    "roomCode", roomCode,           // 직접 필드로 이동
+                    "messageId", latestMessageId,   // 추가 - 이제 스코프 안에 있음
+                    "readBy", memberId,             // 추가
+                    "readerType", readerType,       // 직접 필드로 이동
+                    "timestamp", System.currentTimeMillis()  // 추가
+                );
+                
+                log.info("🔔 {} 읽음 상태 WebSocket 알림 전송 - roomCode: {}, readerType: {}, messageId: {}", 
+                        readerType, roomCode, latestMessageId);
+                messagingTemplate.convertAndSend(
+                    "/topic/chat/" + roomCode,
+                    readStatusUpdate
+                );
+                
+            } catch (Exception e) {
+                log.warn("읽음 상태 WebSocket 알림 전송 실패 - roomCode: {}, error: {}", roomCode, e.getMessage());
+            }
         }
         
         // 5. 채팅방 저장
         chatRoomRepository.save(chatRoom);
-        
-        // 6. WebSocket을 통해 상대방에게 읽음 상태 변경 알림
-        try {
-            String actualRole = determineActualRoleInChatRoom(roomCode, memberId, memberRole);
-            String readerType = Role.USER.name().equals(actualRole) ? "USER" : "ADMIN";
-            Map<String, Object> readStatusPayload = Map.of(
-                "roomCode", roomCode,
-                "readerType", readerType,
-                "unreadCount", 0
-            );
-            
-            Map<String, Object> broadcastMessage = Map.of(
-                "type", "read_status_update",
-                "payload", readStatusPayload
-            );
-            
-            log.info("🔔 {} 읽음 상태 WebSocket 알림 전송 - roomCode: {}, topic: /topic/chat/{}", readerType, roomCode, roomCode);
-            messagingTemplate.convertAndSend(
-                "/topic/chat/" + roomCode,
-                broadcastMessage
-            );
-            
-        } catch (Exception e) {
-            log.warn("읽음 상태 WebSocket 알림 전송 실패 - roomCode: {}, error: {}", roomCode, e.getMessage());
-        }
         
     }
     
@@ -703,8 +718,13 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     private String determineActualRoleInChatRoom(String roomCode, Long memberId, String memberRole) {
         // 플랫폼 채팅방인 경우
         if (roomCode.startsWith("platform-")) {
-            // 플랫폼 관리자면 ADMIN, 아니면 USER
-            return Role.PLATFORM_ADMIN.name().equals(memberRole) ? "ADMIN" : "USER";
+            // 🆕 플랫폼 관리자면 명확히 PLATFORM_ADMIN으로 구분, 아니면 USER
+            if (Role.PLATFORM_ADMIN.name().equals(memberRole)) {
+                log.debug("🔍 플랫폼 채팅방에서 플랫폼 관리자 역할 확인 - roomCode: {}, memberId: {}", roomCode, memberId);
+                return "PLATFORM_ADMIN";
+            } else {
+                return "USER";
+            }
         }
         
         // 박람회 채팅방인 경우 (admin-{expoId}-{userId} 형식)
@@ -763,22 +783,38 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     }
     
     /**
-     * 플랫폼 채팅방의 실제 상태 결정 (메시지 이력 기반)
+     * 플랫폼 채팅방의 실제 상태 결정 (DB currentState 필드 우선, 메시지 이력은 보조)
      * @param roomCode 플랫폼 채팅방 코드 (platform-{userId})
      * @return 실제 채팅방 상태
      */
     private ChatRoom.ChatRoomState determinePlatformChatState(String roomCode) {
         try {
-            // 관리자 개입 메시지 확인 (SYSTEM 포함)
-            List<String> adminSenderTypes = List.of("ADMIN", "PLATFORM_ADMIN", "SYSTEM");
-            long adminMessageCount = chatMessageRepository.countByRoomCodeAndSenderTypeIn(roomCode, adminSenderTypes);
+            // 1. 먼저 DB의 currentState 확인 (가장 신뢰할 수 있는 상태)
+            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+            if (chatRoomOpt.isPresent()) {
+                ChatRoom chatRoom = chatRoomOpt.get();
+                ChatRoom.ChatRoomState storedState = chatRoom.getCurrentState();
+                
+                // 2. currentState가 명시적으로 설정되어 있으면 그것을 우선적으로 사용
+                if (storedState != null) {
+                    log.debug("🔍 플랫폼 채팅방 상태 결정 (DB 우선) - roomCode: {}, storedState: {}", roomCode, storedState);
+                    return storedState;
+                }
+                
+                // 3. currentState가 null인 경우에만 메시지 이력으로 판단 (SYSTEM 제외)
+                List<String> realAdminSenderTypes = List.of("ADMIN", "PLATFORM_ADMIN"); // SYSTEM 제외!
+                long realAdminMessageCount = chatMessageRepository.countByRoomCodeAndSenderTypeIn(roomCode, realAdminSenderTypes);
+                
+                log.debug("🔍 플랫폼 채팅방 상태 결정 (메시지 기반) - roomCode: {}, realAdminMessageCount: {} (SYSTEM 제외)", roomCode, realAdminMessageCount);
+                
+                // 실제 관리자 메시지만 확인 (SYSTEM 메시지는 상태 판단에서 제외)
+                return realAdminMessageCount > 0 ? 
+                    ChatRoom.ChatRoomState.ADMIN_ACTIVE : 
+                    ChatRoom.ChatRoomState.AI_ACTIVE;
+            }
             
-            log.debug("🔍 플랫폼 채팅방 상태 결정 - roomCode: {}, adminMessageCount: {} (SYSTEM 포함)", roomCode, adminMessageCount);
-            
-            // 실제 관리자 메시지가 하나라도 있으면 ADMIN_ACTIVE, 아니면 AI_ACTIVE
-            return adminMessageCount > 0 ? 
-                ChatRoom.ChatRoomState.ADMIN_ACTIVE : 
-                ChatRoom.ChatRoomState.AI_ACTIVE;
+            log.warn("채팅방 조회 실패 - roomCode: {}", roomCode);
+            return ChatRoom.ChatRoomState.AI_ACTIVE;
                 
         } catch (Exception e) {
             log.warn("플랫폼 채팅방 상태 결정 실패 - roomCode: {}, error: {}", roomCode, e.getMessage());
