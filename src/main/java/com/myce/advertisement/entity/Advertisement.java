@@ -43,7 +43,7 @@ public class Advertisement {
     @Column(name = "link_url", length = 500, nullable = false)
     private String linkUrl;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ad_position_id", referencedColumnName = "ad_position_id", nullable = false)
     private AdPosition adPosition;
 
