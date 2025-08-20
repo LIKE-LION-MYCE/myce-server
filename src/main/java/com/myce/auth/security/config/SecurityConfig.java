@@ -46,7 +46,7 @@ public class SecurityConfig {
             "/api/ads", "/api/auth/**",
             "/api/categories", "/api/expos/**", "/api/reservations/**",
             "/api/reservations/guest", "/api/expo/fees/active", "/api/ad/fees/active",
-            "/api/members/expos/*/payment", "/api/members/ads/*/payment",
+//            "/api/members/expos/*/payment", "/api/members/ads/*/payment",
             "/api/reviews/expo/*", "/api/reviews/*/", "/api/reviews/best",
             "/api/settings/refund-fee/public", "/api/ad-position/dropdown",
             "/api/settings/ad-fee/active", "/api/settings/expo-fee/active"
