@@ -769,13 +769,13 @@ public class ChatRoomServiceImpl implements ChatRoomService {
      */
     private ChatRoom.ChatRoomState determinePlatformChatState(String roomCode) {
         try {
-            // 관리자/시스템 메시지 존재 여부 확인
+            // 관리자 개입 메시지 확인 (SYSTEM 포함)
             List<String> adminSenderTypes = List.of("ADMIN", "PLATFORM_ADMIN", "SYSTEM");
             long adminMessageCount = chatMessageRepository.countByRoomCodeAndSenderTypeIn(roomCode, adminSenderTypes);
             
-            log.debug("🔍 플랫폼 채팅방 상태 결정 - roomCode: {}, adminMessageCount: {}", roomCode, adminMessageCount);
+            log.debug("🔍 플랫폼 채팅방 상태 결정 - roomCode: {}, adminMessageCount: {} (SYSTEM 포함)", roomCode, adminMessageCount);
             
-            // 관리자/시스템 메시지가 하나라도 있으면 ADMIN_ACTIVE
+            // 실제 관리자 메시지가 하나라도 있으면 ADMIN_ACTIVE, 아니면 AI_ACTIVE
             return adminMessageCount > 0 ? 
                 ChatRoom.ChatRoomState.ADMIN_ACTIVE : 
                 ChatRoom.ChatRoomState.AI_ACTIVE;

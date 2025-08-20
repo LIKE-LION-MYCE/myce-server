@@ -68,6 +68,7 @@ public class AIChatServiceImpl implements AIChatService {
     private final ChatCacheService chatCacheService;
     private final MemberRepository memberRepository;
     private final ExpoRepository expoRepository;
+    private final com.myce.expo.repository.TicketRepository ticketRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Override
@@ -473,9 +474,51 @@ public class AIChatServiceImpl implements AIChatService {
         try {
             // 공개 박람회 목록 조회 (상위 5개)
             List<Expo> publicExpos = expoRepository.findTop5ByOrderByCreatedAtDesc();
+            
+            // 박람회 기본 정보
             List<String> expoTitles = publicExpos.stream()
                 .map(Expo::getTitle)
                 .collect(Collectors.toList());
+            
+            // 박람회별 위치 정보 구성
+            StringBuilder locationInfo = new StringBuilder();
+            locationInfo.append("\n📍 박람회 위치 정보:\n");
+            for (Expo expo : publicExpos) {
+                locationInfo.append(String.format("• %s: %s %s\n", 
+                    expo.getTitle(), 
+                    expo.getLocation(),
+                    expo.getLocationDetail() != null ? expo.getLocationDetail() : ""
+                ));
+            }
+            
+            // 박람회별 티켓 정보 구성
+            StringBuilder ticketInfo = new StringBuilder();
+            ticketInfo.append("\n🎫 티켓 정보:\n");
+            for (Expo expo : publicExpos) {
+                try {
+                    List<com.myce.expo.entity.Ticket> tickets = ticketRepository.findByExpoId(expo.getId());
+                    if (!tickets.isEmpty()) {
+                        ticketInfo.append(String.format("• %s:\n", expo.getTitle()));
+                        for (com.myce.expo.entity.Ticket ticket : tickets) {
+                            String remainingStatus = ticket.getRemainingQuantity() <= 0 ? " (매진)" : 
+                                ticket.getRemainingQuantity() < 10 ? String.format(" (잔여 %d매)", ticket.getRemainingQuantity()) : 
+                                " (예약 가능)";
+                            
+                            ticketInfo.append(String.format("  - %s: %,d원 (판매: %s~%s)%s\n",
+                                ticket.getName(),
+                                ticket.getPrice(),
+                                ticket.getSaleStartDate(),
+                                ticket.getSaleEndDate(),
+                                remainingStatus
+                            ));
+                        }
+                    } else {
+                        ticketInfo.append(String.format("• %s: 티켓 정보 준비 중\n", expo.getTitle()));
+                    }
+                } catch (Exception e) {
+                    ticketInfo.append(String.format("• %s: 티켓 정보 조회 실패\n", expo.getTitle()));
+                }
+            }
             
             String platformInfo = """
                 MYCE는 박람회 관리 플랫폼입니다.
@@ -486,7 +529,12 @@ public class AIChatServiceImpl implements AIChatService {
                 
             String pricingInfo = "요금제 정보는 개별 박람회마다 상이합니다.";
             
-            return new PublicContext(expoTitles, platformInfo, pricingInfo);
+            // 확장된 정보를 availableExpos에 통합
+            String enhancedExpoInfo = String.join(", ", expoTitles) + 
+                locationInfo.toString() + 
+                ticketInfo.toString();
+            
+            return new PublicContext(List.of(enhancedExpoInfo), platformInfo, pricingInfo);
             
         } catch (Exception e) {
             log.warn("공개 컨텍스트 구성 실패", e);
@@ -555,6 +603,21 @@ public class AIChatServiceImpl implements AIChatService {
             - 구체적이고 실용적인 정보를 제공하세요
             - 사용자 정보를 활용한 개인화된 정보를 제공하세요
             - 확실하지 않은 정보는 추측하지 마세요
+            
+            🔴 중요한 박람회 안내 규칙:
+            - 박람회를 추천하거나 안내할 때는 반드시 다음 상태를 확인하세요:
+              • "게시 중" (PUBLISHED) 상태: 현재 예약 가능한 박람회입니다
+              • "게시 대기" (PENDING_PUBLISH) 상태: 곧 오픈 예정이며 아직 예약 불가능합니다
+            - 사용자가 박람회 예약을 원하면 "게시 중" 상태의 박람회만 안내하세요
+            - "게시 대기" 박람회는 "곧 오픈 예정"이라고 명시하고 안내하세요
+            - 그 외 상태(종료, 취소 등)의 박람회는 절대 추천하지 마세요
+            
+            📍 위치 및 티켓 정보 활용 가이드:
+            - 사용자가 위치나 교통편을 묻는 경우 박람회 위치 정보를 정확히 안내하세요
+            - 티켓 문의 시 가격, 판매 기간, 잔여 수량 정보를 구체적으로 제공하세요
+            - 매진된 티켓은 "현재 매진"이라고 명확히 안내하세요
+            - 잔여 수량이 적은 경우 "서둘러 예약하세요"라고 안내하세요
+            - 판매 기간이 지났거나 아직 시작 안 된 경우 정확한 날짜를 알려주세요
             """, 
             userContext.userName(),
             userContext.membershipLevel(),
@@ -597,14 +660,14 @@ public class AIChatServiceImpl implements AIChatService {
         try {
             String message = userMessage.toLowerCase();
             
-            // 1. 명시적 키워드 감지 (강한 신호)
+            // 1. 명시적 키워드 감지 (강한 신호) - 진짜 문제 상황만
             String[] strongKeywords = {
                 "결제", "환불", "취소", "계좌", "카드", "billing", "payment", 
                 "오류", "에러", "버그", "작동", "안됨", "문제",
                 "불만", "항의", "컴플레인", "complaint",
                 "법적", "소송", "변호사", "legal",
-                "사람", "상담원", "담당자", "직원", "매니저", "human", "person", "staff", "manager",
-                "where", "where's", "어디", "언제", "누가", "who"
+                "사람", "상담원", "담당자", "직원", "매니저", "human", "person", "staff", "manager"
+                // "어디", "언제", "누가" 등 일반적인 의문사는 제거 - AI가 충분히 답변 가능
             };
             
             for (String keyword : strongKeywords) {
