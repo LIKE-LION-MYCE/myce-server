@@ -129,6 +129,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean isPermitAll(String method, String path) {
+        if(HttpMethod.POST.name().equals(method) && pathMatcher.match("/api/payment/**", path)) {
+            return false;
+        }
+
         if(isExist(SecurityConfig.ECT_PERMIT_ALL, path)) return true;
 
         if(HttpMethod.GET.name().equals(method)) {
