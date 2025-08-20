@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -63,13 +64,30 @@ public class ReservationRefundCalculationServiceImpl implements ReservationRefun
     }
 
     private RefundFeeSetting getApplicableRefundFeeSetting(long daysUntilExpo) {
-        // 박람회 시작일 기준으로만 환불 수수료 적용
-        return refundFeeSettingRepository.findAll().stream()
-                .filter(RefundFeeSetting::isActive)
+        log.info("박람회까지 남은 일수: {}일", daysUntilExpo);
+        
+        // 현재 시점에서 유효한 활성화된 환불 수수료 설정 조회
+        List<RefundFeeSetting> activeSettings = refundFeeSettingRepository.findActiveRefundSettings(LocalDateTime.now());
+        
+        // BEFORE_EXPO_START 타입만 필터링하고, 남은 일수에 해당하는 설정 찾기
+        RefundFeeSetting applicableSetting = activeSettings.stream()
                 .filter(setting -> setting.getStandardType() == StandardType.BEFORE_EXPO_START)
-                .filter(setting -> daysUntilExpo <= setting.getStandardDayCount())
-                .min((s1, s2) -> Integer.compare(s1.getStandardDayCount(), s2.getStandardDayCount()))
-                .orElse(getDefaultRefundFeeSetting());
+                .filter(setting -> daysUntilExpo >= setting.getStandardDayCount()) // 기준 일수보다 많이 남았을 때 적용
+                .findFirst() // 이미 standardDayCount DESC로 정렬되어 있으므로 첫 번째가 가장 관대한 수수료
+                .orElse(null);
+                
+        if (applicableSetting == null) {
+            // 해당하는 설정이 없으면 가장 높은 수수료율 적용 (환불 불가에 가까운 설정)
+            applicableSetting = activeSettings.stream()
+                    .filter(setting -> setting.getStandardType() == StandardType.BEFORE_EXPO_START)
+                    .max((s1, s2) -> s1.getFeeRate().compareTo(s2.getFeeRate()))
+                    .orElse(getDefaultRefundFeeSetting());
+        }
+        
+        log.info("적용된 환불 수수료 설정: {} ({}일 기준, {}% 수수료)", 
+                applicableSetting.getName(), applicableSetting.getStandardDayCount(), applicableSetting.getFeeRate());
+        
+        return applicableSetting;
     }
 
     private RefundFeeSetting getDefaultRefundFeeSetting() {
