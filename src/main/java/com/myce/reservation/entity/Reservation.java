@@ -28,14 +28,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Entity
 @Getter
 @NoArgsConstructor
-@Table(
-        name = "reservation",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "UniqueUserTypeUserId",
-                        columnNames = {"user_type", "user_id"})
-        }
-)
+@Table(name = "reservation")
 @EntityListeners(AuditingEntityListener.class)
 public class Reservation {
 
