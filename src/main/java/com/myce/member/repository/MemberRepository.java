@@ -31,6 +31,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     @Query("SELECT m FROM Member m " +
             "WHERE m.loginId LIKE %:keyword% " +
-            "AND m.name LIKE %:keyword%")
+            "OR m.name LIKE %:keyword%")
     Page<Member> findAllByKeywordContaining(String keyword, Pageable pageable);
 }
