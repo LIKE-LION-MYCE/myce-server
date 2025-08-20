@@ -261,8 +261,22 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
                     // 플랫폼 관리자가 보낸 경우 → 사용자가 수신자
                     return roomUserId;
                 } else {
-                    // 사용자가 보낸 경우 → 플랫폼 관리자가 수신자 (특정 플랫폼 관리자 ID 없으므로 null)
-                    return null;
+                    // 사용자가 보낸 경우 → 현재 활성 플랫폼 관리자가 수신자
+                    try {
+                        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomId).orElse(null);
+                        if (chatRoom != null && chatRoom.getCurrentState() == ChatRoom.ChatRoomState.ADMIN_ACTIVE) {
+                            // ADMIN_ACTIVE 상태일 때 현재 담당 관리자의 ID 반환
+                            String currentAdminCode = chatRoom.getCurrentAdminCode();
+                            if ("PLATFORM_ADMIN".equals(currentAdminCode)) {
+                                // 플랫폼 관리자 중 첫 번째 활성 관리자 찾기 (임시로 null 반환)
+                                // TODO: 실제 활성 플랫폼 관리자 ID를 찾는 로직 구현 필요
+                                return null;
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to find active platform admin for room: {}", roomId, e);
+                    }
+                    return null; // AI 상태이거나 관리자를 찾을 수 없는 경우
                 }
             } else if (roomId.startsWith(ADMIN_ROOM_PREFIX)) {
                 // 박람회 채팅: admin-{expoId}-{userId}

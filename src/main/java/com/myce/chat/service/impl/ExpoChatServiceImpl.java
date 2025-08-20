@@ -11,6 +11,7 @@ import com.myce.chat.repository.ChatMessageRepository;
 import com.myce.chat.service.ChatCacheService;
 import com.myce.chat.service.ChatUnreadService;
 import com.myce.chat.service.ExpoChatService;
+import com.myce.chat.service.util.ChatReadStatusUtil;
 import com.myce.chat.service.mapper.ChatMessageMapper;
 import com.myce.common.dto.PageResponse;
 import com.myce.common.exception.CustomErrorCode;
@@ -142,7 +143,7 @@ public class ExpoChatServiceImpl implements ExpoChatService {
             
             // readStatusJson 업데이트 (MongoDB)
             String currentReadStatus = chatRoom.getReadStatusJson();
-            String updatedReadStatus = updateReadStatusForAdmin(currentReadStatus, latestMessageId);
+            String updatedReadStatus = ChatReadStatusUtil.updateReadStatusForAdmin(currentReadStatus, latestMessageId);
             
             log.info("EXPO 관리자 읽음 처리 - roomCode: {}, latestMessageId: {}, 이전 readStatus: {}, 업데이트된 readStatus: {}", 
                 roomCode, latestMessageId, currentReadStatus, updatedReadStatus);
@@ -207,19 +208,7 @@ public class ExpoChatServiceImpl implements ExpoChatService {
     /**
      * 관리자 읽음 상태 업데이트
      */
-    private String updateReadStatusForAdmin(String currentReadStatus, String lastReadMessageId) {
-        if (currentReadStatus == null || currentReadStatus.isEmpty() || currentReadStatus.equals("{}")) {
-            return "{\"ADMIN\":\"" + lastReadMessageId + "\"}";
-        }
-        
-        // 기존 ADMIN 정보가 있으면 업데이트, 없으면 추가
-        if (currentReadStatus.contains("\"ADMIN\"")) {
-            return currentReadStatus.replaceAll("\"ADMIN\":\"[^\"]*\"", "\"ADMIN\":\"" + lastReadMessageId + "\"");
-        } else {
-            return currentReadStatus.substring(0, currentReadStatus.length() - 1) + 
-                   ",\"ADMIN\":\"" + lastReadMessageId + "\"}";
-        }
-    }
+    // 중복 메서드 제거됨 - ChatReadStatusUtil로 통합
 
     @Override
     public Long getUnreadCount(Long expoId, String roomCode, CustomUserDetails userDetails) {
@@ -338,6 +327,7 @@ public class ExpoChatServiceImpl implements ExpoChatService {
                 .isActive(chatRoom.getIsActive())
                 .currentAdminCode(chatRoom.getCurrentAdminCode())
                 .adminDisplayName(chatRoom.getAdminDisplayName())
+                .currentState(chatRoom.getCurrentState() != null ? chatRoom.getCurrentState().name() : null)
                 .build();
     }
 

@@ -156,7 +156,11 @@ public class ChatRoom {
         
         // roomCode 기반 초기 상태 분기 처리
         if (roomCode != null && roomCode.startsWith("platform-")) {
-            this.currentState = ChatRoomState.AI_ACTIVE;  // 플랫폼: AI로 시작
+            // 플랫폼 채팅방: 기존 상태 유지 (신규 채팅만 AI로 시작)
+            if (this.currentState == null) {
+                this.currentState = ChatRoomState.AI_ACTIVE;  // 신규 채팅: AI로 시작
+            }
+            // 기존에 ADMIN_ACTIVE였다면 그대로 유지하여 상담 연속성 보장
         } else {
             this.currentState = null;  // 박람회: legacy fallback 사용 (담당자 배정 로직)
         }

@@ -20,6 +20,7 @@ import com.myce.member.repository.MemberRepository;
 import com.myce.ai.service.AIChatService;
 import com.myce.chat.service.ChatCacheService;
 import com.myce.chat.service.ChatUnreadService;
+import com.myce.chat.service.util.ChatReadStatusUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -89,6 +90,9 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         if (Role.PLATFORM_ADMIN.name().equals(memberRole)) {
             // 플랫폼 관리자인 경우: 모든 플랫폼 채팅방 조회 (platform-* rooms)
             chatRooms = chatRoomRepository.findByExpoIdIsNullAndIsActiveTrueOrderByLastMessageAtDesc();
+            
+            // 🆕 플랫폼 채팅방들 상태 동기화 (관리자가 목록을 볼 때 올바른 상태 표시)
+            chatRooms.forEach(this::syncPlatformChatState);
         } else {
             // 일반 사용자와 EXPO_ADMIN 모두 동일하게 처리: 본인이 참여한 채팅방만 조회
             // EXPO_ADMIN의 관리자 채팅은 /admin/inquiry 페이지에서 별도 처리
@@ -99,6 +103,11 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             
             // 플랫폼 방 포함하여 다시 조회
             chatRooms = chatRoomRepository.findByMemberIdAndIsActiveTrueOrderByLastMessageAtDesc(memberId);
+            
+            // 🆕 사용자의 플랫폼 채팅방 상태 동기화
+            chatRooms.stream()
+                .filter(room -> room.getRoomCode() != null && room.getRoomCode().startsWith("platform-"))
+                .forEach(this::syncPlatformChatState);
         }
 
         // 4. MongoDB Document를 DTO로 변환 (복수형 네이밍 적용)
@@ -302,6 +311,9 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     return new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
                 });
         
+        // 🆕 1-1. 플랫폼 채팅방 상태 동기화 (메시지 이력 기반)
+        syncPlatformChatState(chatRoom);
+        
         // 2. 사용자 권한 검증 (새로운 통합 권한 검증 로직 사용)
         validateChatRoomAccess(roomCode, memberId, memberRole);
         
@@ -326,10 +338,10 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             // 실제 역할에 따라 적절한 읽음 상태 업데이트
             if (Role.USER.name().equals(actualRole)) {
                 // 일반 사용자 → USER 읽음 상태 업데이트
-                updatedReadStatus = updateReadStatusForUser(currentReadStatus, latestMessageId);
+                updatedReadStatus = ChatReadStatusUtil.updateReadStatusForUser(currentReadStatus, latestMessageId);
             } else {
                 // 관리자 (박람회 소유자, AdminCode, 플랫폼 관리자) → ADMIN 읽음 상태 업데이트
-                updatedReadStatus = updateReadStatusForAdmin(currentReadStatus, latestMessageId);
+                updatedReadStatus = ChatReadStatusUtil.updateReadStatusForAdmin(currentReadStatus, latestMessageId);
             }
             
             chatRoom.updateReadStatus(updatedReadStatus);
@@ -599,39 +611,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             .build();
     }
     
-    /**
-     * 사용자 읽음 상태 업데이트
-     */
-    private String updateReadStatusForUser(String currentReadStatus, String lastReadMessageId) {
-        if (currentReadStatus == null || currentReadStatus.isEmpty() || currentReadStatus.equals("{}")) {
-            return "{\"USER\":\"" + lastReadMessageId + "\"}";
-        }
-        
-        // 기존 USER 정보가 있으면 업데이트, 없으면 추가
-        if (currentReadStatus.contains("\"USER\"")) {
-            return currentReadStatus.replaceAll("\"USER\":\"[^\"]*\"", "\"USER\":\"" + lastReadMessageId + "\"");
-        } else {
-            return currentReadStatus.substring(0, currentReadStatus.length() - 1) + 
-                   ",\"USER\":\"" + lastReadMessageId + "\"}";
-        }
-    }
-    
-    /**
-     * 관리자 읽음 상태 업데이트
-     */
-    private String updateReadStatusForAdmin(String currentReadStatus, String lastReadMessageId) {
-        if (currentReadStatus == null || currentReadStatus.isEmpty() || currentReadStatus.equals("{}")) {
-            return "{\"ADMIN\":\"" + lastReadMessageId + "\"}";
-        }
-        
-        // 기존 ADMIN 정보가 있으면 업데이트, 없으면 추가
-        if (currentReadStatus.contains("\"ADMIN\"")) {
-            return currentReadStatus.replaceAll("\"ADMIN\":\"[^\"]*\"", "\"ADMIN\":\"" + lastReadMessageId + "\"");
-        } else {
-            return currentReadStatus.substring(0, currentReadStatus.length() - 1) + 
-                   ",\"ADMIN\":\"" + lastReadMessageId + "\"}";
-        }
-    }
+    // 중복 메서드 제거됨 - ChatReadStatusUtil로 통합
     
     /**
      * 플랫폼 채팅방 자동 생성
@@ -713,6 +693,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     /**
      * 채팅방에서의 실제 역할 판단
      * EXPO_ADMIN이면서 USER일 수 있는 경우를 처리
+     * AdminCode 관리자와 박람회 소유자를 정확히 구분
      * 
      * @param roomCode 채팅방 코드
      * @param memberId 사용자 ID
@@ -731,15 +712,46 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             try {
                 String[] parts = roomCode.split("-");
                 if (parts.length >= 3) {
+                    Long expoId = Long.parseLong(parts[1]);
                     Long roomUserId = Long.parseLong(parts[2]);
                     
                     // 채팅방의 사용자 ID와 현재 사용자 ID가 같으면 USER 역할
                     if (memberId.equals(roomUserId)) {
                         return Role.USER.name();
-                    } else {
-                        // 다르면 관리자 역할
-                        return "ADMIN";
                     }
+                    
+                    // EXPO_ADMIN인 경우 세부 권한 검증
+                    if (Role.EXPO_ADMIN.name().equals(memberRole)) {
+                        // 1. AdminCode 권한 확인
+                        try {
+                            Optional<AdminCode> adminCodeOpt = adminCodeRepository.findById(memberId);
+                            if (adminCodeOpt.isPresent()) {
+                                AdminCode adminCode = adminCodeOpt.get();
+                                if (adminCode.getExpoId().equals(expoId)) {
+                                    log.debug("✅ AdminCode 관리자 역할 확인 - memberId: {}, expoId: {}", memberId, expoId);
+                                    return "ADMIN";
+                                }
+                            }
+                        } catch (Exception e) {
+                            log.debug("AdminCode 권한 확인 실패, 박람회 소유자 권한 확인으로 이동 - memberId: {}", memberId);
+                        }
+                        
+                        // 2. 박람회 소유자 권한 확인
+                        try {
+                            Optional<Expo> expoOpt = expoRepository.findById(expoId);
+                            if (expoOpt.isPresent() && expoOpt.get().getMember().getId().equals(memberId)) {
+                                log.debug("✅ 박람회 소유자 역할 확인 - memberId: {}, expoId: {}", memberId, expoId);
+                                return "ADMIN";
+                            }
+                        } catch (Exception e) {
+                            log.warn("박람회 소유자 권한 확인 실패 - memberId: {}, expoId: {}", memberId, expoId, e);
+                        }
+                    }
+                    
+                    // 위의 모든 검증을 통과하지 못하면 USER로 간주
+                    log.debug("❌ 관리자 권한 없음 - USER로 처리 - memberId: {}, expoId: {}, memberRole: {}", 
+                             memberId, expoId, memberRole);
+                    return Role.USER.name();
                 }
             } catch (NumberFormatException e) {
                 log.warn("Invalid room code format for role determination: {}", roomCode);
@@ -748,5 +760,52 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         
         // 기본값: 시스템 역할 그대로 사용
         return memberRole;
+    }
+    
+    /**
+     * 플랫폼 채팅방의 실제 상태 결정 (메시지 이력 기반)
+     * @param roomCode 플랫폼 채팅방 코드 (platform-{userId})
+     * @return 실제 채팅방 상태
+     */
+    private ChatRoom.ChatRoomState determinePlatformChatState(String roomCode) {
+        try {
+            // 관리자/시스템 메시지 존재 여부 확인
+            List<String> adminSenderTypes = List.of("ADMIN", "PLATFORM_ADMIN", "SYSTEM");
+            long adminMessageCount = chatMessageRepository.countByRoomCodeAndSenderTypeIn(roomCode, adminSenderTypes);
+            
+            log.debug("🔍 플랫폼 채팅방 상태 결정 - roomCode: {}, adminMessageCount: {}", roomCode, adminMessageCount);
+            
+            // 관리자/시스템 메시지가 하나라도 있으면 ADMIN_ACTIVE
+            return adminMessageCount > 0 ? 
+                ChatRoom.ChatRoomState.ADMIN_ACTIVE : 
+                ChatRoom.ChatRoomState.AI_ACTIVE;
+                
+        } catch (Exception e) {
+            log.warn("플랫폼 채팅방 상태 결정 실패 - roomCode: {}, error: {}", roomCode, e.getMessage());
+            // 에러 시 안전한 기본값 반환
+            return ChatRoom.ChatRoomState.AI_ACTIVE;
+        }
+    }
+    
+    /**
+     * 플랫폼 채팅방 상태 동기화 (필요 시 DB 업데이트)
+     * @param chatRoom 동기화할 채팅방
+     */
+    private void syncPlatformChatState(ChatRoom chatRoom) {
+        if (chatRoom.getRoomCode() != null && chatRoom.getRoomCode().startsWith("platform-")) {
+            ChatRoom.ChatRoomState actualState = determinePlatformChatState(chatRoom.getRoomCode());
+            ChatRoom.ChatRoomState currentState = chatRoom.getCurrentState();
+            
+            if (actualState != currentState) {
+                log.info("🔄 플랫폼 채팅방 상태 동기화 - roomCode: {}, {} → {}", 
+                        chatRoom.getRoomCode(), currentState, actualState);
+                
+                chatRoom.setCurrentState(actualState);
+                chatRoomRepository.save(chatRoom);
+                
+                log.debug("✅ 플랫폼 채팅방 상태 업데이트 완료 - roomCode: {}, newState: {}", 
+                         chatRoom.getRoomCode(), actualState);
+            }
+        }
     }
 }
