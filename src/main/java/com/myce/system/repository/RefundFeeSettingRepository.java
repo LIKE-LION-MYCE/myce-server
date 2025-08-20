@@ -15,7 +15,7 @@ public interface RefundFeeSettingRepository extends JpaRepository<RefundFeeSetti
 
     Page<RefundFeeSetting> findAll(Pageable pageable);
 
-    @Query("SELECT r FROM RefundFeeSetting r WHERE r.isActive = true ORDER BY r.standardDayCount DESC")
+    @Query("SELECT r FROM RefundFeeSetting r WHERE r.isActive = true AND r.validFrom <= :now AND r.validUntil >= :now ORDER BY r.standardDayCount DESC")
     List<RefundFeeSetting> findActiveRefundSettings(@Param("now") LocalDateTime now);
 
     Page<RefundFeeSetting> findAllByNameContains(String name, Pageable pageable);
