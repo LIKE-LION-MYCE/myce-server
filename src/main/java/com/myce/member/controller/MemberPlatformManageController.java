@@ -19,16 +19,16 @@ public class MemberPlatformManageController {
     @GetMapping
     public PageResponse<MemberInfoResponse> getMemberInfos(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "false") boolean recentFirst) {
-        return memberService.getMemberList(page, PAGE_SIZE, recentFirst);
+            @RequestParam(defaultValue = "false") boolean latestFirst) {
+        return memberService.getMemberList(page, PAGE_SIZE, latestFirst);
     }
 
     @GetMapping("/filter")
     public PageResponse<MemberInfoResponse> filterMemberInfos(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "false") boolean recentFirst
+            @RequestParam(defaultValue = "false") boolean latestFirst
     ){
-        return memberService.filterMemberList(page, PAGE_SIZE, keyword, recentFirst);
+        return memberService.filterMemberList(page, PAGE_SIZE, keyword, latestFirst);
     }
 }
