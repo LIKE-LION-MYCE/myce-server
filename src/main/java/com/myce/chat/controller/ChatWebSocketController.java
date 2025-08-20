@@ -472,8 +472,8 @@ public class ChatWebSocketController {
             if (chatRoom.hasAssignedAdmin()) {
                 Map<String, Object> assignmentPayload = Map.of(
                     "roomCode", roomCode,
-                    "currentAdminCode", chatRoom.getCurrentAdminCode(),
-                    "adminDisplayName", chatRoom.getAdminDisplayName()
+                    "currentAdminCode", chatRoom.getCurrentAdminCode() != null ? chatRoom.getCurrentAdminCode() : "PLATFORM_ADMIN",
+                    "adminDisplayName", chatRoom.getAdminDisplayName() != null ? chatRoom.getAdminDisplayName() : "플랫폼 관리자"
                 );
                 
                 Map<String, Object> assignmentMessage = Map.of(
@@ -673,6 +673,21 @@ public class ChatWebSocketController {
             messagingTemplate.convertAndSend(topicChannel, handoffBroadcast);
             
             log.warn("🔍 DEBUG: AI_HANDOFF_REQUEST sent successfully");
+            
+            // 🆕 플랫폼 채팅방인 경우 플랫폼 관리자에게도 알림
+            if (roomId.startsWith("platform-")) {
+                Map<String, Object> adminNotification = Map.of(
+                    "type", "PLATFORM_HANDOFF_REQUEST",
+                    "roomCode", roomId,
+                    "userId", userId,
+                    "userName", handoffRoom != null ? handoffRoom.getMemberName() : "사용자",
+                    "roomState", handoffRoomState,
+                    "timestamp", System.currentTimeMillis()
+                );
+                
+                messagingTemplate.convertAndSend("/topic/platform/admin-updates", adminNotification);
+                log.info("🔔 플랫폼 관리자에게 상담원 연결 요청 알림 전송 완료 - roomId: {}", roomId);
+            }
             
             // 버튼 상태 업데이트 브로드캐스트
             log.warn("🔍 DEBUG: Sending BUTTON_STATE_UPDATE to channel: {}", topicChannel);
