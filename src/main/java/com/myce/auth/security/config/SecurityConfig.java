@@ -43,7 +43,16 @@ public class SecurityConfig {
 
     public static final String[] GET_PERMIT_ALL = {
             "/api/ads", "/api/auth/**",
-            "/api/categories", "/api/expos/**", "/api/reservations/**",
+            "/api/categories",
+            "/api/expos",                           // 박람회 카드 리스트 조회 (검색, 필터링)
+            "/api/expos/*/congestion",              // 박람회 실시간 혼잡도 조회
+            "/api/expos/*/tickets/reservations",    // 박람회 티켓 조회(예매용)
+            "/api/expos/*/basic",                   // 박람회 기본 정보 조회
+            "/api/expos/*/bookmark",                // 박람회 찜하기 상태 조회 (비회원도 접근)
+            "/api/expos/*/reviews",                 // 박람회 리뷰 정보 조회 (비회원 접근 가능)
+            "/api/expos/*/location",                // 박람회 위치 정보 조회
+            "/api/expos/*/booths/public",           // 박람회 부스 정보 조회 (공개용)
+            "/api/reservations/**",
             "/api/reservations/guest", "/api/expo/fees/active", "/api/ad/fees/active",
             "/api/reviews/expo/*", "/api/reviews/*/", "/api/reviews/best",
             "/api/settings/refund-fee/public", "/api/ad-position/dropdown",

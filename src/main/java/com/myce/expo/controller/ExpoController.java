@@ -55,7 +55,7 @@ public class ExpoController {
     }
 
     // 박람회 카드 리스트 조회
-    @GetMapping()
+    @GetMapping
     public ResponseEntity<Page<ExpoCardResponse>> getExpoCards(
         @RequestParam(required=false) String keyword,   // 검색
         @RequestParam(required=false) String category,  // 카테고리
