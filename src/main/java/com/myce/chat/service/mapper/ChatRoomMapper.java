@@ -25,6 +25,9 @@ public class ChatRoomMapper {
                 .lastMessageAt(chatRoom.getLastMessageAt())
                 .unreadCount(unreadCount)
                 .isActive(chatRoom.getIsActive())
+                .currentAdminCode(chatRoom.getCurrentAdminCode())
+                .adminDisplayName(chatRoom.getAdminDisplayName())
+                .currentState(chatRoom.getCurrentState() != null ? chatRoom.getCurrentState().name() : null)
                 .build();
     }
 }

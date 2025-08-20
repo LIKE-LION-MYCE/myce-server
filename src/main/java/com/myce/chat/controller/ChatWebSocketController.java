@@ -184,39 +184,61 @@ public class ChatWebSocketController {
                 broadcastMessage
             );
             
-            // 🆕 AI_ACTIVE 상태에서만 발송자 본인 메시지 즉시 읽음 처리
+            // 🆕 상태 기반 발송자 본인 메시지 즉시 읽음 처리
             // 데이터베이스에서 최신 채팅방 상태를 다시 조회하여 정확한 상태 확인
             ChatRoom currentRoom = chatRoomRepository.findByRoomCode(roomId).orElse(null);
-            if (currentRoom != null && currentRoom.getCurrentState() == ChatRoom.ChatRoomState.AI_ACTIVE) {
-                try {
-                    // AI 상담 중일 때만 발송자 본인 메시지 즉시 읽음 처리
-                    Member sender = memberRepository.findById(userId)
-                        .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
-                    String senderRole = sender.getRole().name();
-                    
-                    chatRoomService.markAsRead(roomId, messageResponse.getMessageId(), userId, senderRole);
-                    log.debug("✅ AI 상담 중 발송자 본인 메시지 읽음 처리 완료 - userId: {}, roomId: {}, messageId: {}", 
-                              userId, roomId, messageResponse.getMessageId());
-                    
-                    // 🔔 읽음 상태 변경을 WebSocket으로 브로드캐스트
-                    Map<String, Object> readStatusUpdate = Map.of(
-                        "type", "read_status_update",
-                        "messageId", messageResponse.getMessageId(),
-                        "readBy", userId,
-                        "readerType", "USER",
-                        "timestamp", System.currentTimeMillis()
-                    );
-                    
-                    messagingTemplate.convertAndSend(
-                        "/topic/chat/" + roomId,
-                        readStatusUpdate
-                    );
-                    
-                    log.debug("🔔 읽음 상태 WebSocket 브로드캐스트 완료 - roomId: {}, messageId: {}", 
-                              roomId, messageResponse.getMessageId());
-                } catch (Exception e) {
-                    log.warn("⚠️ AI 상담 중 발송자 본인 메시지 읽음 처리 실패 - userId: {}, roomId: {}, error: {}", 
-                             userId, roomId, e.getMessage());
+            if (currentRoom != null) {
+                ChatRoom.ChatRoomState currentState = currentRoom.getCurrentState();
+                
+                // 플랫폼 채팅방에서 AI_ACTIVE 또는 ADMIN_ACTIVE 상태일 때 자동 읽음 처리
+                boolean shouldAutoRead = roomId.startsWith("platform-") && 
+                    (currentState == ChatRoom.ChatRoomState.AI_ACTIVE || 
+                     currentState == ChatRoom.ChatRoomState.ADMIN_ACTIVE);
+                
+                if (shouldAutoRead) {
+                    try {
+                        // 발송자 본인 메시지 즉시 읽음 처리
+                        Member sender = memberRepository.findById(userId)
+                            .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
+                        String senderRole = sender.getRole().name();
+                        
+                        chatRoomService.markAsRead(roomId, messageResponse.getMessageId(), userId, senderRole);
+                        log.debug("✅ 플랫폼 상담 중 발송자 본인 메시지 읽음 처리 완료 - userId: {}, roomId: {}, state: {}, messageId: {}", 
+                                  userId, roomId, currentState, messageResponse.getMessageId());
+                        
+                        // 🆕 플랫폼 관리자가 메시지를 보낸 경우 → 해당 유저의 미읽음 메시지도 자동 읽음 처리
+                        if ("PLATFORM_ADMIN".equals(senderRole) && 
+                            currentState == ChatRoom.ChatRoomState.ADMIN_ACTIVE) {
+                            
+                            String[] roomParts = roomId.split("-");
+                            Long platformUserId = Long.parseLong(roomParts[1]);
+                            
+                            // 유저의 미읽은 메시지들을 모두 읽음 처리
+                            chatRoomService.markAsRead(roomId, messageResponse.getMessageId(), platformUserId, "USER");
+                            log.debug("✅ 플랫폼 관리자 답장으로 인한 유저 미읽음 자동 처리 완료 - platformUserId: {}, roomId: {}, messageId: {}", 
+                                      platformUserId, roomId, messageResponse.getMessageId());
+                        }
+                        
+                        // 🔔 읽음 상태 변경을 WebSocket으로 브로드캐스트
+                        Map<String, Object> readStatusUpdate = Map.of(
+                            "type", "read_status_update",
+                            "messageId", messageResponse.getMessageId(),
+                            "readBy", userId,
+                            "readerType", "USER",
+                            "timestamp", System.currentTimeMillis()
+                        );
+                        
+                        messagingTemplate.convertAndSend(
+                            "/topic/chat/" + roomId,
+                            readStatusUpdate
+                        );
+                        
+                        log.debug("🔔 읽음 상태 WebSocket 브로드캐스트 완료 - roomId: {}, messageId: {}", 
+                                  roomId, messageResponse.getMessageId());
+                    } catch (Exception e) {
+                        log.warn("⚠️ 플랫폼 상담 중 발송자 본인 메시지 읽음 처리 실패 - userId: {}, roomId: {}, state: {}, error: {}", 
+                                 userId, roomId, currentState, e.getMessage());
+                    }
                 }
             }
             
@@ -752,51 +774,19 @@ public class ChatWebSocketController {
                 adminCode = chatWebSocketService.determineAdminCode(userId, ADMIN_CODE_TYPE);
             }
             
-            // Assign admin directly (no handoff process needed)
-            chatWebSocketService.assignAdminIfNeeded(currentRoom, adminCode);
-            ChatRoom savedRoom = chatRoomRepository.save(currentRoom);
+            // Use consistent handoff process like acceptHandoff for consistency
+            chatRoomService.handoffAIToAdmin(roomId, adminCode);
+            // Refresh the chatRoom from DB to get the updated state
+            ChatRoom savedRoom = chatRoomRepository.findByRoomCode(roomId)
+                .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
             log.info("🔧 Room saved after intervention - roomId: {}, state: {}, hasAssignedAdmin: {}", 
                     savedRoom.getRoomCode(), savedRoom.getCurrentState(), savedRoom.hasAssignedAdmin());
             
-            // Save intervention system message to database for persistence
-            ChatMessage interventionSystemMessage = ChatMessage.createSystemMessage(
-                roomId, 
-                "ADMIN_INTERVENTION_START:관리자가 상담에 참여했습니다.\n더 자세하고 전문적인 도움을 드리겠습니다."
-            );
-            ChatMessage savedSystemMessage = chatMessageRepository.save(interventionSystemMessage);
-            
-            // Send intervention system message (not a regular chat message)
-            Map<String, Object> systemMessagePayload = Map.of(
-                "type", "ADMIN_INTERVENTION_START",
-                "roomCode", roomId,
-                "adminName", currentRoom.getAdminDisplayName(),
-                "timestamp", java.time.LocalDateTime.now().toString(),
-                "message", "관리자가 상담에 참여했습니다.\n더 자세하고 전문적인 도움을 드리겠습니다.",
-                "messageId", savedSystemMessage.getId()
-            );
-            
-            // Refresh room state after admin assignment
-            ChatRoom updatedRoom = chatRoomRepository.findByRoomCode(roomId)
-                .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
-            Map<String, Object> interventionRoomState = createRoomStateInfo(updatedRoom, "proactive_intervention");
-            
-            // Broadcast system message (not a regular chat message)
-            Map<String, Object> broadcastMessage = Map.of(
-                "type", "SYSTEM_MESSAGE",
-                "payload", systemMessagePayload,
-                "roomState", interventionRoomState
-            );
-            
-            messagingTemplate.convertAndSend(
-                "/topic/chat/" + roomId,
-                broadcastMessage
-            );
-            
-            // Update button state to ADMIN_ACTIVE
-            sendButtonStateUpdate(roomId, "ADMIN_ACTIVE");
+            // handoffAIToAdmin already handles system message and WebSocket broadcasts
+            // No additional messages needed to avoid duplication
             
             log.info("관리자 사전 개입 완료 - roomId: {}, userId: {}, newState: {}", 
-                roomId, userId, updatedRoom.getCurrentState());
+                roomId, userId, savedRoom.getCurrentState());
             
         } catch (Exception e) {
             log.error("관리자 사전 개입 실패 - roomId: {}", message.get("roomId"), e);
@@ -844,6 +834,41 @@ public class ChatWebSocketController {
             // Refresh the chatRoom from DB to get the updated state
             chatRoom = chatRoomRepository.findByRoomCode(roomId)
                 .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
+            
+            // Save handoff acceptance system message to database for persistence
+            ChatMessage acceptSystemMessage = ChatMessage.createSystemMessage(
+                roomId, 
+                "ADMIN_HANDOFF_ACCEPTED:관리자가 상담에 참여했습니다.\n더 자세하고 전문적인 도움을 드리겠습니다."
+            );
+            ChatMessage savedSystemMessage = chatMessageRepository.save(acceptSystemMessage);
+            
+            // Send handoff acceptance system message (not a regular chat message)
+            Map<String, Object> systemMessagePayload = Map.of(
+                "type", "ADMIN_HANDOFF_ACCEPTED",
+                "roomCode", roomId,
+                "adminName", chatRoom.getAdminDisplayName(),
+                "timestamp", java.time.LocalDateTime.now().toString(),
+                "message", "관리자가 상담에 참여했습니다.\n더 자세하고 전문적인 도움을 드리겠습니다.",
+                "messageId", savedSystemMessage.getId()
+            );
+            
+            // Create room state info for handoff acceptance
+            Map<String, Object> acceptRoomState = createRoomStateInfo(chatRoom, "handoff_accepted");
+            
+            // Broadcast system message (not a regular chat message)
+            Map<String, Object> broadcastMessage = Map.of(
+                "type", "SYSTEM_MESSAGE",
+                "payload", systemMessagePayload,
+                "roomState", acceptRoomState
+            );
+            
+            messagingTemplate.convertAndSend(
+                "/topic/chat/" + roomId,
+                broadcastMessage
+            );
+            
+            // Update button state to ADMIN_ACTIVE
+            sendButtonStateUpdate(roomId, "ADMIN_ACTIVE");
             
             log.info("관리자 인계 수락 완료 - roomCode: {}, adminCode: {}, newState: {}", 
                 roomId, adminCode, chatRoom.getCurrentState());
