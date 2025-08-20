@@ -176,24 +176,35 @@ public class AIChatServiceImpl implements AIChatService {
                 // STEP 1: IMMEDIATE STATE TRANSITION - Block AI responses first
                 chatRoom.assignAdmin(adminCode);
                 chatRoom.stopWaitingForAdmin();
+                
+                // 🆕 명시적으로 ADMIN_ACTIVE 상태로 전환 (확실하게!)
+                chatRoom.transitionToState(ChatRoom.ChatRoomState.ADMIN_ACTIVE);
+                
                 ChatRoom savedRoom = chatRoomRepository.save(chatRoom);
                 
-                log.info("✅ Admin assigned and AI blocked - roomCode: {}, adminCode: {}, hasAdmin: {}", 
-                    roomCode, adminCode, savedRoom.hasAssignedAdmin());
+                // 🗑️ Redis 캐시 무효화 (중요!)
+                chatCacheService.cacheChatRoom(roomCode, null); // null로 설정하여 캐시 무효화
+                log.info("🗑️ 관리자 연결 시 Redis 캐시 무효화 완료 - roomCode: {}", roomCode);
+                
+                log.info("✅ Admin assigned and AI blocked - roomCode: {}, adminCode: {}, hasAdmin: {}, finalState: {}", 
+                    roomCode, adminCode, savedRoom.hasAssignedAdmin(), savedRoom.getCurrentState());
                 
                 // STEP 2: GENERATE AI SUMMARY (for system message only)
                 String conversationSummary = generateConversationSummary(roomCode);
                 
-                // STEP 2.5: SEND HANDOFF-TO-OPERATOR SYSTEM MESSAGE (persistent)
+                // STEP 2.5: SEND HANDOFF-TO-OPERATOR SYSTEM MESSAGE (persistent) - 타입 구분
                 ChatMessage handoffSystemMessage = ChatMessage.builder()
                     .roomCode(roomCode)
-                    .senderType("SYSTEM")
+                    .senderType("SYSTEM") // ← 프론트엔드와 일치하도록 수정
                     .senderId(-99L)
                     .senderName("시스템")
                     .content("HANDOFF_TO_OPERATOR:" + conversationSummary)
                     .build();
                 
                 ChatMessage savedSystemMessage = chatMessageRepository.save(handoffSystemMessage);
+                
+                // 시스템 메시지도 캐시에 추가
+                chatCacheService.addMessageToCache(roomCode, savedSystemMessage);
                 
                 // Broadcast system message (not regular chat message)
                 Map<String, Object> systemMessagePayload = Map.of(
@@ -217,9 +228,8 @@ public class AIChatServiceImpl implements AIChatService {
                 // STEP 3: UPDATE BUTTON STATE TO ADMIN_ACTIVE
                 broadcastButtonStateUpdate(roomCode, "ADMIN_ACTIVE");
                 
-                
-                log.info("🎯 Complete handoff workflow finished - roomCode: {}, adminCode: {}, finalState: hasAdmin={}", 
-                    roomCode, adminCode, savedRoom.hasAssignedAdmin());
+                log.info("🎯 Complete handoff workflow finished - roomCode: {}, adminCode: {}, finalState: hasAdmin={}, currentState: {}", 
+                    roomCode, adminCode, savedRoom.hasAssignedAdmin(), savedRoom.getCurrentState());
             }
         } catch (Exception e) {
             log.error("❌ AI handoff failed - roomCode: {}, adminCode: {}", roomCode, adminCode, e);
@@ -322,7 +332,12 @@ public class AIChatServiceImpl implements AIChatService {
                 chatRoom.startWaitingForAdmin();
                 chatRoomRepository.save(chatRoom);
                 
-                log.info("관리자 연결 요청 시작 - roomCode: {} (AI 메시지 먼저 전송)", roomCode);
+                // 🗑️ Redis 캐시 무효화 (중요!)
+                chatCacheService.cacheChatRoom(roomCode, null); // null로 설정하여 캐시 무효화
+                log.info("🗑️ 상담원 연결 요청 시 Redis 캐시 무효화 완료 - roomCode: {}", roomCode);
+                
+                log.info("✅ 관리자 연결 요청 시작 - roomCode: {}, finalState: {} (AI 메시지 먼저 전송)", 
+                         roomCode, chatRoom.getCurrentState());
                 
                 return ChatMessageMapper.toSendResponse(savedMessage, roomCode);
             } else {
@@ -342,8 +357,16 @@ public class AIChatServiceImpl implements AIChatService {
             Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
             if (chatRoomOpt.isPresent()) {
                 ChatRoom chatRoom = chatRoomOpt.get();
-                chatRoom.stopWaitingForAdmin();
+                
+                // 🔄 명시적으로 AI_ACTIVE 상태로 전환 (확실하게!)
+                chatRoom.stopWaitingForAdmin(); // waitingForAdmin = false
+                chatRoom.transitionToState(ChatRoom.ChatRoomState.AI_ACTIVE); // currentState = AI_ACTIVE
+                
                 chatRoomRepository.save(chatRoom);
+                
+                // 🗑️ Redis 캐시 무효화 (중요!)
+                chatCacheService.cacheChatRoom(roomCode, null); // null로 설정하여 캐시 무효화
+                log.info("🗑️ 상담원 연결 요청 취소 시 Redis 캐시 무효화 완료 - roomCode: {}", roomCode);
                 
                 // 취소 확인 메시지 생성
                 ChatMessage cancelMessage = ChatMessage.builder()
@@ -376,21 +399,32 @@ public class AIChatServiceImpl implements AIChatService {
             if (chatRoomOpt.isPresent()) {
                 ChatRoom chatRoom = chatRoomOpt.get();
                 
-                // 관리자 해제 및 AI 복귀
-                chatRoom.releaseAdmin();
-                chatRoom.stopWaitingForAdmin();
+                // 🔄 관리자 해제 및 AI 복귀 (명시적 상태 전환)
+                chatRoom.releaseAdmin(); // currentState = AI_ACTIVE로 변경됨
+                chatRoom.stopWaitingForAdmin(); // waitingForAdmin = false로 변경됨
+                
+                // 🆕 명시적으로 AI_ACTIVE 상태로 전환 (확실하게!)
+                chatRoom.transitionToState(ChatRoom.ChatRoomState.AI_ACTIVE);
+                
                 ChatRoom savedRoom = chatRoomRepository.save(chatRoom);
                 
-                // HANDOFF-TO-AI SYSTEM MESSAGE (persistent)
+                // 🗑️ Redis 캐시 무효화 (중요!)
+                chatCacheService.cacheChatRoom(roomCode, null); // null로 설정하여 캐시 무효화
+                log.info("🗑️ AI 복귀 시 Redis 캐시 무효화 완료 - roomCode: {}", roomCode);
+                
+                // HANDOFF-TO-AI SYSTEM MESSAGE (persistent) - 타입을 구분하여 저장
                 ChatMessage aiReturnSystemMessage = ChatMessage.builder()
                     .roomCode(roomCode)
-                    .senderType("SYSTEM")
+                    .senderType("SYSTEM") // ← 프론트엔드와 일치하도록 수정
                     .senderId(-99L)
                     .senderName("시스템")
                     .content("HANDOFF_TO_AI:AI가 상담을 이어받습니다")
                     .build();
                 
                 ChatMessage savedSystemMessage = chatMessageRepository.save(aiReturnSystemMessage);
+                
+                // 시스템 메시지도 캐시에 추가
+                chatCacheService.addMessageToCache(roomCode, savedSystemMessage);
                 
                 // Broadcast system message
                 Map<String, Object> systemMessagePayload = Map.of(
@@ -420,15 +454,19 @@ public class AIChatServiceImpl implements AIChatService {
                     .build();
                 
                 ChatMessage savedMessage = chatMessageRepository.save(returnMessage);
+                
+                // AI 메시지도 캐시에 추가
+                chatCacheService.addMessageToCache(roomCode, savedMessage);
+                
                 updateChatRoomLastMessage(roomCode, savedMessage.getId(), savedMessage.getContent());
                 
-                log.info("AI 복귀 요청 완료 - roomCode: {}", roomCode);
+                log.info("✅ AI 복귀 요청 완료 - roomCode: {}, finalState: {}", roomCode, savedRoom.getCurrentState());
                 return ChatMessageMapper.toSendResponse(savedMessage, roomCode);
             } else {
                 throw new RuntimeException("채팅방을 찾을 수 없습니다: " + roomCode);
             }
         } catch (Exception e) {
-            log.error("AI 복귀 요청 실패 - roomCode: {}", roomCode, e);
+            log.error("❌ AI 복귀 요청 실패 - roomCode: {}", roomCode, e);
             throw new RuntimeException("AI 복귀 요청에 실패했습니다.", e);
         }
     }
