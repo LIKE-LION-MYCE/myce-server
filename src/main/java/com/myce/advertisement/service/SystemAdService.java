@@ -16,5 +16,5 @@ public interface SystemAdService {
 
     int closeCompletedAds();
 
-    void refreshAdCache();
+    void updateAdStatus();
 }
