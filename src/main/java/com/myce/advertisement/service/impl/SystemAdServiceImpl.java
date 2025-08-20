@@ -49,7 +49,8 @@ public class SystemAdServiceImpl implements SystemAdService {
             LocalDate finalDate = date;
             long overlappingCount = activeAds.stream()
                     .filter(ad -> !finalDate.isBefore(ad.getDisplayStartDate()) &&
-                            !finalDate.isAfter(ad.getDisplayEndDate()))
+                            !finalDate.isAfter(ad.getDisplayEndDate()) &&
+                            !AdvertisementStatus.EXPIRED_STATUSES.contains(ad.getStatus()))
                     .count();
             //해당 날짜의 배너 수가 최댓값일때
             if (overlappingCount >= requestedAdPosition.getMaxCount()) {
