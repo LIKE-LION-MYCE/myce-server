@@ -18,6 +18,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -37,7 +38,7 @@ public class SystemAdServiceImpl implements SystemAdService {
                                      LocalDate startedAt, LocalDate endedAt) {
         AdPosition requestedAdPosition = adPositionRepository.findById(locationId)
                 .orElseThrow(() -> new CustomException(CustomErrorCode.AD_POSITION_NOT_EXIST));
-        List<AdvertisementStatus> activeStatusList = getActiveStatusList();
+        List<AdvertisementStatus> activeStatusList = AdvertisementStatus.ACTIVE_STATUSES;
 
         List<Advertisement> activeAds = adRepository.findOverlappingAds(
                 startedAt, endedAt, activeStatusList, locationId);
@@ -73,6 +74,17 @@ public class SystemAdServiceImpl implements SystemAdService {
         return Objects.requireNonNull(totalBanners).stream()
                 .map(banner -> objectMapper.convertValue(banner, AdMainPageInfo.class))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void updateAdStatus() {
+        int published = publishPendingAds();
+        int completed = closeCompletedAds();
+
+        boolean needDateRefresh = shouldRefreshByDate();
+        if (needDateRefresh || published > 0 || completed > 0) {
+            refreshAdCache();
+        }
     }
 
     // 스케줄러 작업 수행
@@ -134,7 +146,7 @@ public class SystemAdServiceImpl implements SystemAdService {
 
     // 게시중인 배너 수집(업데이트 날짜가 오늘이 아니면)
     public void refreshAdCache() {
-        List<AdvertisementStatus> activeStatusList = getActiveStatusList();
+        List<AdvertisementStatus> activeStatusList = AdvertisementStatus.ACTIVE_STATUSES;
         List<Advertisement> allPublishedAds = adRepository
                 .findAdsActiveTodayAndStatusIn(activeStatusList);
 
@@ -156,8 +168,10 @@ public class SystemAdServiceImpl implements SystemAdService {
         redisTemplate.opsForValue().set("ad:lastUpdateTime", LocalDate.now().toString());
     }
 
-    private static List<AdvertisementStatus> getActiveStatusList() {
-        return List.of(AdvertisementStatus.PUBLISHED,
-                AdvertisementStatus.PENDING_CANCEL);
+    private boolean shouldRefreshByDate() {
+        LocalDate today = LocalDate.now();
+        String lastUpdateTimeString = (String) redisTemplate.opsForValue().get("ad:lastUpdateTime");
+        return lastUpdateTimeString == null
+                || today.isAfter(LocalDate.parse(lastUpdateTimeString, DateTimeFormatter.ISO_DATE));
     }
 }

@@ -51,19 +51,7 @@ public class AdScheduler implements TaskScheduler {
 
     @Override
     public void process() {
-        int published = systemAdService.publishPendingAds();
-        int completed = systemAdService.closeCompletedAds();
-
-        boolean needDateRefresh = shouldRefreshByDate();
-        if (needDateRefresh || published > 0 || completed > 0) {
-            systemAdService.refreshAdCache();
-        }
+        systemAdService.updateAdStatus();
     }
 
-    private boolean shouldRefreshByDate() {
-        LocalDate today = LocalDate.now();
-        String lastUpdateTimeString = (String) redisTemplate.opsForValue().get("ad:lastUpdateTime");
-        return lastUpdateTimeString == null
-                || today.isAfter(LocalDate.parse(lastUpdateTimeString, DateTimeFormatter.ISO_DATE));
-    }
 }

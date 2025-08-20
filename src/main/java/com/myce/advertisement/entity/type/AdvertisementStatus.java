@@ -26,4 +26,8 @@ public enum AdvertisementStatus {
     public static final List<AdvertisementStatus> EXPIRED_STATUSES = List.of(
             REJECTED, CANCELLED
     );
+
+    public static final List<AdvertisementStatus> ACTIVE_STATUSES = List.of(
+            PUBLISHED, PENDING_CANCEL
+    );
 }

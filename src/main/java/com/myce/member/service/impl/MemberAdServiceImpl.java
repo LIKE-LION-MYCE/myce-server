@@ -4,6 +4,7 @@ import com.myce.advertisement.dto.AdRejectInfoResponse;
 import com.myce.advertisement.entity.Advertisement;
 import com.myce.advertisement.entity.type.AdvertisementStatus;
 import com.myce.advertisement.repository.AdRepository;
+import com.myce.advertisement.service.SystemAdService;
 import com.myce.common.entity.BusinessProfile;
 import com.myce.common.entity.RejectInfo;
 import com.myce.common.entity.type.TargetType;
@@ -62,6 +63,7 @@ public class MemberAdServiceImpl implements MemberAdService {
     private final RefundRepository refundRepository;
     private final RejectInfoRepository rejectInfoRepository;
     private final NotificationService notificationService;
+    private final SystemAdService systemAdService;
 
     @Override
     public Page<MemberAdvertisementResponse> getMemberAdvertisements(Long memberId, Pageable pageable) {
@@ -317,6 +319,7 @@ public class MemberAdServiceImpl implements MemberAdService {
             log.warn("광고 환불 신청 알림 전송 실패 - adId: {}, 오류: {}", advertisementId, e.getMessage());
         }
 
+        systemAdService.updateAdStatus();
         log.info("광고 결제 완료 처리 - 광고 ID: {}, 회원 ID: {}", advertisementId, memberId);
     }
     
