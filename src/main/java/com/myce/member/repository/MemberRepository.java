@@ -28,4 +28,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     @Query("SELECT m FROM Member m WHERE m.id = (SELECT e.member.id FROM Expo e WHERE e.id=:expoId)")
     Optional<Member> findByExpoId(Long expoId);
+
+    @Query("SELECT m FROM Member m " +
+            "WHERE m.loginId LIKE %:keyword% " +
+            "AND m.name LIKE %:keyword%")
+    Page<Member> findAllByKeywordContaining(String keyword, Pageable pageable);
 }
