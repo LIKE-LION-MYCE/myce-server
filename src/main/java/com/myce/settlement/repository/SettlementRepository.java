@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -23,7 +24,7 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
             "FROM Settlement s " +
             "WHERE s.expo.status IN :status AND s.updatedAt BETWEEN :updatedAtAfter AND :updatedAtBefore")
     Long sumRevenueByStatusAndUpdatedAtBetween(
-            @Param("status") ExpoStatus status,
+            @Param("status") List<ExpoStatus> status,
             @Param("updatedAtAfter") LocalDateTime updatedAtAfter,
             @Param("updatedAtBefore") LocalDateTime updatedAtBefore
     );

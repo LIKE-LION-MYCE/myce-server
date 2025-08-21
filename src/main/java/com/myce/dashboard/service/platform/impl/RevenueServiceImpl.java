@@ -172,10 +172,10 @@ public class RevenueServiceImpl implements RevenueService {
 
     private long getTotalExpoBenefitInPeriod(LocalDateTime startDate, LocalDateTime endDate) {
         Long ticketBenefit = Optional.ofNullable(settlementRepository
-                        .sumRevenueByStatusAndUpdatedAtBetween(ExpoStatus.COMPLETED, startDate, endDate))
+                        .sumRevenueByStatusAndUpdatedAtBetween(ExpoStatus.ACTIVE_STATUSES, startDate, endDate))
                 .orElse(0L);
         Long applyDeposit = Optional.ofNullable(expoPaymentInfoRepository
-                        .sumTotalAmountByStatusesAndUpdatedAtBetween(ExpoStatus.COMPLETED_STATUSES, startDate, endDate))
+                        .sumTotalAmountByStatusesAndUpdatedAtBetween(ExpoStatus.ACTIVE_STATUSES, startDate, endDate))
                 .orElse(0L);
 
         return ticketBenefit + applyDeposit;
@@ -183,10 +183,7 @@ public class RevenueServiceImpl implements RevenueService {
 
     private long getTotalAdBenefitInPeriod(LocalDateTime startDate, LocalDateTime endDate) {
         Long adBenefit = Optional.ofNullable(adPaymentInfoRepository
-                        .sumTotalAmountByStatusAndUpdatedAtBetween(AdvertisementStatus.COMPLETED_STATUSES, startDate, endDate))
-                .orElse(0L);
-        Long refundDeposit = Optional.ofNullable(refundRepository
-                .sumRefundAmountByTypeAndRefundedAtBetween(PaymentTargetType.AD, startDate, endDate))
+                        .sumTotalAmountByStatusAndUpdatedAtBetween(AdvertisementStatus.ADMIN_VIEWABLE_STATUSES, startDate, endDate))
                 .orElse(0L);
 
         return adBenefit;

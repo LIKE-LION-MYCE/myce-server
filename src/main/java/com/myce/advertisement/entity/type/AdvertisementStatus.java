@@ -30,4 +30,8 @@ public enum AdvertisementStatus {
     public static final List<AdvertisementStatus> ACTIVE_STATUSES = List.of(
             PUBLISHED, PENDING_CANCEL
     );
+
+    public static final List<AdvertisementStatus> ADMIN_VIEWABLE_STATUSES = List.of(
+            PENDING_PUBLISH, PUBLISHED, PENDING_CANCEL, COMPLETED, CANCELLED
+    );
 }
