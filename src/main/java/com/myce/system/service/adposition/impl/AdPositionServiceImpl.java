@@ -32,6 +32,14 @@ public class AdPositionServiceImpl implements AdPositionService {
                 .map(AdPositionMapper::toDto)
                 .toList();
     }
+    
+    @Override
+    public List<AdPositionDropdownWithDimensionsResponse> getAdPositionDropdownWithDimensions() {
+        return adPositionRepository.findAll()
+                .stream()
+                .map(AdPositionMapper::toDtoWithDimensions)
+                .toList();
+    }
 
     @Override
     public PageResponse<AdPositionResponse> getAdPositionList(int page, int pageSize) {

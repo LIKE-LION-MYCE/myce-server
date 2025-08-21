@@ -3,6 +3,7 @@ package com.myce.system.service.mapper;
 import com.myce.common.dto.PageResponse;
 import com.myce.system.dto.adposition.AdPositionDetailResponse;
 import com.myce.system.dto.adposition.AdPositionDropdownResponse;
+import com.myce.system.dto.adposition.AdPositionDropdownWithDimensionsResponse;
 import com.myce.system.dto.adposition.AdPositionNewRequest;
 import com.myce.system.dto.adposition.AdPositionResponse;
 import com.myce.system.entity.AdPosition;
@@ -11,6 +12,15 @@ import org.springframework.data.domain.Page;
 public class AdPositionMapper {
     public static AdPositionDropdownResponse toDto(AdPosition adPosition) {
         return new AdPositionDropdownResponse(adPosition.getId(), adPosition.getName());
+    }
+    
+    public static AdPositionDropdownWithDimensionsResponse toDtoWithDimensions(AdPosition adPosition) {
+        return AdPositionDropdownWithDimensionsResponse.builder()
+                .id(adPosition.getId())
+                .name(adPosition.getName())
+                .bannerWidth(adPosition.getImageWidth())
+                .bannerHeight(adPosition.getImageHeight())
+                .build();
     }
 
     public static Page<AdPositionResponse> toListDto(Page<AdPosition> adPositions) {
