@@ -65,7 +65,6 @@ public class ExpoApplicationMapper {
                         .name(member.getName())
                         .email(member.getEmail())
                         .phone(member.getPhone())
-                        .gender(member.getGender().name())
                         .birth(member.getBirth())
                         .build())
                 .business(businessProfile != null ? ExpoApplicationDetailResponse.BusinessInfo.builder()
