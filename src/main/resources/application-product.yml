@@ -10,6 +10,10 @@ spring:
       idle-timeout: 300000       # 5 minutes (same as base)
       max-lifetime: 1800000      # 30 minutes (same as base)
       connection-timeout: 20000  # 20 seconds (same as base)
+  
+  # Production JPA settings  
+  jpa:
+    show-sql: false             # Override: was true in base (don't log SQL)
       
 # Production-specific server optimizations
 server:
@@ -27,8 +31,3 @@ logging:
     com.myce: info              # Override: was debug in base
     com.myce.common.aop.ControllerLoggingAspect: info  # Override: was debug
     org.hibernate.SQL: warn     # Don't show SQL queries in production
-    
-# Production JPA settings
-spring:
-  jpa:
-    show-sql: false             # Override: was true in base (don't log SQL)
