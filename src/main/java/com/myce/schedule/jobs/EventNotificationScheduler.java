@@ -16,6 +16,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -64,15 +66,32 @@ public class EventNotificationScheduler implements TaskScheduler {
             return;
         }
 
-        // 각 이벤트의 박람회에 대해 1시간 전 알림 전송
-        for (Event event : upcomingEvents) {
-            notificationService.sendEventHourReminderNotification(
-                event.getExpo().getId(), 
-                event.getName(), 
-                event.getStartTime().toString()
-            );
-            log.info("[Scheduler] 행사 1시간 전 알림 전송 완료 - 박람회: {}, 이벤트: {}",
-                    event.getExpo().getTitle(), event.getName());
+        // 박람회별로 그룹핑하여 중복 알림 방지
+        Set<Long> processedExpoIds = upcomingEvents.stream()
+                .map(event -> event.getExpo().getId())
+                .collect(Collectors.toSet());
+
+        // 각 박람회에 대해 한 번씩만 알림 전송
+        for (Long expoId : processedExpoIds) {
+            // 해당 박람회의 이벤트 정보 수집
+            List<Event> expoEvents = upcomingEvents.stream()
+                    .filter(event -> event.getExpo().getId().equals(expoId))
+                    .collect(Collectors.toList());
+            
+            if (!expoEvents.isEmpty()) {
+                Event firstEvent = expoEvents.get(0);
+                String eventNames = expoEvents.stream()
+                        .map(Event::getName)
+                        .collect(Collectors.joining(", "));
+                
+                notificationService.sendEventHourReminderNotification(
+                    expoId,
+                    eventNames,
+                    firstEvent.getStartTime().toString()
+                );
+                log.info("[Scheduler] 행사 1시간 전 알림 전송 완료 - 박람회: {}, 이벤트: {}",
+                        firstEvent.getExpo().getTitle(), eventNames);
+            }
         }
     }
 }
