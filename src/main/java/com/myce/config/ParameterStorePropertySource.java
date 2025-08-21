@@ -1,8 +1,8 @@
 package com.myce.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationContextInitializedEvent;
-import org.springframework.context.ApplicationListener;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.MutablePropertySources;
@@ -23,8 +23,7 @@ import java.util.Map;
  * startup.sh를 대체하여 Spring Boot 애플리케이션 시작시 자동으로 파라미터 로드
  */
 @Slf4j
-@Component
-public class ParameterStorePropertySource implements ApplicationListener<ApplicationContextInitializedEvent> {
+public class ParameterStorePropertySource implements EnvironmentPostProcessor {
 
     /**
      * AWS Parameter Store에서 로드할 파라미터 매핑
@@ -72,7 +71,7 @@ public class ParameterStorePropertySource implements ApplicationListener<Applica
     }
 
     @Override
-    public void onApplicationEvent(ApplicationContextInitializedEvent event) {
+    public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
         String profile = System.getProperty("spring.profiles.active", 
                         System.getenv("PROFILE"));
         
@@ -84,7 +83,6 @@ public class ParameterStorePropertySource implements ApplicationListener<Applica
 
         log.info("🔐 Loading parameters from AWS Systems Manager Parameter Store...");
         
-        ConfigurableEnvironment environment = event.getApplicationContext().getEnvironment();
         MutablePropertySources propertySources = environment.getPropertySources();
         
         Map<String, Object> parameterMap = loadParametersFromStore();
