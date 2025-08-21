@@ -24,5 +24,8 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:8080/actuator/health || exit 1
 
+# Set environment variable for production profile
+ENV PROFILE=product
+
 # Run Spring Boot application directly with timezone
 ENTRYPOINT ["java", "-Duser.timezone=Asia/Seoul", "-jar", "/app/app.jar"]
