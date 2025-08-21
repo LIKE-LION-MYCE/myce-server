@@ -316,8 +316,8 @@ public class ReservationServiceImpl implements ReservationService {
         ReservationPaymentInfo reservationPaymentInfo = reservationPaymentInfoRepository.findByReservationId(reservationId)
             .orElseThrow(() -> new CustomException(CustomErrorCode.PAYMENT_INFO_NOT_FOUND));
 
-        // 오늘의 자정 직전 시간을 계산
-        LocalDateTime dueDate = LocalDate.now().atTime(23, 59, 59);
+        // 내일의 자정 직전 시간을 계산
+        LocalDateTime dueDate = LocalDate.now().plusDays(1).atTime(23, 59, 59);
 
         // 원하는 날짜/시간 포맷을 정의
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일 HH시 mm분 ss초");
