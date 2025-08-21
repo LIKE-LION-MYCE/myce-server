@@ -204,14 +204,14 @@ public class ExpoServiceImpl implements ExpoService {
 
         String keyWord = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
         
-        // status 파라미터 처리 - 기본값은 PUBLISHED
-        ExpoStatus expoStatus = ExpoStatus.PUBLISHED;
+        // status 파라미터 처리 - null이면 PUBLISHED와 PENDING_PUBLISH 모두 조회
+        ExpoStatus expoStatus = null;
         if (status != null && !status.isBlank()) {
             try {
                 expoStatus = ExpoStatus.valueOf(status.toUpperCase());
             } catch (IllegalArgumentException e) {
-                log.warn("Invalid status parameter: {}, using default PUBLISHED", status);
-                expoStatus = ExpoStatus.PUBLISHED;
+                log.warn("Invalid status parameter: {}, using null for all statuses", status);
+                expoStatus = null;
             }
         }
 

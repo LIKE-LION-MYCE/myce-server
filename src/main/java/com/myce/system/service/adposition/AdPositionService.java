@@ -7,6 +7,8 @@ import java.util.List;
 
 public interface AdPositionService {
   List<AdPositionDropdownResponse> getAdPositionDropdown();
+  
+  List<AdPositionDropdownWithDimensionsResponse> getAdPositionDropdownWithDimensions();
 
   PageResponse<AdPositionResponse> getAdPositionList(int page, int pageSize);
 

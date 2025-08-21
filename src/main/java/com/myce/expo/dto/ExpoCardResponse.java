@@ -15,4 +15,5 @@ public class ExpoCardResponse {
   private String thumbnailUrl;
   private Integer remainingQuantity;
   private boolean isBookmark;
+  private String status;
 }

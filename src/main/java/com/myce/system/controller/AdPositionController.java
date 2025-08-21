@@ -25,6 +25,13 @@ public class AdPositionController {
         List<AdPositionDropdownResponse> adPositions = adPositionService.getAdPositionDropdown();
         return ResponseEntity.ok().body(adPositions);
     }
+    
+    // 광고 배너 위치 목록 조회 (크기 정보 포함)
+    @GetMapping(value = "/dropdown-with-dimensions")
+    public ResponseEntity<List<AdPositionDropdownWithDimensionsResponse>> getDropdownWithDimensions() {
+        List<AdPositionDropdownWithDimensionsResponse> adPositions = adPositionService.getAdPositionDropdownWithDimensions();
+        return ResponseEntity.ok().body(adPositions);
+    }
 
     @GetMapping
     public PageResponse<AdPositionResponse> getAdPositionList(@RequestParam(defaultValue = "0") int page) {
