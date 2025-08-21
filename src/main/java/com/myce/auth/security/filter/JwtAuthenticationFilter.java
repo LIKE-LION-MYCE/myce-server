@@ -130,7 +130,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean isPermitAll(String method, String path) {
         if(HttpMethod.POST.name().equals(method) && pathMatcher.match("/api/payment/**", path) ||
-        HttpMethod.GET.name().equals(method) && pathMatcher.match("/api/expos", path)) {
+        HttpMethod.GET.name().equals(method) && pathMatcher.match("/api/expos", path) ||
+        HttpMethod.GET.name().equals(method) && pathMatcher.match("/api/expos/*/bookmark", path)) {
             return false;
         }
 
