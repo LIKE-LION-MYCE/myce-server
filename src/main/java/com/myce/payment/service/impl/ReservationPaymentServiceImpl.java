@@ -13,6 +13,7 @@ import com.myce.member.service.MemberGradeService;
 import com.myce.member.service.MemberMileageService;
 import com.myce.notification.service.NotificationService;
 import com.myce.notification.service.EmailSendService;
+import com.myce.system.service.message.GenerateMessageService;
 import com.myce.payment.dto.PaymentVerifyRequest;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.ReservationPaymentVerifyRequest;
@@ -62,6 +63,7 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
     private final QrCodeService qrCodeService;
     private final NotificationService notificationService;
     private final EmailSendService emailSendService;
+    private final GenerateMessageService generateMessageService;
     private final GuestReservationService guestReservationService;
 
     @Override
@@ -223,41 +225,23 @@ public class ReservationPaymentServiceImpl implements ReservationPaymentService 
             try {
                 if (request.getReserverInfos() != null && !request.getReserverInfos().isEmpty()) {
                     var reserverInfo = request.getReserverInfos().get(0);
-                    String subject = String.format("[예매 완료] %s", expoTitle);
                     
-                    // 예매 상세 조회 링크를 회원/비회원에 따라 다르게 설정
-                    String detailLink;
-                    String detailGuide;
-                    if (reservation.getUserType() == UserType.MEMBER) {
-                        detailLink = "https://www.myce.live";
-                        detailGuide = "홈페이지 로그인 후 마이페이지에서 예매 상세를 확인하실 수 있습니다.<br>" +
-                                     "MYCE: <a href=\"" + detailLink + "\">바로가기</a>";
-                    } else {
-                        detailLink = "https://www.myce.live/guest-reservation";
-                        detailGuide = "예매 상세 조회: <a href=\"" + detailLink + "\">바로가기</a>";
-                    }
-                    
-                    String body = String.format(
-                        "안녕하세요 %s님,<br><br>" +
-                            "'%s' 예매가 완료되었습니다.<br><br>" +
-                            "[예매 정보]<br>" +
-                            "- 예약자: %s<br>" +
-                            "- 예약번호: %s<br>" +
-                            "- 예매 티켓 수: %s<br>" +
-                            "- 결제 금액: %s<br><br>" +
-                            "QR 코드는 박람회 시작 2일 전부터 상세 조회에서 확인하실 수 있습니다.<br>" +
-                            "%s<br><br>" +
-                            "감사합니다.",
+                    // 새로운 메시지 템플릿 시스템 사용
+                    var messageTemplate = generateMessageService.getMessageForReservationConfirmation(
                         reserverInfo.getName(),
                         expoTitle,
-                        reserverInfo.getName(),
                         reservation.getReservationCode(),
                         reservation.getQuantity(),
                         paymentAmount,
-                        detailGuide
+                        reservation.getUserType()
+                    );
+
+                    emailSendService.sendMail(
+                        reserverInfo.getEmail(), 
+                        messageTemplate.getSubject(), 
+                        messageTemplate.getContent()
                     );
                     
-                    emailSendService.sendMail(reserverInfo.getEmail(), subject, body);
                     log.info("예매 완료 이메일 전송 완료 - 예약 ID: {}, 사용자 유형: {}, 이메일: {}", 
                             reservation.getId(), reservation.getUserType(), reserverInfo.getEmail());
                 }
