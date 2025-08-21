@@ -112,7 +112,8 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
            "OR LOWER(e.location) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "OR LOWER(e.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
            "AND (:startDate IS NULL OR e.startDate >= :startDate) " +
-           "AND (:endDate IS NULL OR e.endDate <= :endDate)")
+           "AND (:endDate IS NULL OR e.endDate <= :endDate) " +
+           "ORDER BY CASE WHEN e.status = 'PENDING_PUBLISH' THEN e.displayStartDate ELSE e.startDate END ASC, e.startDate ASC")
     Page<Expo> findPublishedExposFiltered(
         @Param("status") ExpoStatus status,
         @Param("categoryId") Long categoryId,
