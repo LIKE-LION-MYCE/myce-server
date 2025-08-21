@@ -1,0 +1,34 @@
+# Production-specific configuration overrides
+# These settings override application.yml when PROFILE=product
+
+spring:
+  datasource:
+    hikari:
+      # Production: Higher connection pool for handling load
+      maximum-pool-size: 20      # Override: was 5 in base config
+      minimum-idle: 10           # Override: was 2 in base config
+      idle-timeout: 300000       # 5 minutes (same as base)
+      max-lifetime: 1800000      # 30 minutes (same as base)
+      connection-timeout: 20000  # 20 seconds (same as base)
+      
+# Production-specific server optimizations
+server:
+  tomcat:
+    # Handle more concurrent requests in production
+    max-threads: 400            # Default is 200
+    accept-count: 200           # Queue size when all threads busy
+    max-connections: 10000      # Maximum number of connections
+    connection-timeout: 20000   # 20 seconds
+
+# Production logging (less verbose)
+logging:
+  level:
+    root: info
+    com.myce: info              # Override: was debug in base
+    com.myce.common.aop.ControllerLoggingAspect: info  # Override: was debug
+    org.hibernate.SQL: warn     # Don't show SQL queries in production
+    
+# Production JPA settings
+spring:
+  jpa:
+    show-sql: false             # Override: was true in base (don't log SQL)
