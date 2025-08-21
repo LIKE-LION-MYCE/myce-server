@@ -42,6 +42,7 @@ public class ExpoMapper {
         .thumbnailUrl(expo.getThumbnailUrl())
         .remainingQuantity(remainingQuantity)
         .isBookmark(isBookmark)
+        .status(expo.getStatus().name())
         .build();
   }
 }

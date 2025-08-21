@@ -101,11 +101,12 @@ public interface ExpoRepository extends JpaRepository<Expo, Long> {
     @Query("SELECT e FROM Expo e JOIN e.expoCategories ec WHERE ec.category.id = :categoryId")
     Page<Expo> findByCategoryId(@Param("categoryId") Long categoryId, Pageable pageable);
 
-    // PUBLISHED + 카테고리/기간/검색
+    // PUBLISHED + PENDING_PUBLISH + 카테고리/기간/검색
     @Query("SELECT DISTINCT e FROM Expo e " +
            "JOIN e.expoCategories ec " +
            "JOIN ec.category c " +
-           "WHERE e.status = :status " +
+           "WHERE (:status IS NULL OR e.status = :status) " +
+           "AND (:status IS NOT NULL OR e.status IN ('PUBLISHED', 'PENDING_PUBLISH')) " +
            "AND (:categoryId IS NULL OR c.id = :categoryId) " +
            "AND (:keyword IS NULL OR LOWER(e.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "OR LOWER(e.location) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
