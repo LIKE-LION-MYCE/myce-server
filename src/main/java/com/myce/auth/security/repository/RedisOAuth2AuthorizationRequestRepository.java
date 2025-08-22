@@ -13,6 +13,10 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.util.Base64;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -43,7 +47,35 @@ public class RedisOAuth2AuthorizationRequestRepository implements AuthorizationR
         }
 
         String redisKey = REDIS_KEY_PREFIX + stateParameter;
-        OAuth2AuthorizationRequest authorizationRequest = (OAuth2AuthorizationRequest) redisTemplate.opsForValue().get(redisKey);
+        Object storedObject = redisTemplate.opsForValue().get(redisKey);
+        
+        if (storedObject == null) {
+            log.warn("OAuth2 authorization request not found in Redis for state: {}", stateParameter);
+            return null;
+        }
+        
+        // Handle both OAuth2AuthorizationRequest and LinkedHashMap (from Jackson deserialization)
+        OAuth2AuthorizationRequest authorizationRequest;
+        if (storedObject instanceof OAuth2AuthorizationRequest) {
+            authorizationRequest = (OAuth2AuthorizationRequest) storedObject;
+        } else if (storedObject instanceof Map) {
+            // Reconstruct from Map when Jackson deserializes
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map<String, Object>) storedObject;
+            authorizationRequest = OAuth2AuthorizationRequest.authorizationCode()
+                .clientId((String) map.get("clientId"))
+                .authorizationUri((String) map.get("authorizationUri"))
+                .redirectUri((String) map.get("redirectUri"))
+                .scopes(new HashSet<>((Collection<String>) map.getOrDefault("scopes", new HashSet<>())))
+                .state((String) map.get("state"))
+                .additionalParameters((Map<String, Object>) map.getOrDefault("additionalParameters", new HashMap<>()))
+                .attributes((Map<String, Object>) map.getOrDefault("attributes", new HashMap<>()))
+                .authorizationRequestUri((String) map.get("authorizationRequestUri"))
+                .build();
+        } else {
+            log.error("Unexpected type in Redis for OAuth2 state: {}", storedObject.getClass());
+            return null;
+        }
         
         if (authorizationRequest != null) {
             log.debug("OAuth2 authorization request loaded from Redis for state: {}", stateParameter);
