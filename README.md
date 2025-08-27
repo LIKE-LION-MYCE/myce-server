@@ -16,8 +16,8 @@ MYCE는 위 MICE의 개념을 기반으로, 박람회를 쉽고 스마트하게 
 온라인 박람회 **개최부터 예약, 결제, 정산까지 원스톱으로 제공하는 종합 서비스**를 제공하며 다음과 같은 복합적인 의미를 담아내고자 했습니다.
 ```
 - Meet Your Clients & Exhibitions : 고객과 박람회를 한곳에서 함께 관리하세요.
-- Managet Your Conference & Expos : 당신의 박람회를 체계적으로 관리하세요.
-- Make Your Conventions & Easy: 박람회 운영을 쉽고 스마트하게 만들어보세요.
+- Manage Your Conferences & Expos : 당신의 박람회를 체계적으로 관리하세요.
+- Make Your Conventions Easy: 박람회 운영을 쉽고 스마트하게 만들어보세요.
 ```
 
 
