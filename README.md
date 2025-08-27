@@ -1,10 +1,13 @@
 # 🎟  박람회 예매/운영 서비스 MYCE
 <img width="1447" height="805" alt="image" src="https://github.com/user-attachments/assets/2a02e673-0b5e-4a11-91f7-367e47f49161" />
 
-배포url : https://www.myce.live
+**배포url** : https://www.myce.live
+
+**테스트 계정**  
+- 일반 사용자 및 박람회 관리자 계정 : **leoleo / qwer1234**  
+- 플랫폼관리자 계정 : **myceadmin01 / qwe123**  
 
 <br/>
-
 
 ## 🧑‍💻 프로젝트 소개
 
