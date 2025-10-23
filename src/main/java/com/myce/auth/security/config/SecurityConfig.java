@@ -60,6 +60,7 @@ public class SecurityConfig {
             "/api/reservations/guest",               // 비회원 예매 조회 (이메일 + 예매번호)
             "/api/reservations/guest", "/api/expo/fees/active", "/api/ad/fees/active",
             "/api/reviews/expo/*", "/api/reviews/*/", "/api/reviews/best",
+            "/api/querydsl/search/**",              // QueryDSL 기반 동적 검색 API (비회원 허용)
             "/api/settings/refund-fee/public", "/api/ad-position/dropdown",
             "/api/settings/ad-fee/active", "/api/settings/expo-fee/active"
     };

@@ -145,11 +145,7 @@ management:
     info:
       enabled: true
     prometheus:
-      enabled: true
-  metrics:
-    export:
-      prometheus:
-        enabled: true
+      enabled: false
   # Health check configuration
   health:
     mail:
@@ -159,6 +155,10 @@ management:
         include: livenessState, ping  # Light & internal checks only
       readiness:
         include: readinessState, db, redis, diskSpace  # Heavy checks
+  prometheus:
+    metrics:
+      export:
+        enabled: false
 port-one:
   base-url: ${PORTONE_BASE_URL}
   api-key: ${PORTONE_API_KEY}

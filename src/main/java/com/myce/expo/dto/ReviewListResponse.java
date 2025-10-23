@@ -31,6 +31,13 @@ public class ReviewListResponse {
         this.hasNext = page.hasNext();
         this.hasPrevious = page.hasPrevious();
     }
+
+    public ReviewListResponse(List<ReviewResponse> reviews) {
+        this.reviews = reviews;
+        this.currentPage = 0;
+        this.totalPages = 1;
+        this.totalElements = reviews.size();
+    }
     
     @Getter
     @Setter

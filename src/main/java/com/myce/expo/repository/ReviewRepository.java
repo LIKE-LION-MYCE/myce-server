@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ReviewRepository extends JpaRepository<Review, Long> {
+public interface ReviewRepository extends JpaRepository<Review, Long>, CustomReviewRepository {
     
     // 박람회별 리뷰 목록 조회 (최신순)
     Page<Review> findByExpoIdOrderByCreatedAtDesc(Long expoId, Pageable pageable);
