@@ -10,6 +10,7 @@ import com.myce.auth.security.filter.OAuth2LoginSuccessHandler;
 import com.myce.auth.security.provider.AdminAuthenticationProvider;
 import com.myce.auth.security.provider.MemberAuthenticationProvider;
 import com.myce.auth.security.provider.TokenCookieProvider;
+import com.myce.auth.security.repository.RedisOAuth2AuthorizationRequestRepository;
 import com.myce.auth.security.util.JwtUtil;
 import com.myce.auth.service.AdminCodeDetailService;
 import com.myce.auth.service.impl.UserDetailsServiceImpl;
@@ -100,6 +101,7 @@ public class SecurityConfig {
     private final TokenBlackListRepository tokenBlackListRepository;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
     private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+    private final RedisOAuth2AuthorizationRequestRepository redisOAuth2AuthorizationRequestRepository;
 
     @Bean
     public AuthenticationManager authenticationManager() throws Exception {
@@ -142,7 +144,8 @@ public class SecurityConfig {
 
         http.oauth2Login(oauth2 -> oauth2
                 .authorizationEndpoint(authorization -> authorization
-                        .baseUri("/api/oauth2/authorization"))
+                        .baseUri("/api/oauth2/authorization")
+                        .authorizationRequestRepository(redisOAuth2AuthorizationRequestRepository))
                 .redirectionEndpoint(redirect -> redirect
                         .baseUri("/api/login/oauth2/code/*"))
                 .successHandler(oAuth2LoginSuccessHandler)
