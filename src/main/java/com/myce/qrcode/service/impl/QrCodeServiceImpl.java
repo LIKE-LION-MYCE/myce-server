@@ -7,7 +7,6 @@ import com.myce.expo.entity.AdminCode;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.repository.AdminCodeRepository;
 import com.myce.notification.service.NotificationService;
-import com.myce.notification.service.SupportEmailService;
 import com.myce.qrcode.dto.QrUseResponse;
 import com.myce.qrcode.dto.QrVerifyResponse;
 import com.myce.qrcode.entity.QrCode;
@@ -15,6 +14,7 @@ import com.myce.qrcode.entity.code.QrCodeStatus;
 import com.myce.qrcode.repository.QrCodeRepository;
 import com.myce.qrcode.service.QrCodeService;
 import com.myce.qrcode.service.QrCodeGenerateService;
+import com.myce.qrcode.service.QrNotificationService;
 import com.myce.qrcode.service.mapper.QrResponseMapper;
 import com.myce.reservation.entity.Reserver;
 import com.myce.reservation.entity.Reservation;
@@ -38,8 +38,8 @@ public class QrCodeServiceImpl implements QrCodeService {
     private final AdminCodeRepository adminCodeRepository;
     private final QrResponseMapper qrResponseMapper;
     private final NotificationService notificationService;
-    private final SupportEmailService supportEmailService;
     private final QrCodeGenerateService qrCodeGenerateService;
+    private final QrNotificationService qrNotificationService;
 
     @Override
     @Transactional
@@ -60,7 +60,7 @@ public class QrCodeServiceImpl implements QrCodeService {
             log.info("QR 코드 발급 완료 - 예약자 ID: {}", reserverId);
 
             // QR 발급 성공 알림 전송
-            sendQrIssuedNotification(reserver, false);
+            qrNotificationService.sendQrIssuedNotification(reserver, false);
         } catch (Exception e) {
             log.error("QR 코드 발급 실패 - 예약자 ID: {}, 오류: {}", reserverId, e.getMessage(), e);
             throw new CustomException(CustomErrorCode.QR_GENERATION_FAILED);
@@ -117,7 +117,7 @@ public class QrCodeServiceImpl implements QrCodeService {
             log.info("QR 코드 재발급 완료 - 예약자 ID: {}", reserverId);
 
             // QR 재발급 성공 알림 전송
-            sendQrIssuedNotification(reserver, true);
+            qrNotificationService.sendQrIssuedNotification(reserver, true);
         } catch (Exception e) {
             log.error("QR 코드 재발급 실패 - 예약자 ID: {}, 관리자 ID: {}, 오류: {}",
                     reserverId, adminMemberId, e.getMessage(), e);
@@ -225,51 +225,6 @@ public class QrCodeServiceImpl implements QrCodeService {
         log.info("QR 코드 검증 완료 - token: {}, 상태: {}, 유효성: {}",
                 token, qrCode.getStatus(), response.isValid());
         return response;
-    }
-
-    /**
-     * QR 발급/재발급 시 알림 전송 (NotificationService에 위임)
-     */
-    private void sendQrIssuedNotification(Reserver reserver, boolean isReissue) {
-        try {
-            Reservation reservation = reserver.getReservation();
-
-            String expoTitle = reservation.getExpo().getTitle();
-
-            if (reservation.getUserType() == UserType.MEMBER) {
-                // 회원: 사이트 내 알림 + SSE 전송
-                Long memberId = reservation.getUserId();
-                notificationService.sendQrIssuedNotification(memberId, reservation.getId(), expoTitle, isReissue);
-                log.info("회원 QR {} 알림 처리 완료 - 예약자 ID: {}, 회원 ID: {}",
-                        isReissue ? "재발급" : "발급", reserver.getId(), memberId);
-            } else {
-                // 비회원: 이메일 알림
-                String subject = String.format("[박람회 QR 코드 %s] %s",
-                        isReissue ? "재발급" : "발급", expoTitle);
-                String body = String.format(
-                        "안녕하세요 %s님,<br><br>" +
-                                "박람회 '%s'의 QR 코드가 %s되었습니다.<br><br>" +
-                                "[예매 정보]<br>" +
-                                "- 예약자: %s<br>" +
-                                "- 예약번호: %s<br>" +
-                                "QR 코드는 박람회 당일 입장 시 필요합니다.<br>" +
-                                "예매 상세 조회: <a href=\"https://myce.live/guest-reservation\">바로가기</a><br><br>" +
-                                "감사합니다.",
-                        reserver.getName(),
-                        expoTitle,
-                        isReissue ? "재발급" : "발급",
-                        reserver.getName(),
-                        reservation.getReservationCode()
-                );
-
-                supportEmailService.sendSupportMail(reserver.getEmail(), subject, body);
-                log.info("비회원 QR {} 이메일 알림 전송 완료 - 예약자 ID: {}, 이메일: {}",
-                        isReissue ? "재발급" : "발급", reserver.getId(), reserver.getEmail());
-            }
-        } catch (Exception e) {
-            log.error("QR 발급 알림 처리 실패 - 예약자 ID: {}, 오류: {}",
-                    reserver.getId(), e.getMessage(), e);
-        }
     }
 
     @Override

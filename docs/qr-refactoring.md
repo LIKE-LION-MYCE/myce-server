@@ -24,6 +24,7 @@
 - ✅ QR 이미지 생성 로직 분리 → `QrImageGenerateService`
 - ✅ QR 상태 관리 로직 분리 → `QrStatusService`
 - ✅ QR 코드 생성 로직 분리 → `QrCodeGenerateService`
+- ✅ QR 알림 전송 로직 분리 → `QrNotificationService`
 - ✅ 중복 코드 완전 제거
 - ✅ 예외 처리 통일 (`CustomException` 사용)
 - ✅ 프로젝트 컨벤션 준수 (Service + ServiceImpl 패턴)
@@ -54,6 +55,7 @@ src/main/java/com/myce/qrcode/
 │   ├── QrImageGenerateService.java         (신규 - QR 이미지 생성)
 │   ├── QrStatusService.java                (신규 - QR 상태 관리)
 │   ├── QrCodeGenerateService.java          (신규 - QR 코드 생성)
+│   ├── QrNotificationService.java          (신규 - QR 알림 전송)
 │   ├── mapper/
 │   │   └── QrResponseMapper.java
 │   └── impl/
@@ -61,7 +63,8 @@ src/main/java/com/myce/qrcode/
 │       ├── ExpoAdminQrServiceImpl.java     (기존)
 │       ├── QrImageGenerateServiceImpl.java (신규)
 │       ├── QrStatusServiceImpl.java        (신규)
-│       └── QrCodeGenerateServiceImpl.java  (신규)
+│       ├── QrCodeGenerateServiceImpl.java  (신규)
+│       └── QrNotificationServiceImpl.java  (신규)
 ```
 
 ---
@@ -149,16 +152,45 @@ public interface QrCodeGenerateService {
 
 ---
 
+### 4. QrNotificationService / QrNotificationServiceImpl
+
+**책임:** QR 알림 전송
+
+```java
+public interface QrNotificationService {
+    void sendQrIssuedNotification(Reserver reserver, boolean isReissue);
+}
+```
+
+**주요 기능:**
+
+- QR 발급/재발급 시 알림 전송
+- **회원**: 사이트 내 알림 + SSE 전송 (`NotificationService` 위임)
+- **비회원**: 이메일 알림 전송 (`SupportEmailService` 위임)
+- 알림 실패 시에도 QR 발급은 정상 진행 (예외 격리)
+
+**의존성:**
+
+- `NotificationService`
+- `SupportEmailService`
+
+**위치:**
+
+- 인터페이스: `service/QrNotificationService.java`
+- 구현체: `service/impl/QrNotificationServiceImpl.java`
+
+---
+
 ## 📊 리팩토링 결과
 
 ### 코드 메트릭
 
 | 항목                         | Before | After | 개선율       |
 |----------------------------|--------|-------|-----------|
-| **QrCodeServiceImpl 라인 수** | 458행   | 346행  | **-24%**  |
+| **QrCodeServiceImpl 라인 수** | 458행   | 290행  | **-37%**  |
 | **중복 코드**                  | 40행    | 0행    | **-100%** |
-| **서비스 클래스 수**              | 2개     | 5개    | -         |
-| **평균 클래스 크기**              | 229행   | 69행   | **-70%**  |
+| **서비스 클래스 수**              | 2개     | 6개    | -         |
+| **평균 클래스 크기**              | 229행   | 58행   | **-75%**  |
 
 ### 개선 사항
 
@@ -171,6 +203,7 @@ public interface QrCodeGenerateService {
 - QR 이미지 생성 (Technical)
 - QR 상태 관리 (Business Logic)
 - QR 엔티티 생성 (Factory)
+- QR 알림 전송 (Notification)
 - QR 비즈니스 로직 (Service)
 
 ✅ **테스트 용이성**
@@ -181,6 +214,7 @@ public interface QrCodeGenerateService {
 
 - `QrCodeGenerateService`: 다른 도메인에서도 재사용 가능
 - `QrStatusService`: 스케줄러 등에서 재사용 가능
+- `QrNotificationService`: 다양한 QR 발급 시나리오에서 재사용 가능
 
 ✅ **유지보수성**
 
@@ -241,8 +275,9 @@ public void issueQr(Long reserverId) {
 
 **After:**
 
-- `QrCodeServiceImpl` → `QrCodeGenerateService` 의존
+- `QrCodeServiceImpl` → `QrCodeGenerateService`, `QrNotificationService` 의존
 - `QrCodeGenerateService` → `QrImageGenerateService`, `QrStatusService`, `S3Service` 의존
+- `QrNotificationService` → `NotificationService`, `SupportEmailService` 의존
 - 중복 코드 0행
 
 ---
@@ -287,6 +322,7 @@ public void issueQr(Long reserverId) {
 - [ ] `QrImageGenerateService`: QR 이미지가 S3에 정상 업로드
 - [ ] `QrStatusService`: QR 상태가 티켓 날짜에 따라 올바르게 설정 (ACTIVE/APPROVED)
 - [ ] `QrCodeGenerateService`: QrCode 엔티티가 모든 필드와 함께 정상 생성
+- [ ] `QrNotificationService`: 회원/비회원 알림이 정상 전송
 
 #### ✅ 기능 회귀 테스트
 
@@ -330,6 +366,7 @@ public void issueQr(Long reserverId) {
     - `QrImageGenerateServiceImpl` 테스트
     - `QrStatusServiceImpl` 테스트
     - `QrCodeGenerateServiceImpl` 테스트
+    - `QrNotificationServiceImpl` 테스트
 
 2. **통합 테스트 강화**
     - QR 발급부터 사용까지 전체 플로우 테스트
@@ -353,5 +390,3 @@ public void issueQr(Long reserverId) {
 - [x] 예외 처리 통일 (CustomException)
 - [x] 기존 기능 회귀 없음
 - [x] 문서 업데이트 완료
-
-
