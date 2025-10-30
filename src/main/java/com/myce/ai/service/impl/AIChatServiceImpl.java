@@ -1,18 +1,16 @@
 package com.myce.ai.service.impl;
 
+import com.myce.ai.facade.ChatDataFacade;
 import com.myce.ai.service.AIChatService;
 import com.myce.chat.document.ChatMessage;
 import com.myce.chat.document.ChatRoom;
 import com.myce.chat.dto.MessageResponse;
-import com.myce.chat.repository.ChatMessageRepository;
-import com.myce.chat.repository.ChatRoomRepository;
-import com.myce.chat.service.ChatCacheService;
 import com.myce.chat.service.mapper.ChatMessageMapper;
 import com.myce.chat.type.MessageSenderType;
-import com.myce.member.entity.Member;
-import com.myce.member.repository.MemberRepository;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.repository.ExpoRepository;
+import com.myce.member.entity.Member;
+import com.myce.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -40,6 +38,9 @@ public class AIChatServiceImpl implements AIChatService {
     private static final String PLATFORM_ROOM_PREFIX = "platform-";
     private static final String AI_SENDER_NAME = "찍찍봇 (AI 챗봇)";
     private static final Long AI_SENDER_ID = -1L;
+
+    private static final String SYSTEM_SENDER_NAME = "시스템";
+    private static final Long SYSTEM_SENDER_ID = -99L;
     
     /**
      * 사용자별 컨텍스트 정보
@@ -63,9 +64,7 @@ public class AIChatServiceImpl implements AIChatService {
     
     // 의존성 주입
     private final ChatClient chatClient;
-    private final ChatRoomRepository chatRoomRepository;
-    private final ChatMessageRepository chatMessageRepository;
-    private final ChatCacheService chatCacheService;
+    private final ChatDataFacade chatDataFacade;
     private final MemberRepository memberRepository;
     private final ExpoRepository expoRepository;
     private final com.myce.expo.repository.TicketRepository ticketRepository;
@@ -75,16 +74,10 @@ public class AIChatServiceImpl implements AIChatService {
     public String generateAIResponse(String userMessage, String roomCode) {
         try {
             // 1. 채팅방 상태 확인
-            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
-            boolean isWaitingForAdmin = chatRoomOpt.map(ChatRoom::isWaitingForAdmin).orElse(false);
+            boolean isWaitingForAdmin = chatDataFacade.checkRoomIsWaitingAdmin(roomCode);
             
             // 2. 대화 이력 조회
-            List<ChatMessage> allRecentMessages = chatMessageRepository
-                .findTop50ByRoomCodeOrderBySentAtDesc(roomCode);
-            
-            List<ChatMessage> recentMessages = allRecentMessages.stream()
-                .limit(10)
-                .toList();
+            List<ChatMessage> recentMessages = chatDataFacade.getRecentMessages(roomCode);
             
             // 3. 컨텍스트 수집
             UserContext userContext = buildUserContext(roomCode);
@@ -127,22 +120,9 @@ public class AIChatServiceImpl implements AIChatService {
             // AI 응답 생성
             String aiResponse = generateAIResponse(userMessage, roomCode);
             
-            // AI 메시지 생성 및 저장
-            ChatMessage aiMessage = ChatMessage.builder()
-                .roomCode(roomCode)
-                .senderType(MessageSenderType.AI.name())
-                .senderId(AI_SENDER_ID)
-                .senderName(AI_SENDER_NAME)
-                .content(aiResponse)
-                .build();
-            
-            ChatMessage savedMessage = chatMessageRepository.save(aiMessage);
-            
-            // AI 메시지를 Redis 캐시에도 추가 (새로고침 후에도 보이도록)
-            chatCacheService.addMessageToCache(roomCode, savedMessage);
-            
-            // 채팅방 마지막 메시지 정보 업데이트
-            updateChatRoomLastMessage(roomCode, savedMessage.getId(), aiResponse);
+            // 메시지 생성 및 저장
+            ChatMessage savedMessage = chatDataFacade.saveChatMessage(roomCode, AI_SENDER_ID,
+                MessageSenderType.AI.name(), AI_SENDER_NAME, aiResponse);
             
             // AI가 사용자 메시지를 "읽음" 처리 - 읽음 상태 업데이트 브로드캐스트
             sendAIReadStatusUpdate(roomCode);
@@ -166,7 +146,7 @@ public class AIChatServiceImpl implements AIChatService {
     @Transactional
     public void handoffToAdmin(String roomCode, String adminCode) {
         try {
-            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+            Optional<ChatRoom> chatRoomOpt = chatDataFacade.getChatRoom(roomCode);
             if (chatRoomOpt.isPresent()) {
                 ChatRoom chatRoom = chatRoomOpt.get();
                 
@@ -180,10 +160,10 @@ public class AIChatServiceImpl implements AIChatService {
                 // 🆕 명시적으로 ADMIN_ACTIVE 상태로 전환 (확실하게!)
                 chatRoom.transitionToState(ChatRoom.ChatRoomState.ADMIN_ACTIVE);
                 
-                ChatRoom savedRoom = chatRoomRepository.save(chatRoom);
+                ChatRoom savedRoom = chatDataFacade.saveChatRoom(chatRoom);
                 
                 // 🗑️ Redis 캐시 무효화 (중요!)
-                chatCacheService.cacheChatRoom(roomCode, null); // null로 설정하여 캐시 무효화
+                chatDataFacade.cacheChatRoom(roomCode, null); // null로 설정하여 캐시 무효화
                 log.info("🗑️ 관리자 연결 시 Redis 캐시 무효화 완료 - roomCode: {}", roomCode);
                 
                 log.info("✅ Admin assigned and AI blocked - roomCode: {}, adminCode: {}, hasAdmin: {}, finalState: {}", 
@@ -193,18 +173,9 @@ public class AIChatServiceImpl implements AIChatService {
                 String conversationSummary = generateConversationSummary(roomCode);
                 
                 // STEP 2.5: SEND HANDOFF-TO-OPERATOR SYSTEM MESSAGE (persistent) - 타입 구분
-                ChatMessage handoffSystemMessage = ChatMessage.builder()
-                    .roomCode(roomCode)
-                    .senderType("SYSTEM") // ← 프론트엔드와 일치하도록 수정
-                    .senderId(-99L)
-                    .senderName("시스템")
-                    .content("HANDOFF_TO_OPERATOR:" + conversationSummary)
-                    .build();
                 
-                ChatMessage savedSystemMessage = chatMessageRepository.save(handoffSystemMessage);
-                
-                // 시스템 메시지도 캐시에 추가
-                chatCacheService.addMessageToCache(roomCode, savedSystemMessage);
+                ChatMessage savedSystemMessage = chatDataFacade.saveChatMessage(roomCode,
+                        SYSTEM_SENDER_ID, MessageSenderType.SYSTEM.name(), SYSTEM_SENDER_NAME, conversationSummary);
                 
                 // Broadcast system message (not regular chat message)
                 Map<String, Object> systemMessagePayload = Map.of(
@@ -241,8 +212,7 @@ public class AIChatServiceImpl implements AIChatService {
     public String generateConversationSummary(String roomCode) {
         try {
             // 전체 대화 이력 조회 (최근 50개)
-            List<ChatMessage> allMessages = chatMessageRepository
-                .findTop50ByRoomCodeOrderBySentAtDesc(roomCode);
+            List<ChatMessage> allMessages = chatDataFacade.getRecentMessages(roomCode);
             
             if (allMessages.isEmpty()) {
                 return "찍찍! 대화 내용이 없어 요약할 내용이 없습니다.";
@@ -310,30 +280,21 @@ public class AIChatServiceImpl implements AIChatService {
     public MessageResponse requestAdminHandoff(String roomCode) {
         try {
             // 1. 채팅방 조회
-            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+            Optional<ChatRoom> chatRoomOpt = chatDataFacade.getChatRoom(roomCode);
             if (chatRoomOpt.isPresent()) {
                 ChatRoom chatRoom = chatRoomOpt.get();
+
                 
-                // 2. AI 대기 메시지 먼저 생성 및 저장 (상태 변경 전에!)
-                ChatMessage waitingMessage = ChatMessage.builder()
-                    .roomCode(roomCode)
-                    .senderType(MessageSenderType.AI.name())
-                    .senderId(AI_SENDER_ID)
-                    .senderName(AI_SENDER_NAME)
-                    .content("찍찍! 상담원을 찾고 있어요. 잠시만 기다려주세요! 그동안 다른 궁금한 점이 있으시면 언제든 말씀해주세요.")
-                    .build();
-                
-                ChatMessage savedMessage = chatMessageRepository.save(waitingMessage);
-                
-                // 3. 채팅방 마지막 메시지 정보 업데이트
-                updateChatRoomLastMessage(roomCode, savedMessage.getId(), savedMessage.getContent());
+                ChatMessage savedMessage = chatDataFacade.saveChatMessage(
+                    roomCode,AI_SENDER_ID, MessageSenderType.AI.name(), AI_SENDER_NAME,
+                        "찍찍! 상담원을 찾고 있어요. 잠시만 기다려주세요! 그동안 다른 궁금한 점이 있으시면 언제든 말씀해주세요.");
                 
                 // 4. 이제 채팅방 상태를 대기 상태로 변경 (AI 메시지 후에!)
                 chatRoom.startWaitingForAdmin();
-                chatRoomRepository.save(chatRoom);
+                chatDataFacade.saveChatRoom(chatRoom);
                 
                 // 🗑️ Redis 캐시 무효화 (중요!)
-                chatCacheService.cacheChatRoom(roomCode, null); // null로 설정하여 캐시 무효화
+                chatDataFacade.cacheChatRoom(roomCode, null); // null로 설정하여 캐시 무효화
                 log.info("🗑️ 상담원 연결 요청 시 Redis 캐시 무효화 완료 - roomCode: {}", roomCode);
                 
                 log.info("✅ 관리자 연결 요청 시작 - roomCode: {}, finalState: {} (AI 메시지 먼저 전송)", 
@@ -354,7 +315,7 @@ public class AIChatServiceImpl implements AIChatService {
     @Transactional
     public MessageResponse cancelAdminHandoff(String roomCode) {
         try {
-            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+            Optional<ChatRoom> chatRoomOpt = chatDataFacade.getChatRoom(roomCode);
             if (chatRoomOpt.isPresent()) {
                 ChatRoom chatRoom = chatRoomOpt.get();
                 
@@ -362,23 +323,16 @@ public class AIChatServiceImpl implements AIChatService {
                 chatRoom.stopWaitingForAdmin(); // waitingForAdmin = false
                 chatRoom.transitionToState(ChatRoom.ChatRoomState.AI_ACTIVE); // currentState = AI_ACTIVE
                 
-                chatRoomRepository.save(chatRoom);
+                chatDataFacade.saveChatRoom(chatRoom);
                 
                 // 🗑️ Redis 캐시 무효화 (중요!)
-                chatCacheService.cacheChatRoom(roomCode, null); // null로 설정하여 캐시 무효화
+                chatDataFacade.cacheChatRoom(roomCode, null); // null로 설정하여 캐시 무효화
                 log.info("🗑️ 상담원 연결 요청 취소 시 Redis 캐시 무효화 완료 - roomCode: {}", roomCode);
                 
-                // 취소 확인 메시지 생성
-                ChatMessage cancelMessage = ChatMessage.builder()
-                    .roomCode(roomCode)
-                    .senderType(MessageSenderType.AI.name())
-                    .senderId(AI_SENDER_ID)
-                    .senderName(AI_SENDER_NAME)
-                    .content("찍찍! 상담원 연결 요청을 취소했어요. 제가 계속 도와드리겠습니다!")
-                    .build();
-                
-                ChatMessage savedMessage = chatMessageRepository.save(cancelMessage);
-                updateChatRoomLastMessage(roomCode, savedMessage.getId(), savedMessage.getContent());
+                ChatMessage savedMessage = chatDataFacade.saveChatMessage(
+                        roomCode,  AI_SENDER_ID, MessageSenderType.AI.name(), AI_SENDER_NAME,
+                        "찍찍! 상담원 연결 요청을 취소했어요. 제가 계속 도와드리겠습니다!"
+                );
                 
                 log.info("관리자 연결 요청 취소 완료 - roomCode: {}", roomCode);
                 return ChatMessageMapper.toSendResponse(savedMessage, roomCode);
@@ -395,7 +349,7 @@ public class AIChatServiceImpl implements AIChatService {
     @Transactional
     public MessageResponse requestAIReturn(String roomCode) {
         try {
-            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+            Optional<ChatRoom> chatRoomOpt = chatDataFacade.getChatRoom(roomCode);
             if (chatRoomOpt.isPresent()) {
                 ChatRoom chatRoom = chatRoomOpt.get();
                 
@@ -406,25 +360,17 @@ public class AIChatServiceImpl implements AIChatService {
                 // 🆕 명시적으로 AI_ACTIVE 상태로 전환 (확실하게!)
                 chatRoom.transitionToState(ChatRoom.ChatRoomState.AI_ACTIVE);
                 
-                ChatRoom savedRoom = chatRoomRepository.save(chatRoom);
+                ChatRoom savedRoom = chatDataFacade.saveChatRoom(chatRoom);
                 
                 // 🗑️ Redis 캐시 무효화 (중요!)
-                chatCacheService.cacheChatRoom(roomCode, null); // null로 설정하여 캐시 무효화
+                chatDataFacade.cacheChatRoom(roomCode, null); // null로 설정하여 캐시 무효화
                 log.info("🗑️ AI 복귀 시 Redis 캐시 무효화 완료 - roomCode: {}", roomCode);
                 
                 // HANDOFF-TO-AI SYSTEM MESSAGE (persistent) - 타입을 구분하여 저장
-                ChatMessage aiReturnSystemMessage = ChatMessage.builder()
-                    .roomCode(roomCode)
-                    .senderType("SYSTEM") // ← 프론트엔드와 일치하도록 수정
-                    .senderId(-99L)
-                    .senderName("시스템")
-                    .content("HANDOFF_TO_AI:AI가 상담을 이어받습니다")
-                    .build();
-                
-                ChatMessage savedSystemMessage = chatMessageRepository.save(aiReturnSystemMessage);
-                
-                // 시스템 메시지도 캐시에 추가
-                chatCacheService.addMessageToCache(roomCode, savedSystemMessage);
+                ChatMessage savedSystemMessage = chatDataFacade.saveChatMessage(
+                        roomCode, SYSTEM_SENDER_ID, MessageSenderType.SYSTEM.name(), SYSTEM_SENDER_NAME,
+                        "HANDOFF_TO_AI:AI가 상담을 이어받습니다"
+                );
                 
                 // Broadcast system message
                 Map<String, Object> systemMessagePayload = Map.of(
@@ -445,20 +391,10 @@ public class AIChatServiceImpl implements AIChatService {
                 messagingTemplate.convertAndSend("/topic/chat/" + roomCode, broadcastMessage);
                 
                 // AI 복귀 메시지 생성
-                ChatMessage returnMessage = ChatMessage.builder()
-                    .roomCode(roomCode)
-                    .senderType(MessageSenderType.AI.name())
-                    .senderId(AI_SENDER_ID)
-                    .senderName(AI_SENDER_NAME)
-                    .content("찍찍! 다시 제가 도와드리게 되었어요. 어떤 도움이 필요하신가요?")
-                    .build();
-                
-                ChatMessage savedMessage = chatMessageRepository.save(returnMessage);
-                
-                // AI 메시지도 캐시에 추가
-                chatCacheService.addMessageToCache(roomCode, savedMessage);
-                
-                updateChatRoomLastMessage(roomCode, savedMessage.getId(), savedMessage.getContent());
+                ChatMessage savedMessage = chatDataFacade.saveChatMessage(
+                        roomCode, AI_SENDER_ID, MessageSenderType.AI.name(), AI_SENDER_NAME,
+                        "찍찍! 다시 제가 도와드리게 되었어요. 어떤 도움이 필요하신가요?"
+                );
                 
                 log.info("✅ AI 복귀 요청 완료 - roomCode: {}, finalState: {}", roomCode, savedRoom.getCurrentState());
                 return ChatMessageMapper.toSendResponse(savedMessage, roomCode);
@@ -752,15 +688,15 @@ public class AIChatServiceImpl implements AIChatService {
     /**
      * AI가 사용자 메시지를 읽었음을 알리는 읽음 상태 업데이트
      */
-    private void sendAIReadStatusUpdate(String roomCode) {
+    public void sendAIReadStatusUpdate(String roomCode) {
         try {
             // 1. 실제 데이터베이스의 readStatusJson 업데이트
-            Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
+            Optional<ChatRoom> chatRoomOpt = chatDataFacade.getChatRoom(roomCode);
             if (chatRoomOpt.isPresent()) {
                 ChatRoom chatRoom = chatRoomOpt.get();
                 
                 // 가장 최근 메시지 ID 조회
-                List<ChatMessage> recentMessages = chatMessageRepository.findTop50ByRoomCodeOrderBySentAtDesc(roomCode);
+                List<ChatMessage> recentMessages = chatDataFacade.getRecentMessages(roomCode);
                 if (!recentMessages.isEmpty()) {
                     String latestMessageId = recentMessages.get(0).getId();
                     
@@ -768,7 +704,7 @@ public class AIChatServiceImpl implements AIChatService {
                     String currentReadStatus = chatRoom.getReadStatusJson();
                     String updatedReadStatus = updateReadStatusForAI(currentReadStatus, latestMessageId);
                     chatRoom.updateReadStatus(updatedReadStatus);
-                    chatRoomRepository.save(chatRoom);
+                    chatDataFacade.saveChatRoom(chatRoom);
                     
                     log.debug("AI 읽음 상태 데이터베이스 업데이트 완료 - roomCode: {}, messageId: {}", roomCode, latestMessageId);
                 }
@@ -812,19 +748,6 @@ public class AIChatServiceImpl implements AIChatService {
         } else {
             return currentReadStatus.substring(0, currentReadStatus.length() - 1) + 
                    ",\"AI\":\"" + lastReadMessageId + "\"}";
-        }
-    }
-    
-    /**
-     * 채팅방 마지막 메시지 정보 업데이트
-     */
-    private void updateChatRoomLastMessage(String roomCode, String messageId, String content) {
-        Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByRoomCode(roomCode);
-        
-        if (chatRoomOpt.isPresent()) {
-            ChatRoom chatRoom = chatRoomOpt.get();
-            chatRoom.updateLastMessageInfo(messageId, content);
-            chatRoomRepository.save(chatRoom);
         }
     }
     
