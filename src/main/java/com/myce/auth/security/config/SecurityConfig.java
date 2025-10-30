@@ -1,5 +1,6 @@
 package com.myce.auth.security.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myce.auth.repository.RefreshTokenRepository;
 import com.myce.auth.repository.TokenBlackListRepository;
 import com.myce.auth.security.filter.CustomLogoutFilter;
@@ -14,6 +15,7 @@ import com.myce.auth.security.repository.RedisOAuth2AuthorizationRequestReposito
 import com.myce.auth.security.util.JwtUtil;
 import com.myce.auth.service.AdminCodeDetailService;
 import com.myce.auth.service.impl.UserDetailsServiceImpl;
+import com.myce.common.exception.ErrorResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -78,8 +80,14 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable) // HTTP Basic 인증
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
+                            //  HTTP 상태 코드 설정
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.getWriter().write("Unauthorized");
+                            // Content-Type을 JSON으로 설정
+                            response.setContentType("application/json;charset=UTF-8");
+                            // ErrorResponse 객체 생성
+                            ErrorResponse errorResponse = new ErrorResponse("U002", "유효하지 않은 토큰입니다.");
+                            // 객체를 JSON으로 직렬화하여 응답 본문에 작성
+                            new ObjectMapper().writeValue(response.getWriter(), errorResponse);
                         }))
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
