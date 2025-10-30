@@ -91,13 +91,13 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             // 플랫폼 관리자인 경우: 모든 플랫폼 채팅방 조회 (platform-* rooms)
             chatRooms = chatRoomRepository.findByExpoIdIsNullAndIsActiveTrueOrderByLastMessageAtDesc();
             
-            // 🆕 플랫폼 채팅방들 상태 동기화 (관리자가 목록을 볼 때 올바른 상태 표시)
+            //  플랫폼 채팅방들 상태 동기화 (관리자가 목록을 볼 때 올바른 상태 표시)
             chatRooms.forEach(room -> {
                 syncPlatformChatState(room);
-                // 🆕 상태 동기화 후 최신 정보로 캐시 업데이트
+                //  상태 동기화 후 최신 정보로 캐시 업데이트
                 if (room.getRoomCode() != null && room.getRoomCode().startsWith("platform-")) {
                     chatCacheService.cacheChatRoom(room.getRoomCode(), room);
-                    log.debug("✅ 플랫폼 채팅방 최신 상태로 캐시 업데이트 - roomCode: {}, state: {}", 
+                    log.debug(" 플랫폼 채팅방 최신 상태로 캐시 업데이트 - roomCode: {}, state: {}", 
                              room.getRoomCode(), room.getCurrentState());
                 }
             });
@@ -112,14 +112,14 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             // 플랫폼 방 포함하여 다시 조회
             chatRooms = chatRoomRepository.findByMemberIdAndIsActiveTrueOrderByLastMessageAtDesc(memberId);
             
-            // 🆕 사용자의 플랫폼 채팅방 상태 동기화
+            //  사용자의 플랫폼 채팅방 상태 동기화
             chatRooms.stream()
                 .filter(room -> room.getRoomCode() != null && room.getRoomCode().startsWith("platform-"))
                 .forEach(room -> {
                     syncPlatformChatState(room);
-                    // 🆕 상태 동기화 후 최신 정보로 캐시 업데이트
+                    //  상태 동기화 후 최신 정보로 캐시 업데이트
                     chatCacheService.cacheChatRoom(room.getRoomCode(), room);
-                    log.debug("✅ 플랫폼 채팅방 최신 상태로 캐시 업데이트 - roomCode: {}, state: {}", 
+                    log.debug(" 플랫폼 채팅방 최신 상태로 캐시 업데이트 - roomCode: {}, state: {}", 
                              room.getRoomCode(), room.getCurrentState());
                 });
         }
@@ -175,7 +175,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 AdminCode adminCode = adminCodeOpt.get();
                 if (adminCode.getExpoId().equals(expoId)) {
                     hasPermission = true;
-                    log.info("✅ AdminCode 권한으로 박람회 채팅방 접근 허용 - adminCodeId: {}, expoId: {}", adminId, expoId);
+                    log.info(" AdminCode 권한으로 박람회 채팅방 접근 허용 - adminCodeId: {}, expoId: {}", adminId, expoId);
                 }
             }
         } catch (Exception e) {
@@ -186,7 +186,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         if (!hasPermission) {
             if (expo.getMember().getId().equals(adminId)) {
                 hasPermission = true;
-                log.info("✅ Member 권한으로 박람회 채팅방 접근 허용 - memberId: {}, expoId: {}", adminId, expoId);
+                log.info(" Member 권한으로 박람회 채팅방 접근 허용 - memberId: {}, expoId: {}", adminId, expoId);
             }
         }
         
@@ -325,7 +325,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     return new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
                 });
         
-        // 🆕 1-1. 플랫폼 채팅방 상태 동기화 (메시지 이력 기반)
+        //  1-1. 플랫폼 채팅방 상태 동기화 (메시지 이력 기반)
         syncPlatformChatState(chatRoom);
         
         // 2. 사용자 권한 검증 (새로운 통합 권한 검증 로직 사용)
@@ -365,7 +365,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 String readerType = "PLATFORM_ADMIN".equals(actualRole) ? "ADMIN" : 
                                    Role.USER.name().equals(actualRole) ? "USER" : "ADMIN";
                 
-                // 🆕 WebSocket 메시지 구조를 ChatWebSocketController와 통일 (표준 구조)
+                //  WebSocket 메시지 구조를 ChatWebSocketController와 통일 (표준 구조)
                 Map<String, Object> readStatusUpdate = Map.of(
                     "type", "read_status_update",
                     "roomCode", roomCode,           // 직접 필드로 이동
@@ -429,7 +429,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 if (accessInfo != null) {
                     cacheHit = true;
                     long cacheTime = System.currentTimeMillis() - startTime;
-                    log.debug("🚀 권한 검증 캐시 히트 - roomCode: {}, userId: {}, 시간: {}ms, hasAccess: {}", 
+                    log.debug(" 권한 검증 캐시 히트 - roomCode: {}, userId: {}, 시간: {}ms, hasAccess: {}", 
                              roomCode, memberId, cacheTime, accessInfo.hasAccess());
                 }
             } catch (Exception cacheException) {
@@ -439,7 +439,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             
             // 2. 캐시 미스 또는 캐시 실패 시 기존 권한 검증 로직 실행
             if (accessInfo == null) {
-                log.debug("🔍 권한 검증 캐시 미스 - roomCode: {}, userId: {}, DB 조회 시작", roomCode, memberId);
+                log.debug(" 권한 검증 캐시 미스 - roomCode: {}, userId: {}, DB 조회 시작", roomCode, memberId);
                 accessInfo = performFullAccessValidation(roomCode, memberId, role);
                 
                 // 3. 검증 결과를 Redis에 캐싱 (실패해도 무시)
@@ -451,18 +451,18 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 }
                 
                 long totalTime = System.currentTimeMillis() - startTime;
-                log.debug("✅ 권한 검증 완료 (DB 조회) - roomCode: {}, userId: {}, 시간: {}ms, hasAccess: {}", 
+                log.debug(" 권한 검증 완료 (DB 조회) - roomCode: {}, userId: {}, 시간: {}ms, hasAccess: {}", 
                          roomCode, memberId, totalTime, accessInfo.hasAccess());
             }
             
             // 4. 권한 검증 결과 확인
             if (accessInfo == null || !accessInfo.hasAccess()) {
-                log.warn("❌ 채팅방 접근 권한 없음 - roomCode: {}, userId: {}, role: {}, cacheHit: {}", 
+                log.warn(" 채팅방 접근 권한 없음 - roomCode: {}, userId: {}, role: {}, cacheHit: {}", 
                         roomCode, memberId, role, cacheHit);
                 throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
             }
             
-            log.debug("✅ 채팅방 접근 허용 - roomCode: {}, userId: {}, accessLevel: {}", 
+            log.debug(" 채팅방 접근 허용 - roomCode: {}, userId: {}, accessLevel: {}", 
                      roomCode, memberId, accessInfo.getAccessLevel());
             
         } catch (IllegalArgumentException e) {
@@ -482,7 +482,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
      * 전체 권한 검증 로직 (캐시 미스 시 실행)
      */
     private ChatRoomAccessCacheService.ChatRoomAccessInfo performFullAccessValidation(String roomCode, Long memberId, Role role) {
-        log.debug("🔍 [권한검증] 시작 - roomCode: {}, memberId: {}, role: {}", roomCode, memberId, role);
+        log.debug(" [권한검증] 시작 - roomCode: {}, memberId: {}, role: {}", roomCode, memberId, role);
         
         // 1. 채팅방 조회
         ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
@@ -491,16 +491,16 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     return new CustomException(CustomErrorCode.CHAT_ROOM_NOT_FOUND);
                 });
         
-        log.debug("🔍 [권한검증] ChatRoom 정보 - roomCode: {}, memberId: {}, expoId: {}", 
+        log.debug(" [권한검증] ChatRoom 정보 - roomCode: {}, memberId: {}, expoId: {}", 
                  chatRoom.getRoomCode(), chatRoom.getMemberId(), chatRoom.getExpoId());
         
         // 2. 플랫폼 채팅방인 경우
         if (chatRoom.getExpoId() == null) {
-            log.debug("🔍 [권한검증] 플랫폼 채팅방 검증 시작");
+            log.debug(" [권한검증] 플랫폼 채팅방 검증 시작");
             
             // 플랫폼 관리자는 모든 플랫폼 채팅방 접근 가능
             if (Role.PLATFORM_ADMIN.equals(role)) {
-                log.info("✅ 플랫폼 관리자가 플랫폼 채팅방 접근 - roomCode: {}, adminId: {}", roomCode, memberId);
+                log.info(" 플랫폼 관리자가 플랫폼 채팅방 접근 - roomCode: {}, adminId: {}", roomCode, memberId);
                 return ChatRoomAccessCacheService.ChatRoomAccessInfo.builder()
                     .hasAccess(true)
                     .accessLevel("PLATFORM_ADMIN")
@@ -510,11 +510,11 @@ public class ChatRoomServiceImpl implements ChatRoomService {
             }
             
             // 일반 사용자는 본인 채팅방만 접근 가능
-            log.debug("🔍 [권한검증] 플랫폼 채팅방 본인 확인 - chatRoom.memberId: {}, 요청자memberId: {}", 
+            log.debug(" [권한검증] 플랫폼 채팅방 본인 확인 - chatRoom.memberId: {}, 요청자memberId: {}", 
                      chatRoom.getMemberId(), memberId);
             
             if (chatRoom.getMemberId().equals(memberId)) {
-                log.info("✅ 사용자가 본인 플랫폼 채팅방 접근 - roomCode: {}, userId: {}", roomCode, memberId);
+                log.info(" 사용자가 본인 플랫폼 채팅방 접근 - roomCode: {}, userId: {}", roomCode, memberId);
                 return ChatRoomAccessCacheService.ChatRoomAccessInfo.builder()
                     .hasAccess(true)
                     .accessLevel("USER")
@@ -522,32 +522,32 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     .adminCode(null)
                     .build();
             } else {
-                log.warn("❌ [권한검증] 플랫폼 채팅방 본인 확인 실패 - chatRoom.memberId: {} != 요청자memberId: {}", 
+                log.warn(" [권한검증] 플랫폼 채팅방 본인 확인 실패 - chatRoom.memberId: {} != 요청자memberId: {}", 
                         chatRoom.getMemberId(), memberId);
             }
         }
         
         // 3. 박람회 채팅방인 경우
         if (chatRoom.getExpoId() != null) {
-            log.debug("🔍 [권한검증] 박람회 채팅방 검증 시작 - expoId: {}", chatRoom.getExpoId());
+            log.debug(" [권한검증] 박람회 채팅방 검증 시작 - expoId: {}", chatRoom.getExpoId());
             
             // 3-1. 박람회 관리자 권한 확인 (AdminCode 또는 Owner)
             if (Role.EXPO_ADMIN.equals(role)) {
-                log.debug("🔍 [권한검증] EXPO_ADMIN 역할 - AdminCode 권한 확인 시작");
+                log.debug(" [권한검증] EXPO_ADMIN 역할 - AdminCode 권한 확인 시작");
                 
                 // AdminCode 권한 확인
                 try {
                     Optional<AdminCode> adminCodeOpt = adminCodeRepository.findById(memberId);
-                    log.debug("🔍 [권한검증] AdminCode 조회 결과 - memberId: {}, 존재여부: {}", 
+                    log.debug(" [권한검증] AdminCode 조회 결과 - memberId: {}, 존재여부: {}", 
                              memberId, adminCodeOpt.isPresent());
                     
                     if (adminCodeOpt.isPresent()) {
                         AdminCode adminCode = adminCodeOpt.get();
-                        log.debug("🔍 [권한검증] AdminCode 상세 - adminCodeId: {}, code: {}, adminCode.expoId: {}, chatRoom.expoId: {}", 
+                        log.debug(" [권한검증] AdminCode 상세 - adminCodeId: {}, code: {}, adminCode.expoId: {}, chatRoom.expoId: {}", 
                                  memberId, adminCode.getCode(), adminCode.getExpoId(), chatRoom.getExpoId());
                         
                         if (adminCode.getExpoId().equals(chatRoom.getExpoId())) {
-                            log.info("✅ AdminCode 권한으로 박람회 채팅방 접근 - roomCode: {}, adminCodeId: {}, expoId: {}", 
+                            log.info(" AdminCode 권한으로 박람회 채팅방 접근 - roomCode: {}, adminCodeId: {}, expoId: {}", 
                                     roomCode, memberId, chatRoom.getExpoId());
                             return ChatRoomAccessCacheService.ChatRoomAccessInfo.builder()
                                 .hasAccess(true)
@@ -556,26 +556,26 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                                 .adminCode(adminCode.getCode())
                                 .build();
                         } else {
-                            log.debug("🔍 [권한검증] AdminCode expoId 불일치 - adminCode.expoId: {} != chatRoom.expoId: {}", 
+                            log.debug(" [권한검증] AdminCode expoId 불일치 - adminCode.expoId: {} != chatRoom.expoId: {}", 
                                      adminCode.getExpoId(), chatRoom.getExpoId());
                         }
                     }
                 } catch (Exception e) {
-                    log.debug("🔍 [권한검증] AdminCode 권한 확인 실패, Member 권한으로 시도 - adminId: {}, error: {}", 
+                    log.debug(" [권한검증] AdminCode 권한 확인 실패, Member 권한으로 시도 - adminId: {}, error: {}", 
                              memberId, e.getMessage());
                 }
                 
                 // Owner 권한 확인
-                log.debug("🔍 [권한검증] Member Owner 권한 확인 시작");
+                log.debug(" [권한검증] Member Owner 권한 확인 시작");
                 try {
                     Expo expo = expoRepository.findById(chatRoom.getExpoId())
                             .orElseThrow(() -> new CustomException(CustomErrorCode.EXPO_NOT_EXIST));
                     
-                    log.debug("🔍 [권한검증] Expo Owner 확인 - expo.memberId: {}, 요청자memberId: {}", 
+                    log.debug(" [권한검증] Expo Owner 확인 - expo.memberId: {}, 요청자memberId: {}", 
                              expo.getMember().getId(), memberId);
                     
                     if (expo.getMember().getId().equals(memberId)) {
-                        log.info("✅ Member 권한으로 박람회 채팅방 접근 - roomCode: {}, memberId: {}, expoId: {}", 
+                        log.info(" Member 권한으로 박람회 채팅방 접근 - roomCode: {}, memberId: {}, expoId: {}", 
                                 roomCode, memberId, chatRoom.getExpoId());
                         return ChatRoomAccessCacheService.ChatRoomAccessInfo.builder()
                             .hasAccess(true)
@@ -584,21 +584,21 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                             .adminCode("OWNER")
                             .build();
                     } else {
-                        log.debug("🔍 [권한검증] Member Owner 권한 실패 - expo.memberId: {} != 요청자memberId: {}", 
+                        log.debug(" [권한검증] Member Owner 권한 실패 - expo.memberId: {} != 요청자memberId: {}", 
                                  expo.getMember().getId(), memberId);
                     }
                 } catch (Exception e) {
-                    log.error("🔍 [권한검증] 박람회 정보 조회 실패 - expoId: {}, error: {}", chatRoom.getExpoId(), e.getMessage());
+                    log.error(" [권한검증] 박람회 정보 조회 실패 - expoId: {}, error: {}", chatRoom.getExpoId(), e.getMessage());
                 }
             }
             
             // 3-2. 일반 사용자와 EXPO_ADMIN(유저로서)은 본인이 참여한 채팅방만 접근 가능
-            log.debug("🔍 [권한검증] 일반 사용자 권한 확인 - role: {}, chatRoom.memberId: {}, 요청자memberId: {}", 
+            log.debug(" [권한검증] 일반 사용자 권한 확인 - role: {}, chatRoom.memberId: {}, 요청자memberId: {}", 
                      role, chatRoom.getMemberId(), memberId);
             
             if ((Role.USER.equals(role) || Role.EXPO_ADMIN.equals(role)) 
                 && chatRoom.getMemberId().equals(memberId)) {
-                log.info("✅ 사용자가 본인 박람회 채팅방 접근 - roomCode: {}, userId: {}, role: {}", 
+                log.info(" 사용자가 본인 박람회 채팅방 접근 - roomCode: {}, userId: {}, role: {}", 
                         roomCode, memberId, role);
                 return ChatRoomAccessCacheService.ChatRoomAccessInfo.builder()
                     .hasAccess(true)
@@ -607,7 +607,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     .adminCode(null)
                     .build();
             } else {
-                log.warn("❌ [권한검증] 일반 사용자 권한 실패 - role: {}, chatRoom.memberId: {} != 요청자memberId: {}", 
+                log.warn(" [권한검증] 일반 사용자 권한 실패 - role: {}, chatRoom.memberId: {} != 요청자memberId: {}", 
                         role, chatRoom.getMemberId(), memberId);
             }
         }
@@ -718,9 +718,9 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     private String determineActualRoleInChatRoom(String roomCode, Long memberId, String memberRole) {
         // 플랫폼 채팅방인 경우
         if (roomCode.startsWith("platform-")) {
-            // 🆕 플랫폼 관리자면 명확히 PLATFORM_ADMIN으로 구분, 아니면 USER
+            //  플랫폼 관리자면 명확히 PLATFORM_ADMIN으로 구분, 아니면 USER
             if (Role.PLATFORM_ADMIN.name().equals(memberRole)) {
-                log.debug("🔍 플랫폼 채팅방에서 플랫폼 관리자 역할 확인 - roomCode: {}, memberId: {}", roomCode, memberId);
+                log.debug(" 플랫폼 채팅방에서 플랫폼 관리자 역할 확인 - roomCode: {}, memberId: {}", roomCode, memberId);
                 return "PLATFORM_ADMIN";
             } else {
                 return "USER";
@@ -748,7 +748,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                             if (adminCodeOpt.isPresent()) {
                                 AdminCode adminCode = adminCodeOpt.get();
                                 if (adminCode.getExpoId().equals(expoId)) {
-                                    log.debug("✅ AdminCode 관리자 역할 확인 - memberId: {}, expoId: {}", memberId, expoId);
+                                    log.debug(" AdminCode 관리자 역할 확인 - memberId: {}, expoId: {}", memberId, expoId);
                                     return "ADMIN";
                                 }
                             }
@@ -760,7 +760,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                         try {
                             Optional<Expo> expoOpt = expoRepository.findById(expoId);
                             if (expoOpt.isPresent() && expoOpt.get().getMember().getId().equals(memberId)) {
-                                log.debug("✅ 박람회 소유자 역할 확인 - memberId: {}, expoId: {}", memberId, expoId);
+                                log.debug(" 박람회 소유자 역할 확인 - memberId: {}, expoId: {}", memberId, expoId);
                                 return "ADMIN";
                             }
                         } catch (Exception e) {
@@ -769,7 +769,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     }
                     
                     // 위의 모든 검증을 통과하지 못하면 USER로 간주
-                    log.debug("❌ 관리자 권한 없음 - USER로 처리 - memberId: {}, expoId: {}, memberRole: {}", 
+                    log.debug(" 관리자 권한 없음 - USER로 처리 - memberId: {}, expoId: {}, memberRole: {}", 
                              memberId, expoId, memberRole);
                     return Role.USER.name();
                 }
@@ -797,7 +797,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 
                 // 2. currentState가 명시적으로 설정되어 있으면 그것을 우선적으로 사용
                 if (storedState != null) {
-                    log.debug("🔍 플랫폼 채팅방 상태 결정 (DB 우선) - roomCode: {}, storedState: {}", roomCode, storedState);
+                    log.debug(" 플랫폼 채팅방 상태 결정 (DB 우선) - roomCode: {}, storedState: {}", roomCode, storedState);
                     return storedState;
                 }
                 
@@ -805,7 +805,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 List<String> realAdminSenderTypes = List.of("ADMIN", "PLATFORM_ADMIN"); // SYSTEM 제외!
                 long realAdminMessageCount = chatMessageRepository.countByRoomCodeAndSenderTypeIn(roomCode, realAdminSenderTypes);
                 
-                log.debug("🔍 플랫폼 채팅방 상태 결정 (메시지 기반) - roomCode: {}, realAdminMessageCount: {} (SYSTEM 제외)", roomCode, realAdminMessageCount);
+                log.debug(" 플랫폼 채팅방 상태 결정 (메시지 기반) - roomCode: {}, realAdminMessageCount: {} (SYSTEM 제외)", roomCode, realAdminMessageCount);
                 
                 // 실제 관리자 메시지만 확인 (SYSTEM 메시지는 상태 판단에서 제외)
                 return realAdminMessageCount > 0 ? 
@@ -839,7 +839,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 chatRoom.setCurrentState(actualState);
                 chatRoomRepository.save(chatRoom);
                 
-                log.debug("✅ 플랫폼 채팅방 상태 업데이트 완료 - roomCode: {}, newState: {}", 
+                log.debug(" 플랫폼 채팅방 상태 업데이트 완료 - roomCode: {}, newState: {}", 
                          chatRoom.getRoomCode(), actualState);
             }
         }

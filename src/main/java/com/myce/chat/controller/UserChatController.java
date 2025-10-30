@@ -42,7 +42,7 @@ public class UserChatController {
             @PathVariable Long expoId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         
-        log.info("🟡 UserChatController.getOrCreateExpoChatRoom called - expoId: {}, userId: {}", 
+        log.info(" UserChatController.getOrCreateExpoChatRoom called - expoId: {}, userId: {}", 
                 expoId, userDetails.getMemberId());
         
         Map<String, Object> chatRoom = chatService.getOrCreateExpoChatRoom(expoId, userDetails);

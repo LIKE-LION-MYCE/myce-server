@@ -122,10 +122,10 @@ public class ChatCacheServiceImpl implements ChatCacheService {
             // TTL 갱신
             redisTemplate.expire(key, CACHE_TTL);
             
-            log.debug("✅ 실시간 메시지 캐시 추가 - roomCode: {}, messageId: {}", roomCode, message.getId());
+            log.debug("Real-time message cached - roomCode: {}, messageId: {}", roomCode, message.getId());
             
         } catch (Exception e) {
-            log.error("❌ 메시지 캐시 추가 실패 - roomCode: {}, error: {}", roomCode, e.getMessage(), e);
+            log.error("Failed to add message cache - roomCode: {}, error: {}", roomCode, e.getMessage(), e);
         }
         
         return CompletableFuture.completedFuture(null);
@@ -394,11 +394,11 @@ public class ChatCacheServiceImpl implements ChatCacheService {
                     chatRoom = objectMapper.convertValue(cachedData, ChatRoom.class);
                 }
                 
-                log.debug("🚀 ChatRoom 캐시 히트 - roomCode: {}", roomCode);
+                log.debug("ChatRoom cache hit - roomCode: {}", roomCode);
                 return chatRoom;
             }
             
-            log.debug("🔍 ChatRoom 캐시 미스 - roomCode: {}", roomCode);
+            log.debug("ChatRoom cache miss - roomCode: {}", roomCode);
             return null;
             
         } catch (Exception e) {
@@ -419,7 +419,7 @@ public class ChatCacheServiceImpl implements ChatCacheService {
             // 30분 TTL (ChatRoom 정보는 상대적으로 오래 유지)
             redisTemplate.opsForValue().set(key, jsonValue, Duration.ofMinutes(30));
             
-            log.debug("✅ ChatRoom 캐시 저장 - roomCode: {}", roomCode);
+            log.debug("ChatRoom cached - roomCode: {}", roomCode);
             
         } catch (Exception e) {
             log.error("ChatRoom 캐시 저장 실패 - roomCode: {}, error: {}", roomCode, e.getMessage(), e);

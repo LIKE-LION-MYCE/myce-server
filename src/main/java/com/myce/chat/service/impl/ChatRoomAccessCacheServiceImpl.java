@@ -30,6 +30,14 @@ public class ChatRoomAccessCacheServiceImpl implements ChatRoomAccessCacheServic
     // 캐시 설정 상수
     private static final Duration ACCESS_CACHE_TTL = Duration.ofMinutes(10); // 10분 TTL
 
+    /**
+     * 채팅방 접근 권한 캐시 조회
+     *
+     * @param roomCode 채팅방 코드
+     * @param userId 사용자 ID
+     * @param userRole 사용자 역할
+     * @return 캐시된 접근 권한 정보, 없으면 null
+     */
     @Override
     public ChatRoomAccessInfo getCachedAccessInfo(String roomCode, Long userId, Role userRole) {
         try {
@@ -37,8 +45,8 @@ public class ChatRoomAccessCacheServiceImpl implements ChatRoomAccessCacheServic
             Object cachedData = redisTemplate.opsForValue().get(cacheKey);
             
             if (cachedData != null) {
-                log.debug("🔍 Raw cached data type: {}, value: {}", cachedData.getClass().getSimpleName(), cachedData);
-                
+                log.debug("Cached data type: {}, value: {}", cachedData.getClass().getSimpleName(), cachedData);
+
                 ChatRoomAccessInfo accessInfo;
                 if (cachedData instanceof String) {
                     // String 형태로 저장된 경우 JSON 파싱
@@ -47,13 +55,13 @@ public class ChatRoomAccessCacheServiceImpl implements ChatRoomAccessCacheServic
                     // Object 형태로 저장된 경우 convertValue 사용
                     accessInfo = objectMapper.convertValue(cachedData, ChatRoomAccessInfo.class);
                 }
-                
-                log.debug("🚀 권한 캐시 히트 - roomCode: {}, userId: {}, accessInfo: {}", 
+
+                log.debug("Access permission cache hit - roomCode: {}, userId: {}, accessInfo: {}",
                          roomCode, userId, accessInfo.toString());
                 return accessInfo;
             }
-            
-            log.debug("🔍 권한 캐시 미스 - roomCode: {}, userId: {}, key: {}", roomCode, userId, cacheKey);
+
+            log.debug("Access permission cache miss - roomCode: {}, userId: {}, key: {}", roomCode, userId, cacheKey);
             return null;
             
         } catch (Exception e) {
@@ -63,6 +71,14 @@ public class ChatRoomAccessCacheServiceImpl implements ChatRoomAccessCacheServic
         }
     }
 
+    /**
+     * 채팅방 접근 권한 캐싱
+     *
+     * @param roomCode 채팅방 코드
+     * @param userId 사용자 ID
+     * @param userRole 사용자 역할
+     * @param accessInfo 캐싱할 접근 권한 정보
+     */
     @Override
     public void cacheAccessInfo(String roomCode, Long userId, Role userRole, ChatRoomAccessInfo accessInfo) {
         try {
@@ -72,9 +88,8 @@ public class ChatRoomAccessCacheServiceImpl implements ChatRoomAccessCacheServic
             String jsonValue = objectMapper.writeValueAsString(accessInfo);
             redisTemplate.opsForValue().set(cacheKey, jsonValue, ACCESS_CACHE_TTL);
             
-            log.debug("✅ 권한 캐시 저장 - roomCode: {}, userId: {}, key: {}, accessInfo: {}", 
+            log.debug("Access permission cached - roomCode: {}, userId: {}, key: {}, accessInfo: {}",
                      roomCode, userId, cacheKey, accessInfo.toString());
-            log.debug("📝 저장된 JSON: {}", jsonValue);
                      
         } catch (Exception e) {
             log.error("권한 캐시 저장 실패 - roomCode: {}, userId: {}, error: {}", 
@@ -82,6 +97,11 @@ public class ChatRoomAccessCacheServiceImpl implements ChatRoomAccessCacheServic
         }
     }
 
+    /**
+     * 사용자별 접근 권한 캐시 무효화
+     *
+     * @param userId 사용자 ID
+     */
     @Override
     public void invalidateUserAccessCache(Long userId) {
         try {
@@ -90,7 +110,7 @@ public class ChatRoomAccessCacheServiceImpl implements ChatRoomAccessCacheServic
             
             if (keysToDelete != null && !keysToDelete.isEmpty()) {
                 redisTemplate.delete(keysToDelete);
-                log.debug("🗑️ 사용자 권한 캐시 무효화 완료 - userId: {}, 삭제된 키: {}", userId, keysToDelete.size());
+                log.debug("User access cache invalidated - userId: {}, deleted keys: {}", userId, keysToDelete.size());
             }
             
         } catch (Exception e) {
@@ -98,6 +118,11 @@ public class ChatRoomAccessCacheServiceImpl implements ChatRoomAccessCacheServic
         }
     }
 
+    /**
+     * 채팅방별 접근 권한 캐시 무효화
+     *
+     * @param roomCode 채팅방 코드
+     */
     @Override
     public void invalidateRoomAccessCache(String roomCode) {
         try {
@@ -106,7 +131,7 @@ public class ChatRoomAccessCacheServiceImpl implements ChatRoomAccessCacheServic
             
             if (keysToDelete != null && !keysToDelete.isEmpty()) {
                 redisTemplate.delete(keysToDelete);
-                log.debug("🗑️ 채팅방 권한 캐시 무효화 완료 - roomCode: {}, 삭제된 키: {}", roomCode, keysToDelete.size());
+                log.debug("Room access cache invalidated - roomCode: {}, deleted keys: {}", roomCode, keysToDelete.size());
             }
             
         } catch (Exception e) {
