@@ -9,7 +9,7 @@ public interface TicketService {
   public List<TicketSummaryResponse> getTickets(Long expoId);
 
   // 티켓 수량 빼기
-  void updateRemainingQuantity(TicketQuantityRequest request);
+  void updateRemainingQuantity(Long ticketId, Integer quantity);
   
   // 티켓 수량 복구 (가상계좌 만료 시)
   void restoreTicketQuantity(Long ticketId, Integer quantity);

@@ -1,12 +1,12 @@
-package com.myce.auth.security.repository;
+package com.myce.auth.repository.impl;
 
+import com.myce.auth.repository.OAuth2AuthorizationRequestRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
@@ -17,7 +17,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -27,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RedisOAuth2AuthorizationRequestRepository implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
+public class OAuth2AuthorizationRequestRepositoryImpl implements OAuth2AuthorizationRequestRepository {
 
     private static final String AUTHORIZATION_REQUEST_COOKIE_NAME = "oauth2_auth_request";
     private static final String REDIS_KEY_PREFIX = "oauth2:authorization:";

@@ -20,7 +20,7 @@ public class TicketController {
   public ResponseEntity<Void> updateRemainingQuantity(
       @RequestBody @Valid TicketQuantityRequest request
   ){
-    ticketService.updateRemainingQuantity(request);
+    ticketService.updateRemainingQuantity(request.getTicketId(), request.getQuantity());
     return ResponseEntity.ok().build();
   }
 }

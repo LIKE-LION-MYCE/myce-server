@@ -3,7 +3,7 @@ package com.myce.payment.service.impl;
 import com.myce.common.exception.CustomErrorCode;
 import com.myce.common.exception.CustomException;
 import com.myce.payment.dto.PaymentRefundRequest;
-import com.myce.payment.dto.PaymentVerifyRequest;
+import com.myce.payment.dto.PaymentVerifyInfo;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.PortOneWebhookRequest;
 import com.myce.payment.entity.AdPaymentInfo;
@@ -31,7 +31,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public PaymentVerifyResponse verifyPayment(PaymentVerifyRequest request) {
+    public PaymentVerifyResponse verifyPayment(PaymentVerifyInfo request) {
         return paymentVerificationService.verifyPayment(request);
     }
 
@@ -43,7 +43,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public PaymentVerifyResponse verifyVbankPayment(PaymentVerifyRequest request) {
+    public PaymentVerifyResponse verifyVbankPayment(PaymentVerifyInfo request) {
         return paymentVerificationService.verifyVbankPayment(request);
     }
 

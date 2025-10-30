@@ -36,13 +36,14 @@ public class TicketServiceImpl implements TicketService {
         .toList();
   }
 
+  // 티켓 수량 동시성 확인 및 restore과 동일하게 ticketId와 quantity로 인자값 처리
   @Transactional
   @Override
-  public void updateRemainingQuantity(TicketQuantityRequest request) {
-    Ticket ticket = ticketRepository.findById(request.getTicketId())
+  public void updateRemainingQuantity(Long ticketId, Integer quantity) {
+    Ticket ticket = ticketRepository.findById(ticketId)
         .orElseThrow(() -> new CustomException(CustomErrorCode.TICKET_NOT_EXIST));
 
-    ticket.updateRemainingQuantity(ticket.getRemainingQuantity() - request.getQuantity());
+    ticket.updateRemainingQuantity(ticket.getRemainingQuantity() - quantity);
   }
   
   @Transactional

@@ -39,6 +39,7 @@ public class PortOneApiServiceImpl implements PortOneApiService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
+        // TODO MultiValueMap을 사용한 이유?
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("imp_key", portOneConfig.getApiKey());
         body.add("imp_secret", portOneConfig.getApiSecret());
@@ -71,7 +72,9 @@ public class PortOneApiServiceImpl implements PortOneApiService {
     
     // 결제 내역 조회
     @Override
-    public Map<String, Object> getPaymentInfo(String impUid, String accessToken) {
+    public Map<String, Object> getPaymentInfo(String impUid) {
+        String accessToken = getAccessToken();
+        // TODO 포트원URL yml로 분리
         String url = "https://api.iamport.kr/payments/" + impUid;
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);

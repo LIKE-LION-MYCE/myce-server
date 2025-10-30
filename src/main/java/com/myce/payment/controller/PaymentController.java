@@ -2,7 +2,7 @@ package com.myce.payment.controller;
 
 import com.myce.payment.dto.AdPaymentInfoStatusUpdateRequest;
 import com.myce.payment.dto.PaymentImpUidForRefundRequest;
-import com.myce.payment.dto.PaymentVerifyRequest;
+import com.myce.payment.dto.PaymentVerifyInfo;
 import com.myce.payment.dto.PaymentVerifyResponse;
 import com.myce.payment.dto.PaymentRefundRequest;
 import com.myce.payment.dto.PortOneWebhookRequest;
@@ -30,7 +30,7 @@ public class PaymentController {
   // 결제 검증 API (POST 방식)
   @PostMapping("/verify")
   public ResponseEntity<PaymentVerifyResponse> verifyPayment(
-      @RequestBody PaymentVerifyRequest request) {
+      @RequestBody PaymentVerifyInfo request) {
     PaymentVerifyResponse response = paymentService.verifyPayment(request);
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
@@ -46,7 +46,7 @@ public class PaymentController {
   // 가상계좌 확인 및 PENDING 상태 저장 API
   @PostMapping("/verify-vbank")
   public ResponseEntity<PaymentVerifyResponse> verifyVbankPayment(
-      @RequestBody PaymentVerifyRequest request) {
+      @RequestBody PaymentVerifyInfo request) {
     PaymentVerifyResponse response = paymentService.verifyVbankPayment(request);
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
@@ -98,7 +98,7 @@ public class PaymentController {
   public ResponseEntity<PaymentVerifyResponse> verifyReservationVbankPayment(
       @RequestBody ReservationPaymentVerifyRequest request) {
     log.info("박람회 가상계좌 통합 결제 검증 시작 - reservationId: {}", request.getTargetId());
-    PaymentVerifyResponse response = reservationPaymentService.verifyAndCompleteVbankReservationPayment(request);
+    PaymentVerifyResponse response = reservationPaymentService.verifyAndPendingVbankReservationPayment(request);
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 }

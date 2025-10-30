@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class PaymentVerifyRequest {
+public class PaymentVerifyInfo {
   private String impUid;
   private String merchantUid;
   private Integer amount;
