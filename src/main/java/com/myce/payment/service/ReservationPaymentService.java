@@ -21,5 +21,5 @@ public interface ReservationPaymentService {
     /**
      * 가상계좌 박람회 예약 결제 검증 및 처리
      */
-    PaymentVerifyResponse verifyAndCompleteVbankReservationPayment(ReservationPaymentVerifyRequest request);
+    PaymentVerifyResponse verifyAndPendingVbankReservationPayment(ReservationPaymentVerifyRequest request);
 }

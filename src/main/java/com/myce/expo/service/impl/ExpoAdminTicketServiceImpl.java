@@ -87,7 +87,6 @@ public class ExpoAdminTicketServiceImpl implements ExpoAdminTicketService {
 
         if(!ticket.getExpo().getId().equals(expoId)){
             throw new CustomException(CustomErrorCode.TICKET_NOT_BELONG_TO_EXPO);
-
         }
 
         ensureTicketEditable(ticket);

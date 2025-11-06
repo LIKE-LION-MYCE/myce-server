@@ -3,40 +3,23 @@ package com.myce.schedule.jobs;
 import com.myce.expo.entity.Expo;
 import com.myce.expo.entity.type.ExpoStatus;
 import com.myce.expo.repository.ExpoRepository;
-import com.myce.notification.document.Notification;
-import com.myce.notification.entity.type.NotificationType;
-import com.myce.notification.entity.type.NotificationTargetType;
-import com.myce.notification.repository.NotificationRepository;
 import com.myce.notification.service.NotificationService;
-import com.myce.notification.service.SseService;
-import com.myce.qrcode.service.QrCodeService;
 import com.myce.qrcode.repository.QrCodeRepository;
-import com.myce.reservation.entity.Reservation;
-import com.myce.reservation.entity.code.UserType;
+import com.myce.qrcode.service.QrCodeService;
 import com.myce.reservation.entity.Reserver;
 import com.myce.reservation.repository.ReservationRepository;
 import com.myce.reservation.repository.ReserverRepository;
-import com.myce.system.entity.MessageTemplateSetting;
-import com.myce.system.entity.type.ChannelType;
-import com.myce.system.entity.type.MessageTemplateCode;
-import com.myce.system.repository.MessageTemplateSettingRepository;
-import com.myce.common.exception.CustomErrorCode;
-import com.myce.common.exception.CustomException;
 import com.myce.schedule.TaskScheduler;
+import jakarta.annotation.PostConstruct;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
-
-import jakarta.annotation.PostConstruct;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -121,8 +104,7 @@ public class ExpoQrGenerateScheduler implements TaskScheduler {
                 processedReservations.add(reserver.getReservation().getId());
                 successCount++;
             } catch (Exception e) {
-                log.error("QR코드 생성 실패 - 예약자 ID: {}, 오류: {}", 
-                        reserver.getId(), e.getMessage());
+                log.error("QR코드 생성 실패 - 예약자 ID: {}, 오류: {}", reserver.getId(), e.getMessage());
                 failCount++;
             }
         }
