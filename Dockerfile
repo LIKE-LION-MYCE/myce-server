@@ -1,5 +1,5 @@
 # Production Docker image for MYCE backend
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jre-jammy
 
 # Install curl for health checks only (AWS CLI no longer needed)
 RUN apt-get update && apt-get install -y \
