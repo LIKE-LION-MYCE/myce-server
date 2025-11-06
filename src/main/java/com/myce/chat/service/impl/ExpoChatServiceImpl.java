@@ -287,7 +287,7 @@ public class ExpoChatServiceImpl implements ExpoChatService {
                 throw new AccessDeniedException("문의 보기 권한이 없습니다");
             }
             
-            log.info("✅ Expo 채팅 권한 검증 완료 - adminCode: {}, permission null: {}, isInquiryView: {}", 
+            log.info(" Expo 채팅 권한 검증 완료 - adminCode: {}, permission null: {}, isInquiryView: {}", 
                     adminCode.getCode(), 
                     adminCode.getAdminPermission() == null,
                     adminCode.getAdminPermission() != null ? adminCode.getAdminPermission().getIsInquiryView() : "N/A");
@@ -378,7 +378,7 @@ public class ExpoChatServiceImpl implements ExpoChatService {
             
             // Redis에서 전체 배지 카운트 조회 (5ms 이내)
             Long totalBadgeCount = chatCacheService.getBadgeCount(userId);
-            log.debug("✅ Redis 배지 카운트 조회 - userId: {}, count: {}", userId, totalBadgeCount);
+            log.debug(" Redis 배지 카운트 조회 - userId: {}, count: {}", userId, totalBadgeCount);
             
             if (totalBadgeCount == 0) {
                 return Map.of(
@@ -427,13 +427,13 @@ public class ExpoChatServiceImpl implements ExpoChatService {
             result.put("unreadCounts", unreadCounts);
             result.put("totalUnreadCount", totalBadgeCount.intValue());
             
-            log.debug("✅ 전체 미읽음 카운트 조회 완료 - userId: {}, total: {}, rooms: {}", 
+            log.debug(" 전체 미읽음 카운트 조회 완료 - userId: {}, total: {}, rooms: {}", 
                      userId, totalBadgeCount, unreadCounts.size());
             
             return result;
             
         } catch (Exception e) {
-            log.error("❌ 사용자 전체 읽지 않은 메시지 수 조회 실패 - userId: {}", userDetails.getMemberId(), e);
+            log.error(" 사용자 전체 읽지 않은 메시지 수 조회 실패 - userId: {}", userDetails.getMemberId(), e);
             // 에러 시 기존 방식으로 폴백
             return getAllUnreadCountsForUserFallback(userDetails);
         }
@@ -468,7 +468,7 @@ public class ExpoChatServiceImpl implements ExpoChatService {
             return Map.of("unreadCounts", unreadCounts, "totalUnreadCount", totalUnreadCount);
             
         } catch (Exception e) {
-            log.error("❌ 폴백 메서드도 실패 - userId: {}", userDetails.getMemberId(), e);
+            log.error(" 폴백 메서드도 실패 - userId: {}", userDetails.getMemberId(), e);
             return Map.of("totalUnreadCount", 0, "unreadCounts", List.of());
         }
     }
@@ -526,7 +526,7 @@ public class ExpoChatServiceImpl implements ExpoChatService {
         ChatRoom existingRoom = chatRoomRepository.findByRoomCode(roomCode).orElse(null);
         
         if (existingRoom != null) {
-            log.info("✅ 기존 채팅방 조회 성공 - roomCode: {}", roomCode);
+            log.info(" 기존 채팅방 조회 성공 - roomCode: {}", roomCode);
             
             // 기존 채팅방 재활성화 (필요한 경우)
             if (!existingRoom.getIsActive()) {
@@ -548,7 +548,7 @@ public class ExpoChatServiceImpl implements ExpoChatService {
                 .build();
         
         ChatRoom savedRoom = chatRoomRepository.save(newRoom);
-        log.info("✨ 새 박람회 채팅방 생성 완료 - roomCode: {}, expoTitle: {}", roomCode, expo.getTitle());
+        log.info(" 새 박람회 채팅방 생성 완료 - roomCode: {}, expoTitle: {}", roomCode, expo.getTitle());
         
         // 6. AI 환영 메시지 생성 (선택사항 - 필요시 구현)
         // createWelcomeMessage(savedRoom, expo, member);

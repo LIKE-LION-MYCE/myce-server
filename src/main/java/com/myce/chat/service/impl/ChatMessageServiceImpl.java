@@ -114,14 +114,13 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                     finalChatRoom = dbChatRoom;
                 }
                 long chatRoomEndTime = System.currentTimeMillis();
-                log.debug("🚀 Redis경로 ChatRoom 조회 시간: {}ms - roomCode: {}", (chatRoomEndTime - chatRoomStartTime), roomCode);
+                log.debug(" Redis경로 ChatRoom 조회 시간: {}ms - roomCode: {}", (chatRoomEndTime - chatRoomStartTime), roomCode);
                 
-                // 성능 최적화: 읽음 상태를 batch로 미리 계산
-                Map<String, String> parsedReadStatus = parseReadStatusOnce(finalChatRoom);
+                // 성능 최적화: ChatRoom 재사용으로 N+1 쿼리 방지
                 List<MessageResponse> messageResponses = cachedMessages.stream()
                     .map(message -> {
-                        Integer unreadCount = chatUnreadService.getMessageUnreadCount(
-                    message.getId(), message.getSenderId(), message.getSenderType(), message.getRoomCode());
+                        // 최적화된 메서드 사용 - ChatRoom을 재사용하여 MongoDB 조회 제거
+                        Integer unreadCount = calculateMessageUnreadCountOptimized(message, finalChatRoom);
                         return ChatMessageMapper.toDto(message, unreadCount);
                     })
                     .toList();
@@ -161,14 +160,13 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             finalChatRoom = dbChatRoom;
         }
         long chatRoomEndTime = System.currentTimeMillis();
-        log.debug("🚀 MongoDB경로 ChatRoom 조회 시간: {}ms - roomCode: {}", (chatRoomEndTime - chatRoomStartTime), roomCode);
+        log.debug(" MongoDB경로 ChatRoom 조회 시간: {}ms - roomCode: {}", (chatRoomEndTime - chatRoomStartTime), roomCode);
         
-        // 성능 최적화: 읽음 상태를 batch로 미리 계산
-        Map<String, String> parsedReadStatus = parseReadStatusOnce(finalChatRoom);
+        // 성능 최적화: ChatRoom 재사용으로 N+1 쿼리 방지
         List<MessageResponse> messageResponses = messagePage.getContent().stream()
             .map(message -> {
-                Integer unreadCount = chatUnreadService.getMessageUnreadCount(
-                    message.getId(), message.getSenderId(), message.getSenderType(), message.getRoomCode());
+                // 최적화된 메서드 사용 - ChatRoom을 재사용하여 MongoDB 조회 제거
+                Integer unreadCount = calculateMessageUnreadCountOptimized(message, finalChatRoom);
                 return ChatMessageMapper.toDto(message, unreadCount);
             })
             .toList();

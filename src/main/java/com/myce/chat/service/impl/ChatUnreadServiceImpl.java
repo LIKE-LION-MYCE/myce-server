@@ -30,7 +30,7 @@ public class ChatUnreadServiceImpl implements ChatUnreadService {
     @Override
     public Long getUnreadCountForViewer(String roomCode, Long viewerId, String viewerRole) {
         try {
-            log.debug("🔍 unread count 계산 시작 - roomCode: {}, viewerId: {}, viewerRole: {}", 
+            log.debug(" unread count 계산 시작 - roomCode: {}, viewerId: {}, viewerRole: {}", 
                      roomCode, viewerId, viewerRole);
             
             // 1. 채팅방 조회
@@ -45,7 +45,7 @@ public class ChatUnreadServiceImpl implements ChatUnreadService {
             String myUserType = determineUserType(viewerRole);
             String myLastReadMessageId = extractLastReadMessageId(readStatusJson, myUserType);
             
-            log.debug("🔍 내 읽음 상태 - userType: {}, lastReadId: {}", myUserType, myLastReadMessageId);
+            log.debug(" 내 읽음 상태 - userType: {}, lastReadId: {}", myUserType, myLastReadMessageId);
             
             // 3. 내가 읽어야 할 메시지 타입 결정
             String targetSenderType = determineTargetSenderType(viewerRole, chatRoom);
@@ -55,16 +55,16 @@ public class ChatUnreadServiceImpl implements ChatUnreadService {
             if (myLastReadMessageId == null || myLastReadMessageId.isEmpty()) {
                 // 아직 아무것도 읽지 않았다면 전체 상대방 메시지 개수
                 unreadCount = chatMessageRepository.countByRoomCodeAndSenderType(roomCode, targetSenderType);
-                log.debug("🔍 아무것도 안읽음 - targetSenderType: {}, count: {}", targetSenderType, unreadCount);
+                log.debug(" 아무것도 안읽음 - targetSenderType: {}, count: {}", targetSenderType, unreadCount);
             } else {
                 // 마지막 읽은 메시지 이후의 상대방 메시지 개수
                 unreadCount = chatMessageRepository.countByRoomCodeAndSenderTypeAndIdGreaterThan(
                     roomCode, targetSenderType, myLastReadMessageId);
-                log.debug("🔍 부분 읽음 - targetSenderType: {}, lastReadId: {}, count: {}", 
+                log.debug(" 부분 읽음 - targetSenderType: {}, lastReadId: {}, count: {}", 
                          targetSenderType, myLastReadMessageId, unreadCount);
             }
             
-            log.debug("✅ unread count 계산 완료 - roomCode: {}, viewerId: {}, count: {}", 
+            log.debug(" unread count 계산 완료 - roomCode: {}, viewerId: {}, count: {}", 
                      roomCode, viewerId, unreadCount);
             return unreadCount;
             
@@ -77,7 +77,7 @@ public class ChatUnreadServiceImpl implements ChatUnreadService {
     @Override
     public Integer getMessageUnreadCount(String messageId, Long messageSenderId, String messageSenderType, String roomCode) {
         try {
-            log.debug("🔍 개별 메시지 unread count 계산 - messageId: {}, senderType: {}", messageId, messageSenderType);
+            log.debug(" 개별 메시지 unread count 계산 - messageId: {}, senderType: {}", messageId, messageSenderType);
             
             // 1. 채팅방 조회 (한 번만 조회하여 성능 최적화)
             ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode).orElse(null);
@@ -85,12 +85,12 @@ public class ChatUnreadServiceImpl implements ChatUnreadService {
                 return 1; // 안전한 기본값
             }
             
-            // 🆕 플랫폼 AI 채팅에서 USER 메시지는 항상 읽음으로 처리 (AI/관리자가 즉시 읽었다고 간주)
+            //  플랫폼 AI 채팅에서 USER 메시지는 항상 읽음으로 처리 (AI/관리자가 즉시 읽었다고 간주)
             if (roomCode != null && roomCode.startsWith("platform-") && "USER".equals(messageSenderType)) {
                 ChatRoom.ChatRoomState currentState = chatRoom.getCurrentState();
                 if (currentState == ChatRoom.ChatRoomState.AI_ACTIVE || 
                     currentState == ChatRoom.ChatRoomState.ADMIN_ACTIVE) {
-                    log.debug("✅ 플랫폼 상담 중 USER 메시지 - unreadCount 강제 0 설정 - messageId: {}, state: {}", 
+                    log.debug(" 플랫폼 상담 중 USER 메시지 - unreadCount 강제 0 설정 - messageId: {}, state: {}", 
                               messageId, currentState);
                     return 0;
                 }
@@ -114,7 +114,7 @@ public class ChatUnreadServiceImpl implements ChatUnreadService {
             boolean isRead = messageId.compareTo(readerLastReadId) <= 0;
             int result = isRead ? 0 : 1;
             
-            log.debug("🔍 개별 메시지 읽음 상태 - messageId: {}, readerType: {}, readerLastRead: {}, isRead: {}", 
+            log.debug(" 개별 메시지 읽음 상태 - messageId: {}, readerType: {}, readerLastRead: {}, isRead: {}", 
                      messageId, readerType, readerLastReadId, isRead);
             
             return result;
@@ -128,7 +128,7 @@ public class ChatUnreadServiceImpl implements ChatUnreadService {
     @Override
     public Long getTotalUnreadBadgeCount(Long userId, String userRole) {
         try {
-            log.debug("🔍 전체 배지 카운트 계산 - userId: {}, userRole: {}", userId, userRole);
+            log.debug(" 전체 배지 카운트 계산 - userId: {}, userRole: {}", userId, userRole);
             
             // 1. 사용자의 모든 활성 채팅방 조회
             List<ChatRoom> userRooms;
@@ -148,7 +148,7 @@ public class ChatUnreadServiceImpl implements ChatUnreadService {
                 totalUnread += roomUnread;
             }
             
-            log.debug("✅ 전체 배지 카운트 계산 완료 - userId: {}, totalUnread: {}", userId, totalUnread);
+            log.debug(" 전체 배지 카운트 계산 완료 - userId: {}, totalUnread: {}", userId, totalUnread);
             return totalUnread;
             
         } catch (Exception e) {

@@ -11,6 +11,8 @@ import com.myce.chat.service.ChatWebSocketService;
 import com.myce.chat.service.ChatRoomService;
 import com.myce.chat.service.ChatCacheService;
 import com.myce.chat.service.ChatUnreadService;
+import com.myce.chat.service.ChatWebSocketBroadcaster;
+import com.myce.chat.service.ChatMessageHandlerService;
 import com.myce.chat.service.mapper.ChatMessageMapper;
 import com.myce.chat.type.WebSocketMessageType;
 import com.myce.common.exception.CustomException;
@@ -54,6 +56,8 @@ public class ChatWebSocketController {
     private final ChatCacheService chatCacheService;
     private final ChatUnreadService chatUnreadService;
     private final JwtUtil jwtUtil;
+    private final ChatWebSocketBroadcaster broadcaster;
+    private final ChatMessageHandlerService messageHandler;
 
     /**
      * 인증 처리
@@ -142,212 +146,32 @@ public class ChatWebSocketController {
         try {
             userId = (Long) headerAccessor.getSessionAttributes().get("userId");
             String token = (String) headerAccessor.getSessionAttributes().get("token");
-            
+
             if (userId == null || token == null) {
                 throw new IllegalStateException("인증되지 않은 사용자");
             }
-            
+
             String roomId = (String) message.get("roomId");
             String content = (String) message.get("message");
-            
-            // DEBUGGING: Log every message send to identify infinite loop source
-            log.warn("🔥 DEBUG: sendMessage called - userId: {}, roomId: {}, content: '{}', sessionId: {}", 
-                userId, roomId, content != null ? content.substring(0, Math.min(content.length(), 50)) : "null",
-                headerAccessor.getSessionId());
-            
+
+            log.debug("메시지 전송 - userId: {}, roomId: {}", userId, roomId);
+
+            // 1. 메시지 저장
             MessageResponse messageResponse = chatWebSocketService.sendMessage(
                 userId, roomId, content, token
             );
-            
-            Map<String, Object> payload = Map.of(
-                "roomId", roomId,
-                "messageId", messageResponse.getMessageId(),
-                "senderId", messageResponse.getSenderId(),
-                "senderType", messageResponse.getSenderType(),
-                "senderName", messageResponse.getSenderName() != null ? messageResponse.getSenderName() : "사용자", // Use correct sender name
-                "content", messageResponse.getContent(),
-                "sentAt", messageResponse.getSentAt().toString()
-            );
-            
-            // Add room state information to all messages
-            ChatRoom roomForState = chatRoomRepository.findByRoomCode(roomId).orElse(null);
-            Map<String, Object> roomState = createRoomStateInfo(roomForState, "user_message");
-            
-            Map<String, Object> broadcastMessage = Map.of(
-                "type", "MESSAGE",
-                "payload", payload,
-                "roomState", roomState
-            );
-                    
-            messagingTemplate.convertAndSend(
-                "/topic/chat/" + roomId,
-                broadcastMessage
-            );
-            
-            // 🆕 상태 기반 발송자 본인 메시지 즉시 읽음 처리
-            // 데이터베이스에서 최신 채팅방 상태를 다시 조회하여 정확한 상태 확인
-            ChatRoom currentRoom = chatRoomRepository.findByRoomCode(roomId).orElse(null);
-            if (currentRoom != null) {
-                ChatRoom.ChatRoomState currentState = currentRoom.getCurrentState();
-                
-                // 플랫폼 채팅방에서 AI_ACTIVE 또는 ADMIN_ACTIVE 상태일 때 자동 읽음 처리
-                boolean shouldAutoRead = roomId.startsWith("platform-") && 
-                    (currentState == ChatRoom.ChatRoomState.AI_ACTIVE || 
-                     currentState == ChatRoom.ChatRoomState.ADMIN_ACTIVE);
-                
-                if (shouldAutoRead) {
-                    try {
-                        // 발송자 본인 메시지 즉시 읽음 처리
-                        Member sender = memberRepository.findById(userId)
-                            .orElseThrow(() -> new CustomException(CustomErrorCode.MEMBER_NOT_EXIST));
-                        String senderRole = sender.getRole().name();
-                        
-                        chatRoomService.markAsRead(roomId, messageResponse.getMessageId(), userId, senderRole);
-                        log.debug("✅ 플랫폼 상담 중 발송자 본인 메시지 읽음 처리 완료 - userId: {}, roomId: {}, state: {}, messageId: {}", 
-                                  userId, roomId, currentState, messageResponse.getMessageId());
-                        
-                        // 🆕 플랫폼 관리자가 메시지를 보낸 경우 → 해당 유저의 미읽음 메시지도 자동 읽음 처리
-                        if ("PLATFORM_ADMIN".equals(senderRole) && 
-                            currentState == ChatRoom.ChatRoomState.ADMIN_ACTIVE) {
-                            
-                            String[] roomParts = roomId.split("-");
-                            Long platformUserId = Long.parseLong(roomParts[1]);
-                            
-                            // 유저의 미읽은 메시지들을 모두 읽음 처리
-                            chatRoomService.markAsRead(roomId, messageResponse.getMessageId(), platformUserId, "USER");
-                            log.debug("✅ 플랫폼 관리자 답장으로 인한 유저 미읽음 자동 처리 완료 - platformUserId: {}, roomId: {}, messageId: {}", 
-                                      platformUserId, roomId, messageResponse.getMessageId());
-                        }
-                        
-                        // 🔔 읽음 상태 변경을 WebSocket으로 브로드캐스트
-                        Map<String, Object> readStatusUpdate = Map.of(
-                            "type", "read_status_update",
-                            "messageId", messageResponse.getMessageId(),
-                            "readBy", userId,
-                            "readerType", "USER",
-                            "timestamp", System.currentTimeMillis()
-                        );
-                        
-                        messagingTemplate.convertAndSend(
-                            "/topic/chat/" + roomId,
-                            readStatusUpdate
-                        );
-                        
-                        log.debug("🔔 읽음 상태 WebSocket 브로드캐스트 완료 - roomId: {}, messageId: {}", 
-                                  roomId, messageResponse.getMessageId());
-                    } catch (Exception e) {
-                        log.warn("⚠️ 플랫폼 상담 중 발송자 본인 메시지 읽음 처리 실패 - userId: {}, roomId: {}, state: {}, error: {}", 
-                                 userId, roomId, currentState, e.getMessage());
-                    }
-                }
-            }
-            
-            // AI 응답 처리 (상태 기반)
-            boolean isAIEnabled = aiChatService.isAIEnabled(roomId);
-            
-            if (currentRoom != null && isAIEnabled) {
-                ChatRoom.ChatRoomState currentState = currentRoom.getCurrentState();
-                
-                log.warn("🤖 DEBUG: AI 응답 조건 확인 - roomId: {}, AI활성화: {}, 현재상태: {}, 트리거된유저: {}", 
-                    roomId, isAIEnabled, currentState, userId);
-                
-                // AI는 AI_ACTIVE 또는 WAITING_FOR_ADMIN 상태에서만 응답
-                // (ADMIN_ACTIVE 상태에서는 AI 응답 안함)
-                boolean shouldAIRespond = (currentState == ChatRoom.ChatRoomState.AI_ACTIVE || 
-                                         currentState == ChatRoom.ChatRoomState.WAITING_FOR_ADMIN);
-                
-                if (shouldAIRespond) {
-                try {
-                    MessageResponse aiResponse = aiChatService.sendAIMessage(roomId, content);
-                    
-                    Map<String, Object> aiPayload = Map.of(
-                        "roomId", roomId,
-                        "messageId", aiResponse.getMessageId(),
-                        "senderId", aiResponse.getSenderId(),
-                        "senderType", "AI",
-                        "content", aiResponse.getContent(),
-                        "sentAt", aiResponse.getSentAt().toString()
-                    );
-                    
-                    Map<String, Object> aiRoomState = createRoomStateInfo(currentRoom, "ai_response");
-                    
-                    Map<String, Object> aiBroadcastMessage = Map.of(
-                        "type", "AI_MESSAGE",
-                        "payload", aiPayload,
-                        "roomState", aiRoomState
-                    );
-                    
-                    log.warn("🤖 DEBUG: AI 메시지 브로드캐스트 시작 - topic: /topic/chat/{}, payload: {}", 
-                        roomId, aiPayload);
-                    
-                    messagingTemplate.convertAndSend(
-                        "/topic/chat/" + roomId,
-                        aiBroadcastMessage
-                    );
-                    
-                    log.warn("🤖 DEBUG: AI 응답 전송 완료 - roomId: {}", roomId);
-                    
-                } catch (Exception aiError) {
-                    log.error("AI 응답 처리 실패 - roomId: {}", roomId, aiError);
-                }
-                } else {
-                    log.debug("AI 응답 건너뜀 - roomId: {}, 상태: {}, 이유: AI가 응답할 수 없는 상태", 
-                        roomId, currentState);
-                }
-            } else {
-                log.debug("AI 응답 건너뜀 - roomId: {}, 이유: AI비활성화={}, 방없음={}", 
-                    roomId, !isAIEnabled, currentRoom == null);
-            }
-            
-            // 사용자 메시지 전송 후 박람회 관리자들에게 unread count 업데이트 알림
-            try {
-                Long expoId = extractExpoIdFromRoomCode(roomId);
-                if (expoId != null) {
-                    // 채팅방의 현재 unread count 조회
-                    ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomId)
-                        .orElse(null);
-                    
-                    if (chatRoom != null) {
-                        // 관리자가 마지막으로 읽은 메시지 이후의 USER 메시지만 계산
-                        Long unreadCount = chatUnreadService.getUnreadCountForViewer(roomId, 0L, "EXPO_ADMIN");
-                        
-                        Map<String, Object> unreadUpdatePayload = Map.of(
-                            "roomCode", roomId,
-                            "unreadCount", unreadCount
-                        );
-                        
-                        Map<String, Object> unreadUpdateMessage = Map.of(
-                            "type", "unread_count_update",
-                            "payload", unreadUpdatePayload
-                        );
-                        
-                        messagingTemplate.convertAndSend(
-                            "/topic/expo/" + expoId + "/chat-room-updates",
-                            unreadUpdateMessage
-                        );
-                    }
-                }
-            } catch (Exception unreadUpdateError) {
-                log.warn("Unread count 업데이트 전송 실패 - roomCode: {}, error: {}", 
-                    roomId, unreadUpdateError.getMessage());
-            }
-            
+
+            // 2. 사용자 메시지 브로드캐스트
+            ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomId).orElse(null);
+            broadcaster.broadcastUserMessage(roomId, messageResponse, chatRoom);
+
+            // 3. 사용자 메시지 플로우 처리 (AI 응답, 자동 읽음, 미읽음 업데이트)
+            messageHandler.handleUserMessageFlow(userId, roomId, content, messageResponse);
+
         } catch (Exception e) {
-            log.error("❌ 메시지 전송 실패 - roomId: {}, userId: {}, error: {}", 
+            log.error("메시지 전송 실패 - roomId: {}, userId: {}, error: {}",
                      message.get("roomId"), userId, e.getMessage(), e);
-            
-            Map<String, Object> error = Map.of(
-                "type", "ERROR",
-                "payload", "Send message failed: " + e.getMessage(),
-                "detail", e.getClass().getSimpleName()
-            );
-                    
-            String sessionId = headerAccessor.getSessionId();
-            messagingTemplate.convertAndSendToUser(
-                sessionId,
-                "/queue/errors", 
-                error
-            );
+            broadcaster.broadcastError(headerAccessor.getSessionId(), userId, "Send message failed: " + e.getMessage());
         }
     }
 
@@ -358,233 +182,68 @@ public class ChatWebSocketController {
     @MessageMapping("/admin/chat.send")
     public void sendAdminMessage(@Payload Map<String, Object> message,
                                 SimpMessageHeaderAccessor headerAccessor) {
+        Long userId = null;
         try {
-            Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
+            userId = (Long) headerAccessor.getSessionAttributes().get("userId");
             if (userId == null) {
                 throw new IllegalStateException("인증되지 않은 사용자");
             }
-            
+
             String roomCode = (String) message.get("roomCode");
             String content = (String) message.get("message");
-            // Platform rooms have expoId = null, expo rooms have actual expoId
             Long expoId = message.get("expoId") != null ? ((Number) message.get("expoId")).longValue() : null;
-            
+
+            log.debug("관리자 메시지 전송 - userId: {}, roomCode: {}", userId, roomCode);
+
             ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
                     .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
-            
-            // Determine admin code based on room type and user
-            String adminCode;
-            if (roomCode.startsWith("platform-")) {
-                // Platform admin handling platform rooms
-                adminCode = "PLATFORM_ADMIN";
-            } else {
-                // Regular expo admin handling expo rooms - extract from JWT token directly
-                String token = (String) headerAccessor.getSessionAttributes().get("token");
-                
-                try {
-                    String loginType = jwtUtil.getLoginTypeFromToken(token);
-                    
-                    if ("ADMIN_CODE".equals(loginType)) {
-                        // Use the existing service method to determine admin code
-                        adminCode = chatWebSocketService.determineAdminCode(userId, loginType);
-                    } else {
-                        adminCode = "SUPER_ADMIN";
-                    }
-                } catch (Exception e) {
-                    throw new IllegalStateException("JWT 토큰 파싱 실패");
-                }
-            }
-            
-            // Assign admin if needed for expo rooms FIRST
+
+            // 1. 관리자 코드 결정
+            String adminCode = determineAdminCode(roomCode, userId, headerAccessor);
+
+            // 2. 박람회 방에 대한 담당자 배정
             if (!roomCode.startsWith("platform-")) {
                 chatWebSocketService.assignAdminIfNeeded(chatRoom, adminCode);
             }
-            
-            // THEN check admin collision protection after assignment
-            if (chatRoom.hasAssignedAdmin() && !chatRoom.hasAdminPermission(adminCode)) {
-                String errorMsg = String.format("상담 권한이 없습니다. 현재 담당자: %s", 
-                                                chatRoom.getAdminDisplayName());
-                
-                // Send error message back to the unauthorized admin
-                Map<String, Object> errorPayload = Map.of(
-                    "error", "PERMISSION_DENIED",
-                    "message", errorMsg,
-                    "currentAdmin", chatRoom.getAdminDisplayName()
-                );
-                messagingTemplate.convertAndSendToUser(
-                    userId.toString(),
-                    "/queue/errors",
-                    errorPayload
-                );
-                return;
-            }
-            
 
-            // State-driven admin assignment logic (only for platform rooms)
-            if (roomCode.startsWith("platform-")) {
-                ChatRoom.ChatRoomState currentState = chatRoom.getCurrentState();
-                log.debug("Platform admin message handling - roomCode: {}, currentState: {}", roomCode, currentState);
-                
-                switch (currentState) {
-                    case WAITING_FOR_ADMIN -> {
-                        // Call AI handoff system for proper summary and transition
-                        try {
-                            chatRoomService.handoffAIToAdmin(roomCode, adminCode);
-                            // Refresh the chatRoom from DB to get the updated state
-                            chatRoom = chatRoomRepository.findByRoomCode(roomCode)
-                                .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
-                            log.info("AI handoff completed - roomCode: {}, adminCode: {}, newState: {}", 
-                                roomCode, adminCode, chatRoom.getCurrentState());
-                        } catch (Exception handoffError) {
-                            log.error("AI handoff failed - roomCode: {}, adminCode: {}", roomCode, adminCode, handoffError);
-                        }
-                    }
-                    case AI_ACTIVE -> {
-                        // Block direct messaging during AI chat - admins must use intervention button
-                        log.warn("❌ Direct admin message blocked during AI_ACTIVE state - roomCode: {}, adminCode: {}", 
-                            roomCode, adminCode);
-                        
-                        // Send error message back to admin
-                        Map<String, Object> errorPayload = Map.of(
-                            "error", "INTERVENTION_REQUIRED",
-                            "message", "AI 상담 중에는 직접 메시지를 보낼 수 없습니다. '개입하기' 버튼을 사용해주세요.",
-                            "suggestedAction", "USE_INTERVENTION_BUTTON"
-                        );
-                        messagingTemplate.convertAndSendToUser(
-                            userId.toString(),
-                            "/queue/errors",
-                            errorPayload
-                        );
-                        return; // Block the message entirely
-                    }
-                    case ADMIN_ACTIVE -> {
-                        // Admin already active - just update admin activity
-                        chatRoom.updateAdminActivity();
-                        ChatRoom savedRoom = chatRoomRepository.save(chatRoom);
-                        // Redis 캐시 동기화 (Super/AdminCode 구분 로직 보존)
-                        chatCacheService.cacheChatRoom(roomCode, savedRoom);
-                        log.debug("Admin activity updated and cached - roomCode: {}, state: {}", roomCode, currentState);
-                    }
-                }
+            // 3. 권한 검증
+            Map<String, Object> errorHandler = Map.of("sessionId", headerAccessor.getSessionId());
+            if (!messageHandler.validateAdminPermission(chatRoom, adminCode, userId, errorHandler)) {
+                return; // 권한 없음 - 이미 에러 메시지 전송됨
             }
-            
-            // 담당자 배정 브로드캐스트
+
+            // 4. 상태별 처리 (상태 전환, 에러 처리 등)
+            messageHandler.handleAdminStateTransition(chatRoom, adminCode, userId, errorHandler);
+
+            // 새로운 chatRoom 데이터 재조회 (상태 변경 가능성)
+            chatRoom = chatRoomRepository.findByRoomCode(roomCode)
+                    .orElseThrow(() -> new IllegalStateException("채팅방을 찾을 수 없습니다"));
+
+            // 5. 담당자 배정 브로드캐스트
             if (chatRoom.hasAssignedAdmin()) {
-                Map<String, Object> assignmentPayload = Map.of(
-                    "roomCode", roomCode,
-                    "currentAdminCode", chatRoom.getCurrentAdminCode() != null ? chatRoom.getCurrentAdminCode() : "PLATFORM_ADMIN",
-                    "adminDisplayName", chatRoom.getAdminDisplayName() != null ? chatRoom.getAdminDisplayName() : "플랫폼 관리자"
-                );
-                
-                Map<String, Object> assignmentMessage = Map.of(
-                    "type", "admin_assignment_update",
-                    "payload", assignmentPayload
-                );
-                
-                messagingTemplate.convertAndSend(
-                    "/topic/chat/" + roomCode,
-                    assignmentMessage
-                );
-                
-                messagingTemplate.convertAndSend(
-                    "/topic/expo/" + expoId + "/admin-updates",
-                    assignmentMessage
-                );
+                broadcaster.broadcastAdminAssignment(roomCode, chatRoom, expoId);
             }
-            
-            // Use sendMessage service for complete save including Redis cache and ChatRoom update
+
+            // 6. 메시지 저장
             String token = (String) headerAccessor.getSessionAttributes().get("token");
             MessageResponse messageResponse = chatWebSocketService.sendMessage(userId, roomCode, content, token);
-            
-            Map<String, Object> payload = Map.of(
-                "roomCode", roomCode,
-                "messageId", messageResponse.getMessageId(),
-                "senderId", messageResponse.getSenderId(),
-                "senderType", "ADMIN",
-                "adminCode", adminCode,
-                "adminDisplayName", chatRoom.getAdminDisplayName(),
-                "content", messageResponse.getContent(),
-                "sentAt", messageResponse.getSentAt().toString()
-            );
-            
-            // Add room state information to admin messages
-            Map<String, Object> adminRoomState = createRoomStateInfo(chatRoom, "admin_message");
-            
-            Map<String, Object> broadcastMessage = Map.of(
-                "type", "ADMIN_MESSAGE",
-                "payload", payload,
-                "roomState", adminRoomState
-            );
-                    
-            messagingTemplate.convertAndSend(
-                "/topic/chat/" + roomCode,
-                broadcastMessage
-            );
-            
+
+            // 7. 관리자 메시지 브로드캐스트
+            broadcaster.broadcastAdminMessage(roomCode, messageResponse, chatRoom, adminCode);
+
         } catch (CustomException e) {
-            CustomErrorCode errorCode = e.getErrorCode();
-            String errorMessage = errorCode == CustomErrorCode.CHAT_ROOM_ACCESS_DENIED 
-                ? "이미 다른 관리자가 담당하고 있는 상담입니다." 
-                : errorCode.getMessage();
-            
-            Map<String, Object> error = Map.of(
-                "type", "ERROR",
-                "errorCode", errorCode.getErrorCode(),
-                "message", errorMessage,
-                "payload", Map.of(
-                    "code", errorCode.getErrorCode(),
-                    "message", errorMessage
-                )
+            log.error("관리자 메시지 전송 실패 (CustomException) - roomCode: {}, error: {}",
+                message.get("roomCode"), e.getMessage());
+            broadcaster.broadcastCustomError(
+                headerAccessor.getSessionId(),
+                e.getErrorCode().getErrorCode(),
+                e.getErrorCode().getMessage()
             );
-                    
-            String sessionId = headerAccessor.getSessionId();
-            Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
-            
-            try {
-                // Send error to the channel that frontend subscribes to
-                String generalErrorChannel = "/topic/user/errors";
-                messagingTemplate.convertAndSend(generalErrorChannel, error);
-                
-                // Also send to user-specific channels for better coverage
-                String userErrorChannel = USER_ERROR_TOPIC_PREFIX + sessionId + ERROR_CHANNEL_SUFFIX;
-                messagingTemplate.convertAndSend(userErrorChannel, error);
-                
-                // Also send to user-specific queue
-                messagingTemplate.convertAndSendToUser(
-                    sessionId,
-                    "/queue/errors", 
-                    error
-                );
-                
-                // Also send to user ID based channel if available
-                if (userId != null) {
-                    messagingTemplate.convertAndSendToUser(
-                        userId.toString(),
-                        "/queue/errors",
-                        error
-                    );
-                }
-                
-                        
-            } catch (Exception sendException) {
-                log.error("에러 메시지 전송 실패", sendException);
-            }
-            
+
         } catch (Exception e) {
-            log.error("관리자 메시지 전송 실패 - roomCode: {}, error: {}", message.get("roomCode"), e.getMessage(), e);
-            log.error("🚨 Exception stack trace:", e);
-            
-            Map<String, Object> error = Map.of(
-                "type", "ERROR",
-                "payload", "메시지 전송에 실패했습니다: " + e.getMessage()
-            );
-                    
-            String sessionId = headerAccessor.getSessionId();
-            messagingTemplate.convertAndSendToUser(
-                sessionId,
-                "/queue/errors", 
-                error
-            );
+            log.error("관리자 메시지 전송 실패 - roomCode: {}, userId: {}, error: {}",
+                message.get("roomCode"), userId, e.getMessage(), e);
+            broadcaster.broadcastError(headerAccessor.getSessionId(), userId, "메시지 전송에 실패했습니다: " + e.getMessage());
         }
     }
 
@@ -629,6 +288,8 @@ public class ChatWebSocketController {
      * 관리자 연결 요청 (버튼 액션)
      * /app/request-handoff -> AI가 관리자 연결 대기 상태로 전환
      */
+
+
     @MessageMapping("/request-handoff")
     public void requestHandoff(@Payload Map<String, Object> message,
                               SimpMessageHeaderAccessor headerAccessor) {
@@ -640,7 +301,7 @@ public class ChatWebSocketController {
             
             String roomId = (String) message.get("roomId");
             
-            log.warn("🔍 DEBUG HANDOFF REQUEST - roomId: {}, userId: {}, sessionId: {}", 
+            log.warn(" DEBUG HANDOFF REQUEST - roomId: {}, userId: {}, sessionId: {}", 
                 roomId, userId, headerAccessor.getSessionId());
             
             // AI 서비스를 통한 핸드오프 요청 처리
@@ -667,14 +328,14 @@ public class ChatWebSocketController {
             );
             
             String topicChannel = "/topic/chat/" + roomId;
-            log.warn("🔍 DEBUG: Sending AI_HANDOFF_REQUEST to channel: {}", topicChannel);
-            log.warn("🔍 DEBUG: Message payload: {}", handoffBroadcast);
+            log.warn(" DEBUG: Sending AI_HANDOFF_REQUEST to channel: {}", topicChannel);
+            log.warn(" DEBUG: Message payload: {}", handoffBroadcast);
             
             messagingTemplate.convertAndSend(topicChannel, handoffBroadcast);
             
-            log.warn("🔍 DEBUG: AI_HANDOFF_REQUEST sent successfully");
+            log.warn(" DEBUG: AI_HANDOFF_REQUEST sent successfully");
             
-            // 🆕 플랫폼 채팅방인 경우 플랫폼 관리자에게도 알림
+            //  플랫폼 채팅방인 경우 플랫폼 관리자에게도 알림
             if (roomId.startsWith("platform-")) {
                 Map<String, Object> adminNotification = Map.of(
                     "type", "PLATFORM_HANDOFF_REQUEST",
@@ -690,7 +351,7 @@ public class ChatWebSocketController {
             }
             
             // 버튼 상태 업데이트 브로드캐스트
-            log.warn("🔍 DEBUG: Sending BUTTON_STATE_UPDATE to channel: {}", topicChannel);
+            log.warn(" DEBUG: Sending BUTTON_STATE_UPDATE to channel: {}", topicChannel);
             sendButtonStateUpdate(roomId, "WAITING_FOR_ADMIN");
             
             log.info("핸드오프 요청 처리 완료 - roomId: {}, userId: {}", roomId, userId);
@@ -999,13 +660,13 @@ public class ChatWebSocketController {
             );
             
             String channel = "/topic/chat/" + roomId;
-            log.warn("🔍 DEBUG: sendButtonStateUpdate - roomId: {}, state: {}, channel: {}", 
+            log.warn(" DEBUG: sendButtonStateUpdate - roomId: {}, state: {}, channel: {}", 
                 roomId, newState, channel);
-            log.warn("🔍 DEBUG: BUTTON_STATE_UPDATE payload: {}", stateBroadcast);
+            log.warn(" DEBUG: BUTTON_STATE_UPDATE payload: {}", stateBroadcast);
             
             messagingTemplate.convertAndSend(channel, stateBroadcast);
             
-            log.warn("🔍 DEBUG: BUTTON_STATE_UPDATE sent successfully to {}", channel);
+            log.warn(" DEBUG: BUTTON_STATE_UPDATE sent successfully to {}", channel);
             
         } catch (Exception e) {
             log.warn("버튼 상태 업데이트 전송 실패 - roomId: {}, state: {}", roomId, newState, e);
@@ -1149,6 +810,28 @@ public class ChatWebSocketController {
     }
     
     /**
+     * 관리자 코드 결정
+     */
+    private String determineAdminCode(String roomCode, Long userId, SimpMessageHeaderAccessor headerAccessor) {
+        if (roomCode.startsWith("platform-")) {
+            return "PLATFORM_ADMIN";
+        }
+
+        String token = (String) headerAccessor.getSessionAttributes().get("token");
+        try {
+            String loginType = jwtUtil.getLoginTypeFromToken(token);
+            if ("ADMIN_CODE".equals(loginType)) {
+                return chatWebSocketService.determineAdminCode(userId, loginType);
+            } else {
+                return "SUPER_ADMIN";
+            }
+        } catch (Exception e) {
+            log.warn("JWT 토큰 파싱 실패 - userId: {}", userId);
+            throw new IllegalStateException("JWT 토큰 파싱 실패");
+        }
+    }
+
+    /**
      * 에러 메시지 전송
      */
     private void sendErrorMessage(SimpMessageHeaderAccessor headerAccessor, String errorMessage) {
@@ -1157,14 +840,14 @@ public class ChatWebSocketController {
                 "type", "ERROR",
                 "payload", errorMessage
             );
-            
+
             String sessionId = headerAccessor.getSessionId();
             messagingTemplate.convertAndSendToUser(
                 sessionId,
-                "/queue/errors", 
+                "/queue/errors",
                 error
             );
-            
+
         } catch (Exception e) {
             log.error("에러 메시지 전송 실패: {}", errorMessage, e);
         }

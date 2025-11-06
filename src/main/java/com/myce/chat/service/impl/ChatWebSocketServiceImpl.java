@@ -237,9 +237,9 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
             ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
             log.warn("🔧 ChatMessage saved to MongoDB - messageId: {}, roomId: {}", savedMessage.getId(), roomId);
             updateChatRoomLastMessage(roomId, savedMessage.getId(), content);
-            log.warn("✅ MongoDB 저장 성공 - messageId: {}, roomId: {}", savedMessage.getId(), roomId);
+            log.warn(" MongoDB 저장 성공 - messageId: {}, roomId: {}", savedMessage.getId(), roomId);
         } catch (Exception e) {
-            log.error("❌ MongoDB 저장 실패 - roomId: {}, messageId: {}, error: {}", 
+            log.error(" MongoDB 저장 실패 - roomId: {}, messageId: {}, error: {}", 
                      roomId, chatMessage.getId(), e.getMessage(), e);
         }
         
@@ -443,10 +443,10 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
                         log.info("🔧 Generated displayName: {}", displayName);
                         chatRoom.setAdminDisplayName(displayName);
                         needsUpdate = true;
-                        log.info("✅ Admin assigned successfully: {} to room {} - NEW STATE: {}", 
+                        log.info(" Admin assigned successfully: {} to room {} - NEW STATE: {}", 
                                 adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentState());
                     } else {
-                        log.warn("❌ Admin assignment failed (collision): {} for room {}", adminCode, chatRoom.getRoomCode());
+                        log.warn(" Admin assignment failed (collision): {} for room {}", adminCode, chatRoom.getRoomCode());
                         throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
                     }
                 } catch (Exception e) {
@@ -454,7 +454,7 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
                     throw e;
                 }
             } else if (!chatRoom.getCurrentAdminCode().equals(adminCode)) {
-                log.warn("❌ Admin permission denied: {} attempted access to room {} (owned by {})", 
+                log.warn(" Admin permission denied: {} attempted access to room {} (owned by {})", 
                          adminCode, chatRoom.getRoomCode(), chatRoom.getCurrentAdminCode());
                 throw new CustomException(CustomErrorCode.CHAT_ROOM_ACCESS_DENIED);
             } else {
@@ -489,7 +489,7 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
      */
     @Override
     public String determineAdminCode(Long memberId, String loginType) {
-        log.info("🔍 determineAdminCode called - memberId: {}, loginType: {}", memberId, loginType);
+        log.info(" determineAdminCode called - memberId: {}, loginType: {}", memberId, loginType);
         try {
             if ("ADMIN_CODE".equals(loginType)) {
                 // ADMIN_CODE 로그인의 경우 memberId는 AdminCode.id
@@ -499,10 +499,10 @@ public class ChatWebSocketServiceImpl implements ChatWebSocketService {
                         return new CustomException(CustomErrorCode.MEMBER_NOT_EXIST);
                     });
                 
-                log.info("✅ AdminCode 결정 완료 - id: {}, code: {}", memberId, adminCode.getCode());
+                log.info(" AdminCode 결정 완료 - id: {}, code: {}", memberId, adminCode.getCode());
                 return adminCode.getCode();
             } else {
-                log.info("✅ Super Admin 코드 설정 - memberId: {}", memberId);
+                log.info(" Super Admin 코드 설정 - memberId: {}", memberId);
                 return "SUPER_ADMIN";
             }
         } catch (Exception e) {
