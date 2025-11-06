@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myce.auth.dto.CustomUserDetails;
 import com.myce.auth.dto.type.LoginType;
 import com.myce.auth.repository.TokenBlackListRepository;
-import com.myce.auth.security.config.SecurityEndpoints;
+import com.myce.auth.security.config.SecurityEndPoints;
 import com.myce.auth.security.util.JwtUtil;
 import com.myce.auth.service.AdminCodeDetailService;
 import com.myce.auth.service.impl.UserDetailsServiceImpl;
@@ -135,19 +135,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return false;
         }
 
-        if(isExist(SecurityEndpoints.ETC_PERMIT_ALL, path)) return true;
+        if(isExist(SecurityEndPoints.ETC_PERMIT_ALL, path)) return true;
 
         if(HttpMethod.GET.name().equals(method)) {
-            return isExist(SecurityEndpoints.GET_PERMIT_ALL, path);
+            return isExist(SecurityEndPoints.GET_PERMIT_ALL, path);
         }
         if(HttpMethod.POST.name().equals(method)) {
-            return isExist(SecurityEndpoints.POST_PERMIT_ALL, path);
+            return isExist(SecurityEndPoints.POST_PERMIT_ALL, path);
         }
         if(HttpMethod.PATCH.name().equals(method)) {
-            return isExist(SecurityEndpoints.PATCH_PERMIT_ALL, path);
+            return isExist(SecurityEndPoints.PATCH_PERMIT_ALL, path);
         }
         if(HttpMethod.DELETE.name().equals(method)) {
-            return isExist(SecurityEndpoints.DELETE_PERMIT_ALL, path);
+            return isExist(SecurityEndPoints.DELETE_PERMIT_ALL, path);
         }
 
         return false;

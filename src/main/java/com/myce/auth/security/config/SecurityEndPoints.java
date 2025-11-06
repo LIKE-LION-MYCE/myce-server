@@ -1,9 +1,9 @@
 package com.myce.auth.security.config;
 
 // Spring Security에서 인증 없이 접근 가능한 엔드포인트를 정의하는 설정 클래스
-public final class SecurityEndpoints {
+public final class SecurityEndPoints {
 
-    private SecurityEndpoints() {
+    private SecurityEndPoints() {
         throw new UnsupportedOperationException("Utility class");
     }
 

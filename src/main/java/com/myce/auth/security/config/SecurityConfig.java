@@ -107,15 +107,15 @@ public class SecurityConfig {
                 .failureHandler(oAuth2LoginFailureHandler));
 
         http.authorizeHttpRequests(auth ->
-                auth.requestMatchers(HttpMethod.POST, SecurityEndpoints.POST_PERMIT_ALL)
+                auth.requestMatchers(HttpMethod.POST, SecurityEndPoints.POST_PERMIT_ALL)
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, SecurityEndpoints.GET_PERMIT_ALL)
+                        .requestMatchers(HttpMethod.GET, SecurityEndPoints.GET_PERMIT_ALL)
                         .permitAll()
-                        .requestMatchers(HttpMethod.PATCH, SecurityEndpoints.PATCH_PERMIT_ALL)
+                        .requestMatchers(HttpMethod.PATCH, SecurityEndPoints.PATCH_PERMIT_ALL)
                         .permitAll()
-                        .requestMatchers(HttpMethod.DELETE, SecurityEndpoints.DELETE_PERMIT_ALL)
+                        .requestMatchers(HttpMethod.DELETE, SecurityEndPoints.DELETE_PERMIT_ALL)
                         .permitAll()
-                        .requestMatchers(SecurityEndpoints.ETC_PERMIT_ALL).permitAll()
+                        .requestMatchers(SecurityEndPoints.ETC_PERMIT_ALL).permitAll()
                         .anyRequest()
                         .authenticated());
         return http.build();
