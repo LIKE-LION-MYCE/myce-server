@@ -194,3 +194,5 @@ gradle.lockfile
 GEMINI.md
 .prompt
 .prMessage
+
+/docs
